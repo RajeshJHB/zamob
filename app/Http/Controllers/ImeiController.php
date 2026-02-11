@@ -176,7 +176,7 @@ class ImeiController extends Controller
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
-            $term = '%' . $search . '%';
+            $term = '%'.$search.'%';
             $query->where(function ($q) use ($term) {
                 foreach (array_keys(self::COLUMNS) as $column) {
                     $q->orWhere($column, 'LIKE', $term);
@@ -186,7 +186,7 @@ class ImeiController extends Controller
 
         $search2 = trim((string) $request->input('search2', ''));
         if ($search2 !== '') {
-            $term2 = '%' . $search2 . '%';
+            $term2 = '%'.$search2.'%';
             $query->where(function ($q) use ($term2) {
                 foreach (array_keys(self::COLUMNS) as $column) {
                     $q->orWhere($column, 'LIKE', $term2);
@@ -196,8 +196,8 @@ class ImeiController extends Controller
 
         if ($dateScope === 'range' && $dateColumn && in_array($dateColumn, array_keys(self::DATE_COLUMNS), true) && $startDate && $endDate) {
             $query->whereBetween($dateColumn, [
-                $startDate . ' 00:00:00',
-                $endDate . ' 23:59:59',
+                $startDate.' 00:00:00',
+                $endDate.' 23:59:59',
             ]);
         }
 
@@ -242,6 +242,9 @@ class ImeiController extends Controller
         ]);
 
         $user = $request->user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
 
         // Take all current filter inputs (from the filter form) except meta fields.
         $params = $request->except([
@@ -252,7 +255,7 @@ class ImeiController extends Controller
         $name = $request->input('profile_name');
 
         $filter = ImeiFilter::query()
-            ->where('user_id', $user?->id)
+            ->where('user_id', $user->id)
             ->where('name', $name)
             ->first();
 
@@ -262,7 +265,7 @@ class ImeiController extends Controller
             ]);
         } else {
             $filter = ImeiFilter::create([
-                'user_id' => $user?->id,
+                'user_id' => $user->id,
                 'name' => $name,
                 'params' => $params,
             ]);
@@ -279,8 +282,12 @@ class ImeiController extends Controller
     {
         $user = $request->user();
 
-        if (! $user || $filter->user_id !== $user->id) {
-            abort(403);
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        if ($filter->user_id !== null && (int) $filter->user_id !== (int) $user->id) {
+            abort(403, 'You do not have permission to use this filter.');
         }
 
         $params = $filter->params ?? [];
@@ -293,8 +300,12 @@ class ImeiController extends Controller
     {
         $user = $request->user();
 
-        if (! $user || $filter->user_id !== $user->id) {
-            abort(403);
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        if ($filter->user_id !== null && (int) $filter->user_id !== (int) $user->id) {
+            abort(403, 'You do not have permission to delete this filter.');
         }
 
         $filter->delete();

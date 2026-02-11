@@ -20,6 +20,7 @@ class ImeiFilter extends Model
 
     protected $casts = [
         'params' => 'array',
+        'user_id' => 'integer',
     ];
 
     public function user(): BelongsTo
@@ -27,4 +28,3 @@ class ImeiFilter extends Model
         return $this->belongsTo(User::class);
     }
 }
-
