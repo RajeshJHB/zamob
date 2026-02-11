@@ -12,7 +12,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center text-xl font-semibold text-gray-900 hover:text-gray-700 focus:outline-none">
-                        IMEI Menu
+                        Home
                     </a>
                     <a href="{{ route('imeis.filter') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
                         Find IMEI's

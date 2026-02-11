@@ -58,6 +58,9 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/imeis/filter', [ImeiController::class, 'filter'])->name('imeis.filter');
+    Route::post('/imeis/filter/save', [ImeiController::class, 'saveFilter'])->name('imeis.filter.save');
+    Route::get('/imeis/filter/apply/{filter}', [ImeiController::class, 'applyFilter'])->name('imeis.filter.apply');
+    Route::delete('/imeis/filter/{filter}', [ImeiController::class, 'deleteFilter'])->name('imeis.filter.delete');
     Route::get('/imeis/print', [ImeiController::class, 'print'])->name('imeis.print');
     Route::get('/imeis', [ImeiController::class, 'index'])->name('imeis.index');
 });

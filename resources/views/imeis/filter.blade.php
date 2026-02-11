@@ -5,7 +5,14 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h1 class="text-2xl font-bold mb-4">Filter – Select columns to display</h1>
+        <h1 class="text-2xl font-bold mb-4">
+            Filter –
+            @if(!empty($currentProfileName))
+                "{{ $currentProfileName }}"
+            @else
+                Select columns to display
+            @endif
+        </h1>
 
         @if(session('error'))
             <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -157,6 +164,74 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Saved filter profiles --}}
+                <div>
+                    <h2 class="text-lg font-semibold mb-3">Saved filter profiles</h2>
+                    @if(session('message'))
+                        <div class="mb-3 bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded text-sm">
+                            {{ session('message') }}
+                        </div>
+                    @endif
+
+                    <div class="space-y-3">
+                        <div>
+                            <label for="profile_name" class="block text-xs font-medium text-gray-700 mb-1">
+                                Profile name
+                            </label>
+                            <input
+                                type="text"
+                                name="profile_name"
+                                id="profile_name"
+                                class="border border-gray-300 rounded px-3 py-1.5 shadow-sm w-full text-sm"
+                                placeholder="Enter or choose a profile name"
+                                value="{{ $currentProfileName ?? '' }}"
+                            >
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                            <div>
+                                <label for="profile_select" class="block text-xs font-medium text-gray-700 mb-1">
+                                    Existing profiles
+                                </label>
+                                <select
+                                    id="profile_select"
+                                    class="border border-gray-300 rounded px-2 py-1.5 shadow-sm w-full text-sm"
+                                >
+                                    <option value="">(none)</option>
+                                    @foreach($savedFilters as $filter)
+                                        <option value="{{ $filter->id }}"
+                                            @if(request('profile_id') == $filter->id) selected @endif
+                                        >
+                                            {{ $filter->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button"
+                                        id="load-profile-button"
+                                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1.5 px-3 rounded text-xs">
+                                    Load profile
+                                </button>
+                                <button type="button"
+                                        id="save-profile-button"
+                                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded text-xs">
+                                    Save profile
+                                </button>
+                                <button type="button"
+                                        id="delete-profile-button"
+                                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded text-xs">
+                                    Delete profile
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            Saving with an existing profile name will overwrite it (you will be asked to confirm).
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-6 flex gap-3">
@@ -182,6 +257,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateScopeRange = document.querySelector('input[name="date_scope"][value="range"]');
     const dateRangeGroup = document.getElementById('date-range-group');
     const dateRangeInputs = document.querySelectorAll('.date-range-input');
+
+    const filterForm = document.getElementById('imei-filter-form');
+    const saveProfileButton = document.getElementById('save-profile-button');
+    const loadProfileButton = document.getElementById('load-profile-button');
+    const deleteProfileButton = document.getElementById('delete-profile-button');
+    const profileSelect = document.getElementById('profile_select');
+    const profileNameInput = document.getElementById('profile_name');
+    const existingProfileNames = @json($savedFilters->pluck('name')->values());
 
     function updateColumnsUi() {
         const selected = scopeSelected && scopeSelected.checked;
@@ -214,6 +297,102 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.date-range-input').forEach(function(input) { input.removeAttribute('name'); });
         }
     });
+
+    if (saveProfileButton && filterForm) {
+        saveProfileButton.addEventListener('click', function () {
+            const nameInput = document.getElementById('profile_name');
+            const name = nameInput ? nameInput.value.trim() : '';
+            if (!name) {
+                alert('Please enter a profile name.');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            if (existingProfileNames.includes(name)) {
+                if (!confirm('A profile with this name already exists. Overwrite it?')) {
+                    return;
+                }
+            }
+
+            const postForm = document.createElement('form');
+            postForm.method = 'POST';
+            postForm.action = '{{ route('imeis.filter.save') }}';
+
+            // CSRF
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_token';
+            tokenInput.value = '{{ csrf_token() }}';
+            postForm.appendChild(tokenInput);
+
+            const formData = new FormData(filterForm);
+            formData.append('profile_name', name);
+
+            formData.forEach(function (value, key) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                postForm.appendChild(input);
+            });
+
+            document.body.appendChild(postForm);
+            postForm.submit();
+        });
+    }
+
+    if (loadProfileButton && profileSelect) {
+        loadProfileButton.addEventListener('click', function () {
+            const id = profileSelect.value;
+            if (!id) {
+                alert('Please select a profile to load.');
+                return;
+            }
+            const url = '{{ url('/imeis/filter/apply') }}' + '/' + encodeURIComponent(id);
+            window.location.href = url;
+        });
+    }
+
+    if (profileSelect && profileNameInput) {
+        profileSelect.addEventListener('change', function () {
+            const selected = profileSelect.options[profileSelect.selectedIndex];
+            if (selected && selected.value) {
+                profileNameInput.value = selected.textContent.trim();
+            }
+        });
+    }
+
+    if (deleteProfileButton && profileSelect) {
+        deleteProfileButton.addEventListener('click', function () {
+            const id = profileSelect.value;
+            if (!id) {
+                alert('Please select a profile to delete.');
+                return;
+            }
+            if (!confirm('Delete this filter profile?')) {
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url('/imeis/filter') }}' + '/' + encodeURIComponent(id);
+
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_token';
+            tokenInput.value = '{{ csrf_token() }}';
+            form.appendChild(tokenInput);
+
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'DELETE';
+            form.appendChild(methodInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
 });
 </script>
 @endsection

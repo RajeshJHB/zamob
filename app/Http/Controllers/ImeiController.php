@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Imei;
+use App\Models\ImeiFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -39,6 +40,22 @@ class ImeiController extends Controller
 
     public function filter(Request $request): View
     {
+        $user = $request->user();
+
+        $savedFilters = ImeiFilter::query()
+            ->when($user, fn ($q) => $q->where('user_id', $user->id))
+            ->orderBy('name')
+            ->get();
+
+        $currentProfileName = null;
+        $currentProfileId = $request->input('profile_id');
+        if ($currentProfileId) {
+            $current = $savedFilters->firstWhere('id', (int) $currentProfileId);
+            if ($current) {
+                $currentProfileName = $current->name;
+            }
+        }
+
         return view('imeis.filter', [
             'columns' => self::COLUMNS,
             'dateColumns' => self::DATE_COLUMNS,
@@ -54,6 +71,8 @@ class ImeiController extends Controller
             'oldSort1Dir' => $request->input('sort1_dir', 'asc'),
             'oldSort2Column' => $request->input('sort2_column'),
             'oldSort2Dir' => $request->input('sort2_dir', 'asc'),
+            'savedFilters' => $savedFilters,
+            'currentProfileName' => $currentProfileName,
         ]);
     }
 
@@ -214,5 +233,74 @@ class ImeiController extends Controller
         }
 
         return $query;
+    }
+
+    public function saveFilter(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'profile_name' => ['required', 'string', 'max:100'],
+        ]);
+
+        $user = $request->user();
+
+        // Take all current filter inputs (from the filter form) except meta fields.
+        $params = $request->except([
+            '_token',
+            'profile_name',
+        ]);
+
+        $name = $request->input('profile_name');
+
+        $filter = ImeiFilter::query()
+            ->where('user_id', $user?->id)
+            ->where('name', $name)
+            ->first();
+
+        if ($filter) {
+            $filter->update([
+                'params' => $params,
+            ]);
+        } else {
+            $filter = ImeiFilter::create([
+                'user_id' => $user?->id,
+                'name' => $name,
+                'params' => $params,
+            ]);
+        }
+
+        return redirect()
+            ->route('imeis.filter', array_merge($params, [
+                'profile_id' => optional($filter ?? null)?->id,
+            ]))
+            ->with('message', 'Filter profile saved.');
+    }
+
+    public function applyFilter(Request $request, ImeiFilter $filter): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user || $filter->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $params = $filter->params ?? [];
+        $params['profile_id'] = $filter->id;
+
+        return redirect()->route('imeis.filter', $params);
+    }
+
+    public function deleteFilter(Request $request, ImeiFilter $filter): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user || $filter->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $filter->delete();
+
+        return redirect()
+            ->route('imeis.filter', $request->query())
+            ->with('message', 'Filter profile deleted.');
     }
 }
