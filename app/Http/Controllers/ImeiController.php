@@ -49,6 +49,11 @@ class ImeiController extends Controller
             'oldScope' => $request->input('scope', 'all'),
             'oldColumns' => $request->input('columns', []),
             'oldSearch' => $request->input('search'),
+            'oldSearch2' => $request->input('search2'),
+            'oldSort1Column' => $request->input('sort1_column'),
+            'oldSort1Dir' => $request->input('sort1_dir', 'asc'),
+            'oldSort2Column' => $request->input('sort2_column'),
+            'oldSort2Dir' => $request->input('sort2_dir', 'asc'),
         ]);
     }
 
@@ -61,7 +66,20 @@ class ImeiController extends Controller
 
         if ($dateScope === 'range' && $startDate && $endDate && $startDate > $endDate) {
             return redirect()
-                ->route('imeis.filter', $request->only(['scope', 'date_scope', 'date_column', 'start_date', 'end_date', 'columns', 'search']))
+                ->route('imeis.filter', $request->only([
+                    'scope',
+                    'date_scope',
+                    'date_column',
+                    'start_date',
+                    'end_date',
+                    'columns',
+                    'search',
+                    'search2',
+                    'sort1_column',
+                    'sort1_dir',
+                    'sort2_column',
+                    'sort2_dir',
+                ]))
                 ->with('error', 'The dates must be fixed. Start date cannot be after end date.');
         }
 
@@ -86,7 +104,20 @@ class ImeiController extends Controller
             'imeis' => $imeis,
             'columns' => $selectedColumns,
             'columnLabels' => self::COLUMNS,
-            'filterParams' => $request->only(['scope', 'columns', 'date_scope', 'date_column', 'start_date', 'end_date', 'search']),
+            'filterParams' => $request->only([
+                'scope',
+                'columns',
+                'date_scope',
+                'date_column',
+                'start_date',
+                'end_date',
+                'search',
+                'search2',
+                'sort1_column',
+                'sort1_dir',
+                'sort2_column',
+                'sort2_dir',
+            ]),
         ]);
     }
 
@@ -122,7 +153,7 @@ class ImeiController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $query = Imei::query()->orderByDesc('date_in');
+        $query = Imei::query();
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -134,11 +165,52 @@ class ImeiController extends Controller
             });
         }
 
+        $search2 = trim((string) $request->input('search2', ''));
+        if ($search2 !== '') {
+            $term2 = '%' . $search2 . '%';
+            $query->where(function ($q) use ($term2) {
+                foreach (array_keys(self::COLUMNS) as $column) {
+                    $q->orWhere($column, 'LIKE', $term2);
+                }
+            });
+        }
+
         if ($dateScope === 'range' && $dateColumn && in_array($dateColumn, array_keys(self::DATE_COLUMNS), true) && $startDate && $endDate) {
             $query->whereBetween($dateColumn, [
                 $startDate . ' 00:00:00',
                 $endDate . ' 23:59:59',
             ]);
+        }
+
+        // Sorting: up to two levels based on selected columns.
+        $allowedColumns = array_keys(self::COLUMNS);
+
+        $sort1Column = $request->input('sort1_column');
+        $sort1Dir = strtolower((string) $request->input('sort1_dir', 'asc'));
+        $sort2Column = $request->input('sort2_column');
+        $sort2Dir = strtolower((string) $request->input('sort2_dir', 'asc'));
+
+        $hasSort = false;
+
+        if ($sort1Column && in_array($sort1Column, $allowedColumns, true)) {
+            if (! in_array($sort1Dir, ['asc', 'desc'], true)) {
+                $sort1Dir = 'asc';
+            }
+            $query->orderBy($sort1Column, $sort1Dir);
+            $hasSort = true;
+        }
+
+        if ($sort2Column && in_array($sort2Column, $allowedColumns, true) && $sort2Column !== $sort1Column) {
+            if (! in_array($sort2Dir, ['asc', 'desc'], true)) {
+                $sort2Dir = 'asc';
+            }
+            $query->orderBy($sort2Column, $sort2Dir);
+            $hasSort = true;
+        }
+
+        // Default sort if nothing chosen: newest Date In first.
+        if (! $hasSort) {
+            $query->orderByDesc('date_in');
         }
 
         return $query;

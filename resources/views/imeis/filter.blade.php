@@ -16,10 +16,33 @@
         <form method="GET" action="{{ route('imeis.index') }}" id="imei-filter-form">
             <div class="space-y-6">
                 {{-- Search text --}}
-                <div class="pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold mb-3">Search</h2>
-                    <p class="text-sm text-gray-600 mb-2">Show only rows where this text appears in any column (leave blank to skip).</p>
-                    <input type="text" name="search" id="search" value="{{ isset($oldSearch) ? e($oldSearch) : '' }}" placeholder="Search in all columns..." class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md">
+                <div class="pb-4 border-b border-gray-200 space-y-3">
+                    <h2 class="text-lg font-semibold mb-1">Search</h2>
+                    <p class="text-sm text-gray-600">Use one or both fields. A row must match <strong>both</strong> texts (each can appear in any column).</p>
+                    <div class="space-y-2">
+                        <div>
+                            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">First text (optional)</label>
+                            <input
+                                type="text"
+                                name="search"
+                                id="search"
+                                value="{{ isset($oldSearch) ? e($oldSearch) : '' }}"
+                                placeholder="Search text 1 – any column"
+                                class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md"
+                            >
+                        </div>
+                        <div>
+                            <label for="search2" class="block text-sm font-medium text-gray-700 mb-1">Second text (optional)</label>
+                            <input
+                                type="text"
+                                name="search2"
+                                id="search2"
+                                value="{{ isset($oldSearch2) ? e($oldSearch2) : '' }}"
+                                placeholder="Search text 2 – must also appear"
+                                class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md"
+                            >
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Date filter --}}
@@ -84,6 +107,53 @@
                                     <span>{{ $label }}</span>
                                 </label>
                             @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Sort order --}}
+                <div>
+                    <h2 class="text-lg font-semibold mb-3">Sort order</h2>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Choose up to two of the displayed columns to sort by (primary then secondary),
+                        each ascending or descending. Leave blank to use the default sort (newest Date In first).
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-800 mb-2">Primary sort</h3>
+                            <label class="block text-xs font-medium text-gray-700 mb-1" for="sort1_column">Column</label>
+                            <select name="sort1_column" id="sort1_column" class="border border-gray-300 rounded px-2 py-1 shadow-sm w-full mb-2">
+                                <option value="">(none)</option>
+                                @foreach($columns as $key => $label)
+                                    <option value="{{ $key }}" {{ (isset($oldSort1Column) && $oldSort1Column === $key) ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <label class="block text-xs font-medium text-gray-700 mb-1" for="sort1_dir">Direction</label>
+                            @php $oldSort1Dir = $oldSort1Dir ?? 'asc'; @endphp
+                            <select name="sort1_dir" id="sort1_dir" class="border border-gray-300 rounded px-2 py-1 shadow-sm w-full">
+                                <option value="asc" {{ $oldSort1Dir === 'asc' ? 'selected' : '' }}>Ascending</option>
+                                <option value="desc" {{ $oldSort1Dir === 'desc' ? 'selected' : '' }}>Descending</option>
+                            </select>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-800 mb-2">Secondary sort</h3>
+                            <label class="block text-xs font-medium text-gray-700 mb-1" for="sort2_column">Column</label>
+                            <select name="sort2_column" id="sort2_column" class="border border-gray-300 rounded px-2 py-1 shadow-sm w-full mb-2">
+                                <option value="">(none)</option>
+                                @foreach($columns as $key => $label)
+                                    <option value="{{ $key }}" {{ (isset($oldSort2Column) && $oldSort2Column === $key) ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <label class="block text-xs font-medium text-gray-700 mb-1" for="sort2_dir">Direction</label>
+                            @php $oldSort2Dir = $oldSort2Dir ?? 'asc'; @endphp
+                            <select name="sort2_dir" id="sort2_dir" class="border border-gray-300 rounded px-2 py-1 shadow-sm w-full">
+                                <option value="asc" {{ $oldSort2Dir === 'asc' ? 'selected' : '' }}>Ascending</option>
+                                <option value="desc" {{ $oldSort2Dir === 'desc' ? 'selected' : '' }}>Descending</option>
+                            </select>
                         </div>
                     </div>
                 </div>

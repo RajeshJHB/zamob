@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Imei extends Model
 {
-    protected $table = 'IMEI';
+    protected $table = 'imei';
 
     protected $fillable = [
         'date_in',
