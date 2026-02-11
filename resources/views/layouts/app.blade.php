@@ -3,29 +3,20 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'App Menu')</title>
+    <title>@yield('title', 'ZAMOBILE HOME')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
     <nav class="bg-white shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <div class="relative" id="app-menu-container">
-                        <button id="app-menu-button" class="flex items-center text-xl font-semibold text-gray-900 hover:text-gray-700 focus:outline-none">
-                            <span>App Menu</span>
-                            <svg id="app-menu-arrow" class="ml-1 h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        
-                        <div id="app-menu-dropdown" 
-                             class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 hidden">
-                            <a href="#" id="job-1-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                Job_1
-                            </a>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('dashboard') }}" class="flex items-center text-xl font-semibold text-gray-900 hover:text-gray-700 focus:outline-none">
+                        IMEI Menu
+                    </a>
+                    <a href="{{ route('imeis.filter') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        Find IMEI's
+                    </a>
                 </div>
                 <div class="flex items-center space-x-4">
                     @auth
@@ -94,45 +85,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // App Menu dropdown
-            const appMenuButton = document.getElementById('app-menu-button');
-            const appMenuDropdown = document.getElementById('app-menu-dropdown');
-            const appMenuArrow = document.getElementById('app-menu-arrow');
-            
-            if (appMenuButton && appMenuDropdown) {
-                // Toggle dropdown on button click
-                appMenuButton.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const isHidden = appMenuDropdown.classList.contains('hidden');
-                    
-                    if (isHidden) {
-                        appMenuDropdown.classList.remove('hidden');
-                        appMenuArrow.style.transform = 'rotate(180deg)';
-                    } else {
-                        appMenuDropdown.classList.add('hidden');
-                        appMenuArrow.style.transform = 'rotate(0deg)';
-                    }
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(e) {
-                    const container = document.getElementById('app-menu-container');
-                    if (container && !container.contains(e.target)) {
-                        appMenuDropdown.classList.add('hidden');
-                        appMenuArrow.style.transform = 'rotate(0deg)';
-                    }
-                });
-            }
-            
-            // Job_1 link - do nothing when clicked
-            const job1Link = document.getElementById('job-1-link');
-            if (job1Link) {
-                job1Link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Do nothing as requested
-                });
-            }
-            
             // User Menu dropdown
             const userMenuButton = document.getElementById('user-menu-button');
             const userMenuDropdown = document.getElementById('user-menu-dropdown');

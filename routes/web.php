@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImeiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserRoleController;
@@ -56,6 +57,9 @@ Route::middleware(['auth'])->group(function () {
 // Authenticated Routes
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/imeis/filter', [ImeiController::class, 'filter'])->name('imeis.filter');
+    Route::get('/imeis/print', [ImeiController::class, 'print'])->name('imeis.print');
+    Route::get('/imeis', [ImeiController::class, 'index'])->name('imeis.index');
 });
 
 // Profile Routes (accessible even when unverified after email change)
