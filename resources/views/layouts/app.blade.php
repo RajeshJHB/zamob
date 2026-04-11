@@ -17,6 +17,12 @@
                     <a href="{{ route('imeis.filter') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
                         Find IMEI's
                     </a>
+                    <a href="{{ route('imeis.create') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        Add IMEI
+                    </a>
+                    <a href="{{ route('settings.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        Settings
+                    </a>
                 </div>
                 <div class="flex items-center space-x-4">
                     @auth

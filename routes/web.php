@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImeiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserRoleController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,11 @@ Route::middleware(['auth'])->group(function () {
 // Authenticated Routes
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/imeis/create', [ImeiController::class, 'create'])->name('imeis.create');
+    Route::get('/imeis/lookup', [ImeiController::class, 'lookup'])->name('imeis.lookup');
+    Route::post('/imeis', [ImeiController::class, 'store'])->name('imeis.store');
+    Route::put('/imeis/{imei}', [ImeiController::class, 'update'])->name('imeis.update');
     Route::get('/imeis/filter', [ImeiController::class, 'filter'])->name('imeis.filter');
     Route::post('/imeis/filter/save', [ImeiController::class, 'saveFilter'])->name('imeis.filter.save');
     Route::get('/imeis/filter/apply/{filter}', [ImeiController::class, 'applyFilter'])->name('imeis.filter.apply');

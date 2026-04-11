@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreImeiRequest;
+use App\Http\Requests\UpdateImeiRequest;
 use App\Models\Imei;
 use App\Models\ImeiFilter;
+use App\Support\ImeiValidator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -37,6 +41,74 @@ class ImeiController extends Controller
         'cost_excl' => 'Cost excl',
         'selling_price' => 'Selling price',
     ];
+
+    public function create(): View
+    {
+        $viewRecord = null;
+        if ($id = session()->pull('imei_view_id')) {
+            $imei = Imei::query()->find($id);
+            if ($imei !== null) {
+                $viewRecord = $this->imeiRecordForLookup($imei);
+            }
+        }
+
+        return view('imeis.create', [
+            'columnLabels' => self::COLUMNS,
+            'viewRecord' => $viewRecord,
+        ]);
+    }
+
+    public function lookup(Request $request): JsonResponse
+    {
+        $raw = trim((string) $request->query('imei', ''));
+        $normalized = ImeiValidator::normalizeDigits($raw);
+
+        if (! ImeiValidator::isValidChecksum($normalized)) {
+            return response()->json([
+                'valid' => false,
+                'exists' => false,
+                'canonical_imei' => strlen($normalized) === 15 ? $normalized : null,
+                'record' => null,
+                'message' => 'Enter a valid 15-digit IMEI (check digit must be correct).',
+            ]);
+        }
+
+        $record = Imei::query()->whereNormalizedImei($normalized)->first();
+
+        return response()->json([
+            'valid' => true,
+            'exists' => $record !== null,
+            'canonical_imei' => $normalized,
+            'record' => $record ? $this->imeiRecordForLookup($record) : null,
+        ]);
+    }
+
+    public function store(StoreImeiRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        if (empty($data['date_in'])) {
+            $data['date_in'] = now();
+        }
+        $data['date_updated'] = now();
+        $imei = Imei::create($data);
+
+        return redirect()
+            ->route('imeis.create')
+            ->with('message', 'IMEI record created.')
+            ->with('imei_view_id', $imei->id);
+    }
+
+    public function update(UpdateImeiRequest $request, Imei $imei): RedirectResponse
+    {
+        $data = $request->validated();
+        $data['date_updated'] = now();
+        $imei->update($data);
+
+        return redirect()
+            ->route('imeis.create')
+            ->with('message', 'IMEI record updated.')
+            ->with('imei_view_id', $imei->id);
+    }
 
     public function filter(Request $request): View
     {
@@ -313,5 +385,33 @@ class ImeiController extends Controller
         return redirect()
             ->route('imeis.filter', $request->query())
             ->with('message', 'Filter profile deleted.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function imeiRecordForLookup(Imei $imei): array
+    {
+        return [
+            'id' => $imei->id,
+            'imei' => $imei->imei,
+            'date_in' => $imei->date_in?->format('Y-m-d\TH:i'),
+            'stock_take_date' => $imei->stock_take_date,
+            'make' => $imei->make,
+            'model' => $imei->model,
+            'sn' => $imei->sn,
+            'location' => $imei->location,
+            'type' => $imei->type,
+            'status' => $imei->status,
+            'notes' => $imei->notes,
+            'phonenumber' => $imei->phonenumber,
+            'ref' => $imei->ref,
+            'staff' => $imei->staff,
+            'item_code' => $imei->item_code,
+            'ourON' => $imei->ourON,
+            'salesON' => $imei->salesON,
+            'cost_excl' => $imei->cost_excl,
+            'selling_price' => $imei->selling_price,
+        ];
     }
 }
