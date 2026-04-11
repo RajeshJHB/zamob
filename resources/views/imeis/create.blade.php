@@ -52,14 +52,30 @@
     }
 @endphp
 
-@section('title', 'Add IMEI')
+@section('title', $createPageHeading ?: 'Add IMEI')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h1 class="text-2xl font-bold mb-2">Add IMEI</h1>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
+            <h1 class="text-2xl font-bold">{{ $createPageHeading ?: 'Add IMEI' }}</h1>
+            <div id="imei-form-actions-top-wrap" class="flex flex-wrap items-center justify-end gap-3 shrink-0 @unless($formUnlocked) hidden @endunless">
+                <button type="submit" form="imei-create-form" id="imei-submit-btn-top" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" @if($readonlyAfterSave) hidden @endif>
+                    Save IMEI
+                </button>
+                <button type="button" id="imei-cancel-new-btn-top" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" @if($readonlyAfterSave) hidden @endif>
+                    Cancel
+                </button>
+                <button type="button" id="imei-edit-btn-top" class="inline-flex items-center px-4 py-2 border border-gray-900 text-sm font-medium rounded-md text-gray-900 bg-white hover:bg-gray-50" @unless($readonlyAfterSave) hidden @endunless>
+                    Edit
+                </button>
+                <button type="button" id="imei-cancel-edit-btn-top" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" @unless($readonlyAfterSave) hidden @endunless>
+                    Exit
+                </button>
+            </div>
+        </div>
         <p class="text-sm text-gray-600 mb-6">
-            Enter the IMEI and choose ADD. If it is new, fill in the details. If it already exists, you can review the record and use Edit to update it.
+            {{ $createPageIntro ?? 'Enter the IMEI and choose ADD. Leave the option below unchecked for standard 15-digit IMEIs. If the number is new, fill in the details; if it already exists, review the record and use Edit to update it.' }}
         </p>
 
         @if (session('message'))
@@ -70,26 +86,34 @@
 
         <form method="POST" action="{{ $formAction }}" class="space-y-6" id="imei-create-form">
             @csrf
+            <input type="hidden" name="imei_non_standard" id="imei_non_standard" value="{{ old('imei_non_standard', $defaultImeiNonStandard ?? '0') }}">
             <input type="hidden" name="imei_record_id" id="imei_record_id" value="{{ $updateRouteId ?? '' }}">
             <input type="hidden" name="_method" id="imei_method_spoof" value="PUT" @if($updateRouteId === null) disabled @endif>
 
             {{-- Step 1: IMEI only (probe is not submitted) --}}
             <div id="imei-step-check" class="space-y-4 pb-4 border-b border-gray-200 @if($formUnlocked) hidden @endif">
-                <h2 class="text-lg font-semibold">{{ $columnLabels['imei'] ?? 'IMEI' }}</h2>
-                <div>
-                    <label for="imei_probe" class="block text-sm font-medium text-gray-700 mb-1">
-                        IMEI <span class="text-red-600">*</span>
-                    </label>
+                <div class="max-w-md">
+                    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-2">
+                        <label for="imei_probe" class="text-sm font-medium text-gray-700">
+                            IMEI <span class="text-red-600">*</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-800 cursor-pointer shrink-0">
+                            <input
+                                type="checkbox"
+                                id="imei_non_std_toggle"
+                                class="border-gray-300 rounded text-gray-900 focus:ring-gray-900"
+                                @checked(old('imei_non_standard', $defaultImeiNonStandard ?? '0') === '1')
+                            >
+                            <span class="font-medium">Non-standard IMEI</span>
+                        </label>
+                    </div>
                     <input
                         type="text"
                         id="imei_probe"
-                        inputmode="numeric"
                         autocomplete="off"
-                        maxlength="32"
-                        placeholder="15 digits (spaces or dashes allowed)"
-                        class="imei-probe-input border rounded px-3 py-2 shadow-sm w-full max-w-md bg-white border-gray-300 transition-colors duration-150"
+                        maxlength="255"
+                        class="imei-probe-input border rounded px-3 py-2 shadow-sm w-full bg-white border-gray-300 transition-colors duration-150"
                     >
-                    <p class="mt-2 text-xs text-gray-500">Press Enter or click ADD to validate and check the database.</p>
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <button type="button" id="imei-check-btn" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
@@ -104,6 +128,10 @@
                 <div id="imei-saved-banner" class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 @unless($readonlyAfterSave) hidden @endunless">
                     <p>Details below are read-only. Use <strong>Edit</strong> if you need to change anything else.</p>
                 </div>
+                <div id="imei-nonstandard-new-banner" class="hidden rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                    <p class="font-medium">Non-standard IMEI</p>
+                    <p class="mt-1 text-blue-800">This value is not validated as a standard 15-digit IMEI (alphanumeric and symbols allowed; spaces, dashes, and slashes were removed for matching). Fill in the details below and save when ready.</p>
+                </div>
                 <div id="imei-existing-banner" class="hidden rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                     <p class="font-medium">This IMEI is already in the database.</p>
                     <p class="mt-1 text-amber-800">Details are shown below in read-only mode. Use <strong>Edit</strong> to change them.</p>
@@ -114,25 +142,20 @@
 
                 <div class="pb-4 border-b border-gray-200 space-y-2">
                     <h2 class="text-lg font-semibold">IMEI</h2>
-                    <div class="flex flex-wrap items-end gap-3">
-                        <div class="grow min-w-[12rem] max-w-md">
-                            <label for="imei_final" class="block text-sm font-medium text-gray-700 mb-1">IMEI</label>
-                            <input
-                                type="text"
-                                name="imei"
-                                id="imei_final"
-                                value="{{ $imeiFieldValue('imei') }}"
-                                readonly
-                                required
-                                class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 @error('imei') border-red-500 @enderror"
-                            >
-                            @error('imei')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <button type="button" id="imei-change-btn" class="text-sm font-medium text-blue-700 hover:text-blue-900 py-2" @if($readonlyAfterSave) hidden @endif>
-                            Use a different IMEI
-                        </button>
+                    <div class="max-w-md">
+                        <label for="imei_final" class="block text-sm font-medium text-gray-700 mb-1">IMEI</label>
+                        <input
+                            type="text"
+                            name="imei"
+                            id="imei_final"
+                            value="{{ $imeiFieldValue('imei') }}"
+                            readonly
+                            required
+                            class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 @error('imei') border-red-500 @enderror"
+                        >
+                        @error('imei')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 
@@ -293,6 +316,9 @@
                     <button type="submit" id="imei-submit-btn" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" @if($readonlyAfterSave) hidden @endif>
                         Save IMEI
                     </button>
+                    <button type="button" id="imei-cancel-new-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" @if($readonlyAfterSave) hidden @endif>
+                        Cancel
+                    </button>
                     <button type="button" id="imei-edit-btn" class="inline-flex items-center px-4 py-2 border border-gray-900 text-sm font-medium rounded-md text-gray-900 bg-white hover:bg-gray-50" @unless($readonlyAfterSave) hidden @endunless>
                         Edit
                     </button>
@@ -314,6 +340,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const formUnlocked = @json($formUnlocked);
     const prefillRecordId = @json($prefillRecordId);
     const readonlyAfterSave = @json($readonlyAfterSave);
+    const maxNonStandardImeiLength = @json(\App\Support\ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH);
 
     const form = document.getElementById('imei-create-form');
     const stepCheck = document.getElementById('imei-step-check');
@@ -322,7 +349,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const checkBtn = document.getElementById('imei-check-btn');
     const feedback = document.getElementById('imei-lookup-feedback');
     const imeiFinal = document.getElementById('imei_final');
-    const changeBtn = document.getElementById('imei-change-btn');
+    const cancelNewBtn = document.getElementById('imei-cancel-new-btn');
+    const cancelNewBtnTop = document.getElementById('imei-cancel-new-btn-top');
     const recordIdInput = document.getElementById('imei_record_id');
     const methodSpoof = document.getElementById('imei_method_spoof');
     const existingBanner = document.getElementById('imei-existing-banner');
@@ -332,19 +360,59 @@ document.addEventListener('DOMContentLoaded', function () {
     const submitBtn = document.getElementById('imei-submit-btn');
     const editBtn = document.getElementById('imei-edit-btn');
     const cancelEditBtn = document.getElementById('imei-cancel-edit-btn');
+    const submitBtnTop = document.getElementById('imei-submit-btn-top');
+    const editBtnTop = document.getElementById('imei-edit-btn-top');
+    const cancelEditBtnTop = document.getElementById('imei-cancel-edit-btn-top');
+    const topActionsWrap = document.getElementById('imei-form-actions-top-wrap');
+    const imeiNonStandardInput = document.getElementById('imei_non_standard');
+    const nonStdToggle = document.getElementById('imei_non_std_toggle');
+    const nonStandardNewBanner = document.getElementById('imei-nonstandard-new-banner');
 
     const mutableSelector = '.js-imei-mutable';
+
+    function isNonStandardToggleOn() {
+        return nonStdToggle && nonStdToggle.checked;
+    }
+
+    function updateImeiEntryKindHints() {
+        updateProbeBackgroundFromValue();
+    }
+
+    function syncTopActionButtons() {
+        [
+            [submitBtn, submitBtnTop],
+            [cancelNewBtn, cancelNewBtnTop],
+            [editBtn, editBtnTop],
+            [cancelEditBtn, cancelEditBtnTop],
+        ].forEach(function (pair) {
+            const bottom = pair[0];
+            const top = pair[1];
+            if (!top) {
+                return;
+            }
+            if (!bottom || bottom.hasAttribute('hidden')) {
+                top.setAttribute('hidden', '');
+            } else {
+                top.removeAttribute('hidden');
+            }
+        });
+        if (submitBtn && submitBtnTop) {
+            submitBtnTop.textContent = submitBtn.textContent;
+        }
+    }
 
     function hideActionBtn(el) {
         if (el) {
             el.setAttribute('hidden', '');
         }
+        syncTopActionButtons();
     }
 
     function showActionBtn(el) {
         if (el) {
             el.removeAttribute('hidden');
         }
+        syncTopActionButtons();
     }
 
     function setFeedback(html, isError) {
@@ -380,6 +448,17 @@ document.addEventListener('DOMContentLoaded', function () {
         return String(input).replace(/\D/g, '');
     }
 
+    /** Matches App\Support\ImeiValidator::normalizeNonStandard (trim; strip nulls; remove space, dash, slash). */
+    function normalizeNonStandardProbe(input) {
+        if (input == null) {
+            return '';
+        }
+        let s = String(input).trim().replace(/\0/g, '');
+        s = s.replace(/ /g, '').replace(/-/g, '').replace(/\//g, '');
+
+        return s;
+    }
+
     function isValidImeiChecksum(input) {
         const digits = normalizeImeiDigits(input);
         if (digits.length !== 15) {
@@ -400,13 +479,22 @@ document.addEventListener('DOMContentLoaded', function () {
         return check === parseInt(digits.charAt(14), 10);
     }
 
-    /** Empty = neutral; any non-empty invalid IMEI = red; valid 15-digit checksum = green. */
+    /** Empty = neutral; standard: green only for valid Luhn 15-digit; non-standard: green for 1–max digits after normalize. */
     function updateProbeBackgroundFromValue() {
         if (!probe) {
             return;
         }
         if (!probe.value.trim()) {
             setProbeVisualState('neutral');
+            return;
+        }
+        if (isNonStandardToggleOn()) {
+            const d = normalizeNonStandardProbe(probe.value);
+            if (d.length >= 1 && d.length <= maxNonStandardImeiLength) {
+                setProbeVisualState('valid');
+            } else {
+                setProbeVisualState('invalid');
+            }
             return;
         }
         if (isValidImeiChecksum(probe.value)) {
@@ -487,13 +575,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dateHintNew) {
             dateHintNew.classList.remove('hidden');
         }
+        if (nonStandardNewBanner) {
+            nonStandardNewBanner.classList.add('hidden');
+        }
         if (submitBtn) {
             submitBtn.textContent = 'Save IMEI';
             showActionBtn(submitBtn);
         }
         hideActionBtn(editBtn);
         hideActionBtn(cancelEditBtn);
-        showActionBtn(changeBtn);
+        showActionBtn(cancelNewBtn);
         setMutableReadonly(false);
     }
 
@@ -511,6 +602,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showExistingReadonly(record) {
         setFormUpdateMode(record.id);
+        if (nonStandardNewBanner) {
+            nonStandardNewBanner.classList.add('hidden');
+        }
         if (imeiFinal && record.imei) {
             imeiFinal.value = record.imei;
         }
@@ -528,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function () {
             viewListLink.href = resultsBase + '?search=' + encodeURIComponent(String(record.imei)) + '&scope=all&date_scope=all';
         }
         setMutableReadonly(true);
-        hideActionBtn(changeBtn);
+        hideActionBtn(cancelNewBtn);
         hideActionBtn(submitBtn);
         showActionBtn(editBtn);
         showActionBtn(cancelEditBtn);
@@ -536,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function enterEditExisting() {
         setMutableReadonly(false);
-        hideActionBtn(changeBtn);
+        hideActionBtn(cancelNewBtn);
         if (submitBtn) {
             submitBtn.textContent = 'Save';
             showActionBtn(submitBtn);
@@ -552,6 +646,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (stepRest) {
             stepRest.classList.remove('hidden');
         }
+        if (topActionsWrap) {
+            topActionsWrap.classList.remove('hidden');
+        }
+        syncTopActionButtons();
     }
 
     function showCheck() {
@@ -561,22 +659,44 @@ document.addEventListener('DOMContentLoaded', function () {
         if (stepCheck) {
             stepCheck.classList.remove('hidden');
         }
+        if (topActionsWrap) {
+            topActionsWrap.classList.add('hidden');
+        }
         if (probe) {
             probe.focus();
         }
         if (imeiFinal) {
             imeiFinal.value = '';
         }
+        if (imeiNonStandardInput) {
+            imeiNonStandardInput.value = '0';
+        }
+        if (nonStdToggle) {
+            nonStdToggle.checked = false;
+        }
+        updateImeiEntryKindHints();
         clearMutableFields();
         setFormCreateMode();
         setFeedback('', false);
         updateProbeBackgroundFromValue();
+        syncTopActionButtons();
     }
 
     async function runLookup() {
         if (!probe) {
             return;
         }
+
+        const nonStandard = isNonStandardToggleOn();
+        if (nonStandard) {
+            const confirmed = window.confirm(
+                'Add a non-standard IMEI? Only use this when the identifier is not a valid standard 15-digit IMEI. Continue?'
+            );
+            if (!confirmed) {
+                return;
+            }
+        }
+
         const raw = probe.value.trim();
         if (!raw) {
             updateProbeBackgroundFromValue();
@@ -591,7 +711,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
-            const url = lookupUrl + '?imei=' + encodeURIComponent(raw);
+            let url = lookupUrl + '?imei=' + encodeURIComponent(raw);
+            if (nonStandard) {
+                url += '&non_standard=1';
+            }
             const res = await fetch(url, {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'same-origin',
@@ -605,6 +728,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             updateProbeBackgroundFromValue();
+
+            if (imeiNonStandardInput) {
+                imeiNonStandardInput.value = nonStandard ? '1' : '0';
+            }
 
             if (imeiFinal && data.canonical_imei) {
                 imeiFinal.value = data.canonical_imei;
@@ -622,7 +749,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (imeiFinal && data.canonical_imei) {
                 imeiFinal.value = data.canonical_imei;
             }
-            setFeedback('IMEI is valid and not in the database. Fill in the details below.', false);
+            if (nonStandard && nonStandardNewBanner) {
+                nonStandardNewBanner.classList.remove('hidden');
+            }
+            if (nonStandard) {
+                setFeedback('This non-standard IMEI is not in the database. Fill in the details below.', false);
+            } else {
+                setFeedback('IMEI is valid and not in the database. Fill in the details below.', false);
+            }
             showRest();
             const sn = document.getElementById('sn');
             if (sn) {
@@ -656,17 +790,35 @@ document.addEventListener('DOMContentLoaded', function () {
         updateProbeBackgroundFromValue();
     }
 
-    if (changeBtn) {
-        changeBtn.addEventListener('click', function () {
-            if (probe) {
-                probe.value = '';
-            }
-            showCheck();
-        });
+    if (nonStdToggle) {
+        nonStdToggle.addEventListener('change', updateImeiEntryKindHints);
+    }
+
+    function goBackToImeiStep() {
+        if (probe) {
+            probe.value = '';
+        }
+        showCheck();
+    }
+
+    if (cancelNewBtn) {
+        cancelNewBtn.addEventListener('click', goBackToImeiStep);
+    }
+
+    if (cancelNewBtnTop) {
+        cancelNewBtnTop.addEventListener('click', goBackToImeiStep);
     }
 
     if (editBtn) {
         editBtn.addEventListener('click', enterEditExisting);
+    }
+
+    if (editBtnTop) {
+        editBtnTop.addEventListener('click', function () {
+            if (editBtn) {
+                editBtn.click();
+            }
+        });
     }
 
     if (cancelEditBtn) {
@@ -675,6 +827,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 probe.value = '';
             }
             showCheck();
+        });
+    }
+
+    if (cancelEditBtnTop) {
+        cancelEditBtnTop.addEventListener('click', function () {
+            if (cancelEditBtn) {
+                cancelEditBtn.click();
+            }
         });
     }
 
@@ -691,10 +851,13 @@ document.addEventListener('DOMContentLoaded', function () {
         showActionBtn(submitBtn);
         hideActionBtn(editBtn);
         showActionBtn(cancelEditBtn);
-        hideActionBtn(changeBtn);
+        hideActionBtn(cancelNewBtn);
         setMutableReadonly(false);
+        syncTopActionButtons();
     }
 
+    updateImeiEntryKindHints();
+    syncTopActionButtons();
 });
 </script>
 @endsection

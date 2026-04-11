@@ -67,6 +67,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/imeis/filter/save', [ImeiController::class, 'saveFilter'])->name('imeis.filter.save');
     Route::get('/imeis/filter/apply/{filter}', [ImeiController::class, 'applyFilter'])->name('imeis.filter.apply');
     Route::delete('/imeis/filter/{filter}', [ImeiController::class, 'deleteFilter'])->name('imeis.filter.delete');
+    Route::get('/imeis/receipt/logo', [ImeiController::class, 'receiptLogo'])->name('imeis.receipt.logo');
+    Route::get('/imeis/{imei}/receipt', [ImeiController::class, 'receipt'])->name('imeis.receipt');
+    Route::get('/imeis/{imei}/edit', [ImeiController::class, 'edit'])->name('imeis.edit');
     Route::get('/imeis/print', [ImeiController::class, 'print'])->name('imeis.print');
     Route::get('/imeis', [ImeiController::class, 'index'])->name('imeis.index');
 });

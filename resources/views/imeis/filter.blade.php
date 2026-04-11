@@ -24,8 +24,20 @@
             <div class="space-y-6">
                 {{-- Search text --}}
                 <div class="pb-4 border-b border-gray-200 space-y-3">
-                    <h2 class="text-lg font-semibold mb-1">Search</h2>
-                    <p class="text-sm text-gray-600">Use one or both fields. A row must match <strong>both</strong> texts (each can appear in any column).</p>
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="space-y-1 min-w-0">
+                            <h2 class="text-lg font-semibold">Search</h2>
+                            <p class="text-sm text-gray-600">Use one or both fields. A row must match <strong>both</strong> texts (each can appear in any column).</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 shrink-0">
+                            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Search
+                            </button>
+                            <a href="{{ route('dashboard') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-block text-center">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
                     <div class="space-y-2">
                         <div>
                             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">First text (optional)</label>
@@ -234,11 +246,11 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex gap-3">
+            <div class="mt-6 flex flex-wrap gap-3">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    OK
+                    Search
                 </button>
-                <a href="{{ route('dashboard') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
+                <a href="{{ route('dashboard') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-block text-center">
                     Cancel
                 </a>
             </div>

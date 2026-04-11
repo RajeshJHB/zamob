@@ -46,13 +46,13 @@ class Imei extends Model
     }
 
     /**
-     * Match rows whose IMEI equals the given 15-digit string after stripping spaces and dashes.
+     * Match rows whose IMEI equals the given value after trim and removing spaces, dashes, and slashes (same as {@see \App\Support\ImeiValidator::normalizeNonStandard()}).
      */
-    public function scopeWhereNormalizedImei(Builder $query, string $digitsOnly): Builder
+    public function scopeWhereNormalizedImei(Builder $query, string $normalizedKey): Builder
     {
         return $query->whereRaw(
             "replace(replace(replace(trim(imei), ' ', ''), '-', ''), '/', '') = ?",
-            [$digitsOnly]
+            [$normalizedKey]
         );
     }
 }

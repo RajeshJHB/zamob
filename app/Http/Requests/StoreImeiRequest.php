@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Rules\UniqueNormalizedImei;
+use App\Rules\UniqueNormalizedNonStandardImei;
 use App\Rules\ValidImei;
 use App\Support\ImeiOptionalStringFields;
 use App\Support\ImeiValidator;
@@ -18,9 +19,13 @@ class StoreImeiRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if ($this->has('imei') && is_string($this->input('imei'))) {
-            $normalized = ImeiValidator::normalizeDigits($this->input('imei'));
-            if (strlen($normalized) === 15) {
-                $this->merge(['imei' => $normalized]);
+            if ($this->boolean('imei_non_standard')) {
+                $this->merge(['imei' => ImeiValidator::normalizeNonStandard($this->input('imei'))]);
+            } else {
+                $normalized = ImeiValidator::normalizeDigits($this->input('imei'));
+                if (strlen($normalized) === 15) {
+                    $this->merge(['imei' => $normalized]);
+                }
             }
         }
 
@@ -45,13 +50,13 @@ class StoreImeiRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $base = [
+            'imei_non_standard' => ['required', 'in:0,1'],
             'date_in' => ['nullable', 'date'],
             'stock_take_date' => ['nullable', 'string', 'max:255'],
             'make' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'sn' => ['nullable', 'string', 'max:255'],
-            'imei' => ['required', 'string', 'size:15', new ValidImei, new UniqueNormalizedImei],
             'location' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', 'max:255'],
@@ -65,5 +70,21 @@ class StoreImeiRequest extends FormRequest
             'cost_excl' => ['nullable', 'string', 'max:255'],
             'selling_price' => ['nullable', 'integer'],
         ];
+
+        if ($this->boolean('imei_non_standard')) {
+            $base['imei'] = [
+                'required',
+                'string',
+                'min:1',
+                'max:'.ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH,
+                new UniqueNormalizedNonStandardImei,
+            ];
+
+            return $base;
+        }
+
+        $base['imei'] = ['required', 'string', 'size:15', new ValidImei, new UniqueNormalizedImei];
+
+        return $base;
     }
 }

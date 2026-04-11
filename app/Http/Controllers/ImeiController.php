@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ImeiController extends Controller
 {
@@ -55,13 +56,90 @@ class ImeiController extends Controller
         return view('imeis.create', [
             'columnLabels' => self::COLUMNS,
             'viewRecord' => $viewRecord,
+            'createPageHeading' => null,
+            'createPageIntro' => null,
+            'defaultImeiNonStandard' => null,
         ]);
+    }
+
+    public function edit(Imei $imei): View
+    {
+        $digits = ImeiValidator::normalizeDigits($imei->imei);
+
+        return view('imeis.create', [
+            'columnLabels' => self::COLUMNS,
+            'viewRecord' => $this->imeiRecordForLookup($imei),
+            'createPageHeading' => 'Edit IMEI',
+            'createPageIntro' => 'This record is loaded from Find IMEI\'s. Details are read-only until you choose Edit, then Save to update.',
+            'defaultImeiNonStandard' => ImeiValidator::isValidChecksum($digits) ? '0' : '1',
+        ]);
+    }
+
+    public function receipt(Imei $imei): View
+    {
+        return view('imeis.receipt', [
+            'imei' => $imei,
+        ]);
+    }
+
+    /**
+     * Serves the receipt header image from resources/ so updates to Vodacom.jpg are used without copying to public/.
+     */
+    public function receiptLogo(): BinaryFileResponse
+    {
+        $paths = [resource_path('Vodacom.jpg'), resource_path('vodacom.jpg')];
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                return response()->file($path, [
+                    'Content-Type' => 'image/jpeg',
+                    'Cache-Control' => 'private, max-age=3600',
+                ]);
+            }
+        }
+
+        abort(404, 'Receipt logo image not found in resources/.');
     }
 
     public function lookup(Request $request): JsonResponse
     {
         $raw = trim((string) $request->query('imei', ''));
         $normalized = ImeiValidator::normalizeDigits($raw);
+        $nonStandard = $request->boolean('non_standard');
+
+        if ($nonStandard) {
+            $normalizedNs = ImeiValidator::normalizeNonStandard($raw);
+            $len = strlen($normalizedNs);
+            if ($len < 1) {
+                return response()->json([
+                    'valid' => false,
+                    'exists' => false,
+                    'canonical_imei' => null,
+                    'record' => null,
+                    'non_standard' => true,
+                    'message' => 'Enter a non-standard IMEI (spaces, dashes, and slashes are ignored for matching).',
+                ]);
+            }
+            if ($len > ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH) {
+                return response()->json([
+                    'valid' => false,
+                    'exists' => false,
+                    'canonical_imei' => null,
+                    'record' => null,
+                    'non_standard' => true,
+                    'message' => 'Non-standard IMEI is too long (maximum '.ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH.' characters after removing spaces, dashes, and slashes).',
+                ]);
+            }
+
+            $record = Imei::query()->whereNormalizedImei($normalizedNs)->first();
+
+            return response()->json([
+                'valid' => true,
+                'exists' => $record !== null,
+                'canonical_imei' => $normalizedNs,
+                'record' => $record ? $this->imeiRecordForLookup($record) : null,
+                'non_standard' => true,
+            ]);
+        }
 
         if (! ImeiValidator::isValidChecksum($normalized)) {
             return response()->json([
@@ -69,6 +147,7 @@ class ImeiController extends Controller
                 'exists' => false,
                 'canonical_imei' => strlen($normalized) === 15 ? $normalized : null,
                 'record' => null,
+                'non_standard' => false,
                 'message' => 'Enter a valid 15-digit IMEI (check digit must be correct).',
             ]);
         }
@@ -80,6 +159,7 @@ class ImeiController extends Controller
             'exists' => $record !== null,
             'canonical_imei' => $normalized,
             'record' => $record ? $this->imeiRecordForLookup($record) : null,
+            'non_standard' => false,
         ]);
     }
 

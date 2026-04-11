@@ -26,6 +26,8 @@
         <table class="min-w-full bg-white border border-gray-300">
             <thead>
                 <tr class="bg-gray-100">
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b w-24">Print</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b w-24">Edit</th>
                     @foreach($columns as $col)
                         <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{{ $columnLabels[$col] ?? $col }}</th>
                     @endforeach
@@ -34,6 +36,12 @@
             <tbody>
                 @forelse($imeis as $row)
                     <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="px-3 py-2 text-sm">
+                            <a href="{{ route('imeis.receipt', $row) }}" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:text-blue-900 font-medium underline">Print</a>
+                        </td>
+                        <td class="px-3 py-2 text-sm">
+                            <a href="{{ route('imeis.edit', $row) }}" class="text-blue-700 hover:text-blue-900 font-medium underline">Edit</a>
+                        </td>
                         @foreach($columns as $col)
                             <td class="px-3 py-2 text-sm text-gray-700">
                                 @if($col === 'date_in' || $col === 'date_updated')
@@ -48,7 +56,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ count($columns) }}" class="px-3 py-8 text-center text-gray-500">No IMEI records found.</td>
+                        <td colspan="{{ count($columns) + 2 }}" class="px-3 py-8 text-center text-gray-500">No IMEI records found.</td>
                     </tr>
                 @endforelse
             </tbody>
