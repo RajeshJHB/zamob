@@ -18,7 +18,26 @@ test('verified users can view settings and add imei form', function () {
 
     $this->actingAs($user)
         ->get(route('settings.index'))
-        ->assertSuccessful();
+        ->assertSuccessful()
+        ->assertSee('Make', false)
+        ->assertSee('Models', false)
+        ->assertDontSee('Change password', false);
+
+    $this->actingAs($user)
+        ->get(route('settings.makes.index'))
+        ->assertSuccessful()
+        ->assertSee('Make', false)
+        ->assertSee('All makes', false);
+
+    $this->actingAs($user)
+        ->get(route('settings.models.index'))
+        ->assertSuccessful()
+        ->assertSee('Models', false)
+        ->assertSee('Select make', false);
+
+    $this->actingAs($user)
+        ->get(route('settings.section', ['section' => 'invalid']))
+        ->assertNotFound();
 
     $this->actingAs($user)
         ->get(route('imeis.create'))

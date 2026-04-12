@@ -8,6 +8,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImeiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Settings\ImeiMakeController;
+use App\Http\Controllers\Settings\ImeiModelController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserRoleController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +61,17 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/settings/makes', [ImeiMakeController::class, 'index'])->name('settings.makes.index');
+    Route::post('/settings/makes', [ImeiMakeController::class, 'store'])->name('settings.makes.store');
+    Route::put('/settings/makes/{imeiMake}', [ImeiMakeController::class, 'update'])->name('settings.makes.update');
+    Route::delete('/settings/makes/{imeiMake}', [ImeiMakeController::class, 'destroy'])->name('settings.makes.destroy');
+    Route::get('/settings/models', [ImeiModelController::class, 'index'])->name('settings.models.index');
+    Route::post('/settings/models', [ImeiModelController::class, 'store'])->name('settings.models.store');
+    Route::put('/settings/models/{imeiModel}', [ImeiModelController::class, 'update'])->name('settings.models.update');
+    Route::delete('/settings/models/{imeiModel}', [ImeiModelController::class, 'destroy'])->name('settings.models.destroy');
+    Route::get('/settings/{section}', [SettingsController::class, 'section'])
+        ->whereIn('section', ['locations', 'types', 'status'])
+        ->name('settings.section');
     Route::get('/imeis/create', [ImeiController::class, 'create'])->name('imeis.create');
     Route::get('/imeis/lookup', [ImeiController::class, 'lookup'])->name('imeis.lookup');
     Route::post('/imeis', [ImeiController::class, 'store'])->name('imeis.store');
