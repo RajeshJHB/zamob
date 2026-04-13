@@ -22,6 +22,12 @@
         </div>
     </div>
 
+    @if (session('message'))
+        <div class="mb-4 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded">
+            {{ session('message') }}
+        </div>
+    @endif
+
     <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-300">
             <thead>
@@ -56,7 +62,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ count($columns) + 2 }}" class="px-3 py-8 text-center text-gray-500">No IMEI records found.</td>
+                        <td colspan="{{ 2 + count($columns) }}" class="px-3 py-8 text-center text-gray-500">No IMEI records found.</td>
                     </tr>
                 @endforelse
             </tbody>

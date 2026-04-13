@@ -8,7 +8,7 @@
         <h1 class="text-3xl font-bold">Models</h1>
         <div class="flex gap-2">
             <a href="{{ route('settings.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded text-sm">
-                Settings
+                IMEI Settings
             </a>
             <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-2 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -104,14 +104,16 @@
                                                 class="text-blue-500 hover:text-blue-700 text-sm font-medium">
                                             Edit
                                         </button>
-                                        <form method="POST" action="{{ route('settings.models.destroy', $record) }}" class="inline"
-                                              onsubmit="return confirm('Delete this model?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium">
-                                                Delete
-                                            </button>
-                                        </form>
+                                        @if(auth()->user()->canDeleteImeiReferenceData())
+                                            <form method="POST" action="{{ route('settings.models.destroy', $record) }}" class="inline"
+                                                  onsubmit="return confirm('Delete this model?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                     <div class="model-actions-edit-{{ $record->id }} flex gap-2" style="display: none;">
                                         <button type="button" onclick="saveModelRow({{ $record->id }})"

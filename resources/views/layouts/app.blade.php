@@ -21,7 +21,7 @@
                         Add IMEI
                     </a>
                     <a href="{{ route('settings.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-                        Settings
+                        IMEI Settings
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">

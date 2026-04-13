@@ -7,6 +7,7 @@ use App\Http\Requests\StoreImeiMakeRequest;
 use App\Http\Requests\UpdateImeiMakeRequest;
 use App\Models\ImeiMake;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ImeiMakeController extends Controller
@@ -42,8 +43,10 @@ class ImeiMakeController extends Controller
             ->with('message', 'Make updated.');
     }
 
-    public function destroy(ImeiMake $imeiMake): RedirectResponse
+    public function destroy(Request $request, ImeiMake $imeiMake): RedirectResponse
     {
+        abort_unless($request->user()->canDeleteImeiReferenceData(), 403);
+
         $imeiMake->delete();
 
         return redirect()

@@ -8,8 +8,11 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImeiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Settings\ImeiLocationController;
 use App\Http\Controllers\Settings\ImeiMakeController;
 use App\Http\Controllers\Settings\ImeiModelController;
+use App\Http\Controllers\Settings\ImeiStatusController;
+use App\Http\Controllers\Settings\ImeiTypeController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserRoleController;
 use Illuminate\Support\Facades\Route;
@@ -69,13 +72,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/models', [ImeiModelController::class, 'store'])->name('settings.models.store');
     Route::put('/settings/models/{imeiModel}', [ImeiModelController::class, 'update'])->name('settings.models.update');
     Route::delete('/settings/models/{imeiModel}', [ImeiModelController::class, 'destroy'])->name('settings.models.destroy');
-    Route::get('/settings/{section}', [SettingsController::class, 'section'])
-        ->whereIn('section', ['locations', 'types', 'status'])
-        ->name('settings.section');
+    Route::get('/settings/locations', [ImeiLocationController::class, 'index'])->name('settings.locations.index');
+    Route::post('/settings/locations', [ImeiLocationController::class, 'store'])->name('settings.locations.store');
+    Route::put('/settings/locations/{imeiLocation}', [ImeiLocationController::class, 'update'])->name('settings.locations.update');
+    Route::delete('/settings/locations/{imeiLocation}', [ImeiLocationController::class, 'destroy'])->name('settings.locations.destroy');
+    Route::get('/settings/types', [ImeiTypeController::class, 'index'])->name('settings.types.index');
+    Route::post('/settings/types', [ImeiTypeController::class, 'store'])->name('settings.types.store');
+    Route::put('/settings/types/{imeiType}', [ImeiTypeController::class, 'update'])->name('settings.types.update');
+    Route::delete('/settings/types/{imeiType}', [ImeiTypeController::class, 'destroy'])->name('settings.types.destroy');
+    Route::get('/settings/status', [ImeiStatusController::class, 'index'])->name('settings.status.index');
+    Route::post('/settings/status', [ImeiStatusController::class, 'store'])->name('settings.status.store');
+    Route::put('/settings/status/{imeiStatus}', [ImeiStatusController::class, 'update'])->name('settings.status.update');
+    Route::delete('/settings/status/{imeiStatus}', [ImeiStatusController::class, 'destroy'])->name('settings.status.destroy');
     Route::get('/imeis/create', [ImeiController::class, 'create'])->name('imeis.create');
     Route::get('/imeis/lookup', [ImeiController::class, 'lookup'])->name('imeis.lookup');
     Route::post('/imeis', [ImeiController::class, 'store'])->name('imeis.store');
     Route::put('/imeis/{imei}', [ImeiController::class, 'update'])->name('imeis.update');
+    Route::delete('/imeis/{imei}', [ImeiController::class, 'destroy'])->name('imeis.destroy');
     Route::get('/imeis/filter', [ImeiController::class, 'filter'])->name('imeis.filter');
     Route::post('/imeis/filter/save', [ImeiController::class, 'saveFilter'])->name('imeis.filter.save');
     Route::get('/imeis/filter/apply/{filter}', [ImeiController::class, 'applyFilter'])->name('imeis.filter.apply');

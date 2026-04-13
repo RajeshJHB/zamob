@@ -100,6 +100,7 @@ test('verified user can update a model', function () {
 
 test('verified user can delete a model', function () {
     $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
     ImeiMake::factory()->create(['make' => 'Dell']);
     $row = ImeiModel::factory()->create(['make' => 'Dell', 'model' => 'X', 'serial' => '']);
 

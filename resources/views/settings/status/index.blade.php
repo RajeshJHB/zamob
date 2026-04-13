@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Make')
+@section('title', 'Status')
 
 @section('content')
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Make</h1>
+        <h1 class="text-3xl font-bold">Status</h1>
         <div class="flex gap-2">
             <a href="{{ route('settings.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded text-sm">
                 IMEI Settings
@@ -26,14 +26,14 @@
     @endif
 
     <div class="mb-8 bg-gray-50 p-4 rounded-lg">
-        <h2 class="text-xl font-semibold mb-4">Add make</h2>
-        <form method="POST" action="{{ route('settings.makes.store') }}" class="flex items-end gap-4">
+        <h2 class="text-xl font-semibold mb-4">Add status</h2>
+        <form method="POST" action="{{ route('settings.status.store') }}" class="flex items-end gap-4">
             @csrf
             <div class="flex-1">
-                <label for="new-make-value" class="block text-gray-700 text-sm font-bold mb-2">Make</label>
-                <input type="text" name="make" id="new-make-value" value="{{ old('make') }}" required
+                <label for="new-status-value" class="block text-gray-700 text-sm font-bold mb-2">Status</label>
+                <input type="text" name="status" id="new-status-value" value="{{ old('status') }}" required
                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                       placeholder="e.g. Apple">
+                       placeholder="e.g. In stock">
             </div>
             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Add
@@ -42,38 +42,38 @@
     </div>
 
     <div>
-        <h2 class="text-xl font-semibold mb-4">All makes (A–Z)</h2>
+        <h2 class="text-xl font-semibold mb-4">All statuses (A–Z)</h2>
         <div class="overflow-x-auto">
             <table class="min-w-full bg-white border border-gray-300">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="px-4 py-2 border-b text-left">Make</th>
+                        <th class="px-4 py-2 border-b text-left">Status</th>
                         <th class="px-4 py-2 border-b text-left">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($makes as $make)
-                        <tr id="make-row-{{ $make->id }}">
+                    @forelse($statuses as $row)
+                        <tr id="status-row-{{ $row->id }}">
                             <td class="px-4 py-2 border-b">
-                                <span class="make-name-display-{{ $make->id }}">{{ $make->make }}</span>
-                                <div class="make-name-edit-{{ $make->id }}" style="display: none;">
-                                    <form method="POST" action="{{ route('settings.makes.update', $make) }}" id="edit-form-{{ $make->id }}">
+                                <span class="status-display-{{ $row->id }}">{{ $row->status }}</span>
+                                <div class="status-edit-{{ $row->id }}" style="display: none;">
+                                    <form method="POST" action="{{ route('settings.status.update', $row) }}" id="edit-form-{{ $row->id }}">
                                         @csrf
                                         @method('PUT')
-                                        <input type="text" name="make" value="{{ old('make', $make->make) }}" required
+                                        <input type="text" name="status" value="{{ old('status', $row->status) }}" required
                                                class="shadow appearance-none border rounded py-1 px-2 text-gray-700 w-full max-w-md">
                                     </form>
                                 </div>
                             </td>
                             <td class="px-4 py-2 border-b">
-                                <div class="make-actions-view-{{ $make->id }} flex gap-2">
-                                    <button type="button" onclick="editMake({{ $make->id }})"
+                                <div class="status-actions-view-{{ $row->id }} flex gap-2">
+                                    <button type="button" onclick="editStatus({{ $row->id }})"
                                             class="text-blue-500 hover:text-blue-700 text-sm font-medium">
                                         Edit
                                     </button>
                                     @if(auth()->user()->canDeleteImeiReferenceData())
-                                        <form method="POST" action="{{ route('settings.makes.destroy', $make) }}" class="inline"
-                                              onsubmit="return confirm('Delete this make? IMEI records that use it may be affected.')">
+                                        <form method="POST" action="{{ route('settings.status.destroy', $row) }}" class="inline"
+                                              onsubmit="return confirm('Delete this status? IMEI records that use it may be affected.')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium">
@@ -82,12 +82,12 @@
                                         </form>
                                     @endif
                                 </div>
-                                <div class="make-actions-edit-{{ $make->id }} flex gap-2" style="display: none;">
-                                    <button type="button" onclick="saveMake({{ $make->id }})"
+                                <div class="status-actions-edit-{{ $row->id }} flex gap-2" style="display: none;">
+                                    <button type="button" onclick="saveStatus({{ $row->id }})"
                                             class="text-green-500 hover:text-green-700 text-sm font-medium">
                                         Save
                                     </button>
-                                    <button type="button" onclick="cancelEditMake({{ $make->id }})"
+                                    <button type="button" onclick="cancelEditStatus({{ $row->id }})"
                                             class="text-gray-500 hover:text-gray-700 text-sm font-medium">
                                         Cancel
                                     </button>
@@ -96,7 +96,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="2" class="px-4 py-2 text-center text-gray-500">No makes yet. Add one above.</td>
+                            <td colspan="2" class="px-4 py-2 text-center text-gray-500">No statuses yet. Add one above.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -106,36 +106,36 @@
 </div>
 
 <script>
-    const originalMakeNames = {};
+    const originalStatuses = {};
 
     document.addEventListener('DOMContentLoaded', function () {
-        @foreach($makes as $make)
-            originalMakeNames[{{ $make->id }}] = @json($make->make);
+        @foreach($statuses as $row)
+            originalStatuses[{{ $row->id }}] = @json($row->status);
         @endforeach
     });
 
-    function editMake(id) {
-        const input = document.querySelector(`.make-name-edit-${id} input[name="make"]`);
-        originalMakeNames[id] = input.value;
+    function editStatus(id) {
+        const input = document.querySelector(`.status-edit-${id} input[name="status"]`);
+        originalStatuses[id] = input.value;
 
-        document.querySelector(`.make-name-display-${id}`).style.display = 'none';
-        document.querySelector(`.make-name-edit-${id}`).style.display = 'block';
-        document.querySelector(`.make-actions-view-${id}`).style.display = 'none';
-        document.querySelector(`.make-actions-edit-${id}`).style.display = 'flex';
+        document.querySelector(`.status-display-${id}`).style.display = 'none';
+        document.querySelector(`.status-edit-${id}`).style.display = 'block';
+        document.querySelector(`.status-actions-view-${id}`).style.display = 'none';
+        document.querySelector(`.status-actions-edit-${id}`).style.display = 'flex';
         input.focus();
     }
 
-    function cancelEditMake(id) {
-        const input = document.querySelector(`.make-name-edit-${id} input[name="make"]`);
-        input.value = originalMakeNames[id];
+    function cancelEditStatus(id) {
+        const input = document.querySelector(`.status-edit-${id} input[name="status"]`);
+        input.value = originalStatuses[id];
 
-        document.querySelector(`.make-name-display-${id}`).style.display = 'inline';
-        document.querySelector(`.make-name-edit-${id}`).style.display = 'none';
-        document.querySelector(`.make-actions-view-${id}`).style.display = 'flex';
-        document.querySelector(`.make-actions-edit-${id}`).style.display = 'none';
+        document.querySelector(`.status-display-${id}`).style.display = 'inline';
+        document.querySelector(`.status-edit-${id}`).style.display = 'none';
+        document.querySelector(`.status-actions-view-${id}`).style.display = 'flex';
+        document.querySelector(`.status-actions-edit-${id}`).style.display = 'none';
     }
 
-    function saveMake(id) {
+    function saveStatus(id) {
         document.getElementById(`edit-form-${id}`).submit();
     }
 </script>

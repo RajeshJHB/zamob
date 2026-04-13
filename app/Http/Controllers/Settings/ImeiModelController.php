@@ -76,8 +76,10 @@ class ImeiModelController extends Controller
             ->with('message', 'Model updated.');
     }
 
-    public function destroy(ImeiModel $imeiModel): RedirectResponse
+    public function destroy(Request $request, ImeiModel $imeiModel): RedirectResponse
     {
+        abort_unless($request->user()->canDeleteImeiReferenceData(), 403);
+
         $make = $imeiModel->make;
         $imeiModel->delete();
 

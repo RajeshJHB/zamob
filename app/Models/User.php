@@ -62,6 +62,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole(1);
     }
 
+    public function canDeleteImeiReferenceData(): bool
+    {
+        return $this->hasRole(4);
+    }
+
     public function isFirstUser(): bool
     {
         return $this->id === User::min('id');
@@ -75,19 +80,20 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function ensureRoleManagerExists(): void
     {
         $roleManager = Role::where('number', 1)->first();
-        
+
         if (! $roleManager) {
             return; // Role_1 doesn't exist yet, skip
         }
 
         $verifiedUsers = User::whereNotNull('email_verified_at')->get();
-        
+
         // If only one user exists, make them a role manager
         if ($verifiedUsers->count() === 1) {
             $user = $verifiedUsers->first();
             if (! $user->isRoleManager()) {
                 $user->roles()->syncWithoutDetaching([$roleManager->id]);
             }
+
             return;
         }
 

@@ -66,6 +66,7 @@ test('update rejects duplicate name from another make', function () {
 
 test('verified users can delete a make', function () {
     $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
     $make = ImeiMake::factory()->create();
 
     $this->actingAs($user)

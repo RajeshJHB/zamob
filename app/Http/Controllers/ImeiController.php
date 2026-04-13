@@ -190,6 +190,17 @@ class ImeiController extends Controller
             ->with('imei_view_id', $imei->id);
     }
 
+    public function destroy(Request $request, Imei $imei): RedirectResponse
+    {
+        abort_unless($request->user()->canDeleteImeiReferenceData(), 403);
+
+        $imei->delete();
+
+        return redirect()
+            ->route('imeis.create')
+            ->with('message', 'IMEI record deleted.');
+    }
+
     public function filter(Request $request): View
     {
         $user = $request->user();

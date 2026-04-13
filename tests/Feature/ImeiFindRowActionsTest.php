@@ -64,6 +64,138 @@ test('find results include print and edit links per row', function () {
 
     expect($html)->toContain(route('imeis.receipt', $row));
     expect($html)->toContain(route('imeis.edit', $row));
+    expect($html)->not->toContain('name="_method" value="DELETE"');
+});
+
+test('edit imei page includes delete for users with role 4', function () {
+    $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270284',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => 'Keep',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.edit', $row))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('name="_method" value="DELETE"');
+    expect($html)->toContain('imei-delete-btn-top');
+});
+
+test('edit imei page does not include delete without role 4', function () {
+    $user = User::factory()->create();
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270299',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.edit', $row))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->not->toContain('imei-delete-form');
+});
+
+test('users without role 4 cannot delete an imei record', function () {
+    $user = User::factory()->create();
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270285',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('imeis.index'))
+        ->delete(route('imeis.destroy', $row))
+        ->assertForbidden();
+
+    expect(Imei::query()->find($row->id))->not->toBeNull();
+});
+
+test('users with role 4 can delete an imei record', function () {
+    $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270286',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('imeis.edit', $row))
+        ->delete(route('imeis.destroy', $row))
+        ->assertRedirect(route('imeis.create'));
+
+    expect(Imei::query()->find($row->id))->toBeNull();
 });
 
 test('receipt logo route serves jpg from resources', function () {
