@@ -50,6 +50,46 @@
     if ($readonlyAfterSave && ! empty($viewRecord['imei'])) {
         $viewListHref = route('imeis.index').'?search='.urlencode((string) $viewRecord['imei']).'&scope=all&date_scope=all';
     }
+
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiType>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiType> $imeiTypes */
+    $imeiTypes = $imeiTypes ?? collect();
+    $currentTypeForSelect = $imeiFieldValue('type');
+    $typeInReferenceTable = $imeiTypes->contains(fn (\App\Models\ImeiType $t): bool => $t->type === $currentTypeForSelect);
+
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiStatus>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiStatus> $imeiStatuses */
+    $imeiStatuses = $imeiStatuses ?? collect();
+    $currentStatusForSelect = $imeiFieldValue('status');
+    $statusInReferenceTable = $imeiStatuses->contains(fn (\App\Models\ImeiStatus $s): bool => $s->status === $currentStatusForSelect);
+
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiLocation>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiLocation> $imeiLocations */
+    $imeiLocations = $imeiLocations ?? collect();
+    $currentLocationForSelect = $imeiFieldValue('location');
+    $locationInReferenceTable = $imeiLocations->contains(fn (\App\Models\ImeiLocation $loc): bool => $loc->location === $currentLocationForSelect);
+
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiMake>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiMake> $imeiMakes */
+    $imeiMakes = $imeiMakes ?? collect();
+    $currentMakeForSelect = $imeiFieldValue('make');
+    $makeInReferenceTable = $imeiMakes->contains(fn (\App\Models\ImeiMake $m): bool => $m->make === $currentMakeForSelect);
+
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiModel>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiModel> $allImeiModels */
+    $allImeiModels = $allImeiModels ?? collect();
+    $currentModelForSelect = $imeiFieldValue('model');
+
+    $modelsForSelectedMake = $makeInReferenceTable
+        ? $allImeiModels->where('make', $currentMakeForSelect)->sortBy(fn (\App\Models\ImeiModel $m): string => $m->model.(string) ($m->serial ?? ''))->unique('model')->values()
+        : collect();
+
+    $modelInReferenceTableForMake = $allImeiModels->contains(
+        fn (\App\Models\ImeiModel $m): bool => $m->make === $currentMakeForSelect && $m->model === $currentModelForSelect
+    );
+
+    $showLegacyModelOption = $currentModelForSelect !== '' && ! $modelInReferenceTableForMake;
+
+    $imeiModelsCatalogForScript = $allImeiModels->map(fn (\App\Models\ImeiModel $m): array => [
+        'make' => $m->make,
+        'model' => $m->model,
+        'serial' => (string) ($m->serial ?? ''),
+    ])->values()->all();
 @endphp
 
 @section('title', $createPageHeading ?: 'Add IMEI')
@@ -199,14 +239,30 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="make" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['make'] ?? 'Make' }}</label>
-                            <input type="text" name="make" id="make" value="{{ $imeiFieldValue('make') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('make') border-red-500 @enderror">
+                            <select name="make" id="make" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('make') border-red-500 @enderror">
+                                <option value="">— Select make —</option>
+                                @if($currentMakeForSelect !== '' && ! $makeInReferenceTable)
+                                    <option value="{{ $currentMakeForSelect }}" selected>{{ $currentMakeForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($imeiMakes as $imeiMake)
+                                    <option value="{{ $imeiMake->make }}" @selected($currentMakeForSelect === $imeiMake->make)>{{ $imeiMake->make }}</option>
+                                @endforeach
+                            </select>
                             @error('make')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
                             <label for="model" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['model'] ?? 'Model' }}</label>
-                            <input type="text" name="model" id="model" value="{{ $imeiFieldValue('model') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('model') border-red-500 @enderror">
+                            <select name="model" id="model" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('model') border-red-500 @enderror">
+                                <option value="">— Select model —</option>
+                                @if($showLegacyModelOption)
+                                    <option value="{{ $currentModelForSelect }}" selected>{{ $currentModelForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($modelsForSelectedMake as $imeiModelRow)
+                                    <option value="{{ $imeiModelRow->model }}" @selected(! $showLegacyModelOption && $currentModelForSelect === $imeiModelRow->model)>{{ $imeiModelRow->model }}@if(($imeiModelRow->serial ?? '') !== '') ({{ $imeiModelRow->serial }})@endif</option>
+                                @endforeach
+                            </select>
                             @error('model')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -215,14 +271,30 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="type" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['type'] ?? 'Type' }}</label>
-                            <input type="text" name="type" id="type" value="{{ $imeiFieldValue('type') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('type') border-red-500 @enderror">
+                            <select name="type" id="type" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('type') border-red-500 @enderror">
+                                <option value="">— Select type —</option>
+                                @if($currentTypeForSelect !== '' && ! $typeInReferenceTable)
+                                    <option value="{{ $currentTypeForSelect }}" selected>{{ $currentTypeForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($imeiTypes as $imeiType)
+                                    <option value="{{ $imeiType->type }}" @selected($currentTypeForSelect === $imeiType->type)>{{ $imeiType->type }}</option>
+                                @endforeach
+                            </select>
                             @error('type')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
                             <label for="status" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['status'] ?? 'Status' }}</label>
-                            <input type="text" name="status" id="status" value="{{ $imeiFieldValue('status') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('status') border-red-500 @enderror">
+                            <select name="status" id="status" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('status') border-red-500 @enderror">
+                                <option value="">— Select status —</option>
+                                @if($currentStatusForSelect !== '' && ! $statusInReferenceTable)
+                                    <option value="{{ $currentStatusForSelect }}" selected>{{ $currentStatusForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($imeiStatuses as $imeiStatus)
+                                    <option value="{{ $imeiStatus->status }}" @selected($currentStatusForSelect === $imeiStatus->status)>{{ $imeiStatus->status }}</option>
+                                @endforeach
+                            </select>
                             @error('status')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -235,7 +307,15 @@
                     <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Leave date in blank to use the current time when saving a new record.</p>
                     <div>
                         <label for="location" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['location'] ?? 'Location' }}</label>
-                        <input type="text" name="location" id="location" value="{{ $imeiFieldValue('location') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md {{ $roFieldClass }} @error('location') border-red-500 @enderror">
+                        <select name="location" id="location" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md bg-white {{ $roFieldClass }} @error('location') border-red-500 @enderror">
+                            <option value="">— Select location —</option>
+                            @if($currentLocationForSelect !== '' && ! $locationInReferenceTable)
+                                <option value="{{ $currentLocationForSelect }}" selected>{{ $currentLocationForSelect }} (not in list)</option>
+                            @endif
+                            @foreach($imeiLocations as $imeiLocation)
+                                <option value="{{ $imeiLocation->location }}" @selected($currentLocationForSelect === $imeiLocation->location)>{{ $imeiLocation->location }}</option>
+                            @endforeach
+                        </select>
                         @error('location')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -368,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const prefillRecordId = @json($prefillRecordId);
     const readonlyAfterSave = @json($readonlyAfterSave);
     const maxNonStandardImeiLength = @json(\App\Support\ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH);
+    const imeiModelsCatalog = @json($imeiModelsCatalogForScript);
 
     const form = document.getElementById('imei-create-form');
     const stepCheck = document.getElementById('imei-step-check');
@@ -395,8 +476,100 @@ document.addEventListener('DOMContentLoaded', function () {
     const nonStdToggle = document.getElementById('imei_non_std_toggle');
     const nonStandardNewBanner = document.getElementById('imei-nonstandard-new-banner');
     const deleteActionWraps = document.querySelectorAll('.imei-delete-action-wrap');
+    const makeSelect = document.getElementById('make');
+    const modelSelect = document.getElementById('model');
 
     const mutableSelector = '.js-imei-mutable';
+
+    function uniqueModelsForMake(make) {
+        const rows = imeiModelsCatalog.filter(function (r) {
+            return r.make === make;
+        });
+        const seen = {};
+        const out = [];
+        rows.forEach(function (r) {
+            if (seen[r.model]) {
+                return;
+            }
+            seen[r.model] = true;
+            out.push(r);
+        });
+        out.sort(function (a, b) {
+            const c = String(a.model).localeCompare(String(b.model));
+            if (c !== 0) {
+                return c;
+            }
+            return String(a.serial || '').localeCompare(String(b.serial || ''));
+        });
+
+        return out;
+    }
+
+    function refreshModelSelectForMake(make) {
+        if (!modelSelect) {
+            return;
+        }
+        const selected = modelSelect.value;
+        modelSelect.innerHTML = '';
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = '— Select model —';
+        modelSelect.appendChild(emptyOpt);
+        uniqueModelsForMake(make).forEach(function (r) {
+            const o = document.createElement('option');
+            o.value = r.model;
+            let label = r.model;
+            const serial = String(r.serial || '').trim();
+            if (serial !== '') {
+                label += ' (' + serial + ')';
+            }
+            o.textContent = label;
+            modelSelect.appendChild(o);
+        });
+        const optionValues = Array.prototype.map.call(modelSelect.options, function (opt) {
+            return opt.value;
+        });
+        if (selected && optionValues.indexOf(selected) !== -1) {
+            modelSelect.value = selected;
+        }
+    }
+
+    function syncMakeModelFromRecord(record) {
+        if (!makeSelect || !modelSelect || !record) {
+            return;
+        }
+        const makeVal = record.make == null ? '' : String(record.make);
+        const modelVal = record.model == null ? '' : String(record.model);
+        makeSelect.value = makeVal;
+        refreshModelSelectForMake(makeVal);
+        const inCat = imeiModelsCatalog.some(function (r) {
+            return r.make === makeVal && r.model === modelVal;
+        });
+        if (!inCat && modelVal !== '') {
+            const o = document.createElement('option');
+            o.value = modelVal;
+            o.textContent = modelVal + ' (not in list)';
+            modelSelect.appendChild(o);
+        }
+        modelSelect.value = modelVal;
+    }
+
+    function onMakeChanged() {
+        if (!makeSelect || !modelSelect) {
+            return;
+        }
+        const makeVal = makeSelect.value;
+        const prevModel = modelSelect.value;
+        refreshModelSelectForMake(makeVal);
+        if (makeVal && prevModel) {
+            const stillExists = imeiModelsCatalog.some(function (r) {
+                return r.make === makeVal && r.model === prevModel;
+            });
+            if (stillExists) {
+                modelSelect.value = prevModel;
+            }
+        }
+    }
 
     function setImeiDeleteActionsVisible(visible) {
         deleteActionWraps.forEach(function (wrap) {
@@ -548,9 +721,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setMutableReadonly(on) {
         getMutableElements().forEach(function (el) {
-            el.readOnly = on;
-            if (el.tagName === 'TEXTAREA') {
+            if (el.tagName === 'SELECT') {
+                el.disabled = on;
+            } else {
                 el.readOnly = on;
+                if (el.tagName === 'TEXTAREA') {
+                    el.readOnly = on;
+                }
             }
             el.classList.toggle('bg-gray-50', on);
             el.classList.toggle('cursor-default', on);
@@ -559,8 +736,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function clearMutableFields() {
         getMutableElements().forEach(function (el) {
-            el.value = '';
+            if (el.id === 'make' || el.id === 'model') {
+                return;
+            }
+            if (el.tagName === 'SELECT') {
+                el.selectedIndex = 0;
+            } else {
+                el.value = '';
+            }
         });
+        if (makeSelect) {
+            makeSelect.selectedIndex = 0;
+        }
+        refreshModelSelectForMake(makeSelect ? makeSelect.value : '');
     }
 
     function populateFromRecord(record) {
@@ -570,8 +758,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const map = {
             sn: record.sn,
             item_code: record.item_code,
-            make: record.make,
-            model: record.model,
             type: record.type,
             status: record.status,
             location: record.location,
@@ -592,6 +778,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 el.value = map[id] === null || map[id] === undefined ? '' : map[id];
             }
         });
+        syncMakeModelFromRecord(record);
     }
 
     function setFormCreateMode() {
@@ -833,6 +1020,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (nonStdToggle) {
         nonStdToggle.addEventListener('change', updateImeiEntryKindHints);
+    }
+
+    if (makeSelect) {
+        makeSelect.addEventListener('change', onMakeChanged);
     }
 
     function goBackToImeiStep() {

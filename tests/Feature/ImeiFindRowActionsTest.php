@@ -198,13 +198,13 @@ test('users with role 4 can delete an imei record', function () {
     expect(Imei::query()->find($row->id))->toBeNull();
 });
 
-test('receipt logo route serves jpg from resources', function () {
+test('receipt logo route serves png from resources', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->get(route('imeis.receipt.logo'))
         ->assertSuccessful()
-        ->assertHeader('content-type', 'image/jpeg');
+        ->assertHeader('content-type', 'image/png');
 });
 
 test('receipt page shows device receipt fields for an imei', function () {

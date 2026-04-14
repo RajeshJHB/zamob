@@ -6,7 +6,13 @@ use App\Http\Requests\StoreImeiRequest;
 use App\Http\Requests\UpdateImeiRequest;
 use App\Models\Imei;
 use App\Models\ImeiFilter;
+use App\Models\ImeiLocation;
+use App\Models\ImeiMake;
+use App\Models\ImeiModel;
+use App\Models\ImeiStatus;
+use App\Models\ImeiType;
 use App\Support\ImeiValidator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,6 +65,11 @@ class ImeiController extends Controller
             'createPageHeading' => null,
             'createPageIntro' => null,
             'defaultImeiNonStandard' => null,
+            'imeiTypes' => $this->imeiTypesForForm(),
+            'imeiStatuses' => $this->imeiStatusesForForm(),
+            'imeiLocations' => $this->imeiLocationsForForm(),
+            'imeiMakes' => $this->imeiMakesForForm(),
+            'allImeiModels' => $this->allImeiModelsForForm(),
         ]);
     }
 
@@ -72,6 +83,11 @@ class ImeiController extends Controller
             'createPageHeading' => 'Edit IMEI',
             'createPageIntro' => 'This record is loaded from Find IMEI\'s. Details are read-only until you choose Edit, then Save to update.',
             'defaultImeiNonStandard' => ImeiValidator::isValidChecksum($digits) ? '0' : '1',
+            'imeiTypes' => $this->imeiTypesForForm(),
+            'imeiStatuses' => $this->imeiStatusesForForm(),
+            'imeiLocations' => $this->imeiLocationsForForm(),
+            'imeiMakes' => $this->imeiMakesForForm(),
+            'allImeiModels' => $this->allImeiModelsForForm(),
         ]);
     }
 
@@ -83,18 +99,31 @@ class ImeiController extends Controller
     }
 
     /**
-     * Serves the receipt header image from resources/ so updates to Vodacom.jpg are used without copying to public/.
+     * Serves the receipt header image from resources/ so updates to the logo file are used without copying to public/.
      */
     public function receiptLogo(): BinaryFileResponse
     {
-        $paths = [resource_path('Vodacom.jpg'), resource_path('vodacom.jpg')];
+        $paths = [
+            resource_path('VodacomLogo.png'),
+            resource_path('Vodacomlogo.png'),
+            resource_path('vodacomlogo.png'),
+            resource_path('Vodacom.jpg'),
+            resource_path('vodacom.jpg'),
+        ];
+
         foreach ($paths as $path) {
-            if (is_file($path)) {
-                return response()->file($path, [
-                    'Content-Type' => 'image/jpeg',
-                    'Cache-Control' => 'private, max-age=3600',
-                ]);
+            if (! is_file($path)) {
+                continue;
             }
+
+            $contentType = str_ends_with(strtolower($path), '.png')
+                ? 'image/png'
+                : 'image/jpeg';
+
+            return response()->file($path, [
+                'Content-Type' => $contentType,
+                'Cache-Control' => 'private, max-age=3600',
+            ]);
         }
 
         abort(404, 'Receipt logo image not found in resources/.');
@@ -476,6 +505,46 @@ class ImeiController extends Controller
         return redirect()
             ->route('imeis.filter', $request->query())
             ->with('message', 'Filter profile deleted.');
+    }
+
+    /**
+     * @return Collection<int, ImeiType>
+     */
+    private function imeiTypesForForm(): Collection
+    {
+        return ImeiType::query()->orderBy('type')->get();
+    }
+
+    /**
+     * @return Collection<int, ImeiStatus>
+     */
+    private function imeiStatusesForForm(): Collection
+    {
+        return ImeiStatus::query()->orderBy('status')->get();
+    }
+
+    /**
+     * @return Collection<int, ImeiLocation>
+     */
+    private function imeiLocationsForForm(): Collection
+    {
+        return ImeiLocation::query()->orderBy('location')->get();
+    }
+
+    /**
+     * @return Collection<int, ImeiMake>
+     */
+    private function imeiMakesForForm(): Collection
+    {
+        return ImeiMake::query()->orderBy('make')->get();
+    }
+
+    /**
+     * @return Collection<int, ImeiModel>
+     */
+    private function allImeiModelsForForm(): Collection
+    {
+        return ImeiModel::query()->orderBy('make')->orderBy('model')->orderBy('serial')->get();
     }
 
     /**
