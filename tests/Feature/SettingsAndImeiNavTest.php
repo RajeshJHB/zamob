@@ -16,12 +16,15 @@ test('guests are redirected from add imei form', function () {
 test('verified users can view settings and add imei form', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)
+    $settingsHtml = $this->actingAs($user)
         ->get(route('settings.index'))
         ->assertSuccessful()
         ->assertSee('Make', false)
         ->assertSee('Models', false)
-        ->assertDontSee('Change password', false);
+        ->assertDontSee('Change password', false)
+        ->getContent();
+
+    expect($settingsHtml)->not->toContain('w-full max-w-none');
 
     $this->actingAs($user)
         ->get(route('settings.makes.index'))

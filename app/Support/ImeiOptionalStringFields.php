@@ -11,7 +11,6 @@ final class ImeiOptionalStringFields
      * @var list<string>
      */
     public const KEYS = [
-        'stock_take_date',
         'make',
         'model',
         'sn',
@@ -21,7 +20,6 @@ final class ImeiOptionalStringFields
         'notes',
         'phonenumber',
         'ref',
-        'staff',
         'item_code',
         'ourON',
         'salesON',

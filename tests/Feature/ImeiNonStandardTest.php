@@ -108,7 +108,7 @@ test('store accepts non-standard imei when imei_non_standard is 1', function () 
             'date_in' => '',
         ]);
 
-    $response->assertRedirect(route('imeis.create'));
+    $response->assertRedirect(route('imeis.edit', Imei::query()->where('imei', '98765')->firstOrFail()));
     $this->assertDatabaseHas('imei', [
         'imei' => '98765',
     ]);
@@ -124,7 +124,7 @@ test('store accepts non-standard alphanumeric imei', function () {
             'imei' => 'ID#99-aa',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'ID#99aa')->firstOrFail()));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'ID#99aa',

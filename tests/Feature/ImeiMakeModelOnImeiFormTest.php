@@ -94,7 +94,7 @@ test('store persists make and model text from reference tables', function () {
             'make' => 'Vodacom',
             'model' => 'Router',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'mkstoreok')->firstOrFail()));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'mkstoreok',
@@ -134,7 +134,7 @@ test('update allows unchanged legacy make and model when not in reference tables
             'model' => 'OldModel',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', $row));
 
     $fresh = Imei::query()->find($row->id);
     expect($fresh?->make)->toBe('OldMake');

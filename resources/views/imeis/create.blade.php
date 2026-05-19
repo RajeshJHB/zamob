@@ -138,11 +138,17 @@
             <form id="imei-delete-form" method="POST" action="{{ route('imeis.destroy', ['imei' => $updateRouteId]) }}" class="hidden" aria-hidden="true">
                 @csrf
                 @method('DELETE')
+                @if(! empty($returnQuery))
+                    <input type="hidden" name="return_query" value="{{ $returnQuery }}">
+                @endif
             </form>
         @endif
 
         <form method="POST" action="{{ $formAction }}" class="space-y-6" id="imei-create-form">
             @csrf
+            @if(! empty($returnQuery))
+                <input type="hidden" name="return_query" value="{{ $returnQuery }}">
+            @endif
             <input type="hidden" name="imei_non_standard" id="imei_non_standard" value="{{ old('imei_non_standard', $defaultImeiNonStandard ?? '0') }}">
             <input type="hidden" name="imei_record_id" id="imei_record_id" value="{{ $updateRouteId ?? '' }}">
             <input type="hidden" name="_method" id="imei_method_spoof" value="PUT" @if($updateRouteId === null) disabled @endif>
@@ -195,6 +201,34 @@
                     <p class="mt-2">
                         <a id="imei-view-list-link" href="{{ $viewListHref }}" class="underline font-medium text-amber-900">View this IMEI in the results list</a>
                     </p>
+                </div>
+
+                <div class="pb-4 border-b border-gray-200 space-y-3">
+                    <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Leave date in blank to use the current time when saving a new record.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,15rem)_1fr] gap-4 items-start">
+                        <div>
+                            <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['date_in'] ?? 'Date in' }}</label>
+                            <input type="datetime-local" name="date_in" id="date_in" value="{{ $imeiFieldValue('date_in') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('date_in') border-red-500 @enderror">
+                            @error('date_in')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="location" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['location'] ?? 'Location' }}</label>
+                            <select name="location" id="location" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('location') border-red-500 @enderror">
+                                <option value="">— Select location —</option>
+                                @if($currentLocationForSelect !== '' && ! $locationInReferenceTable)
+                                    <option value="{{ $currentLocationForSelect }}" selected>{{ $currentLocationForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($imeiLocations as $imeiLocation)
+                                    <option value="{{ $imeiLocation->location }}" @selected($currentLocationForSelect === $imeiLocation->location)>{{ $imeiLocation->location }}</option>
+                                @endforeach
+                            </select>
+                            @error('location')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
 
                 <div class="pb-4 border-b border-gray-200 space-y-2">
@@ -303,65 +337,18 @@
                 </div>
 
                 <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Location &amp; dates</h2>
-                    <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Leave date in blank to use the current time when saving a new record.</p>
+                    <h2 class="text-lg font-semibold">People &amp; reference</h2>
                     <div>
-                        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['location'] ?? 'Location' }}</label>
-                        <select name="location" id="location" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md bg-white {{ $roFieldClass }} @error('location') border-red-500 @enderror">
-                            <option value="">— Select location —</option>
-                            @if($currentLocationForSelect !== '' && ! $locationInReferenceTable)
-                                <option value="{{ $currentLocationForSelect }}" selected>{{ $currentLocationForSelect }} (not in list)</option>
-                            @endif
-                            @foreach($imeiLocations as $imeiLocation)
-                                <option value="{{ $imeiLocation->location }}" @selected($currentLocationForSelect === $imeiLocation->location)>{{ $imeiLocation->location }}</option>
-                            @endforeach
-                        </select>
-                        @error('location')
+                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Phone Number' }}</label>
+                        <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
+                        @error('phonenumber')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['date_in'] ?? 'Date in' }}</label>
-                            <input type="datetime-local" name="date_in" id="date_in" value="{{ $imeiFieldValue('date_in') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('date_in') border-red-500 @enderror">
-                            @error('date_in')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="stock_take_date" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['stock_take_date'] ?? 'Stock take date' }}</label>
-                            <input type="text" name="stock_take_date" id="stock_take_date" value="{{ $imeiFieldValue('stock_take_date') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('stock_take_date') border-red-500 @enderror">
-                            @error('stock_take_date')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">People &amp; reference</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Phone' }}</label>
-                            <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
-                            @error('phonenumber')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="ref" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ref'] ?? 'Ref' }}</label>
-                            <input type="text" name="ref" id="ref" value="{{ $imeiFieldValue('ref') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ref') border-red-500 @enderror">
-                            @error('ref')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
                     </div>
                     <div>
                         <label for="staff" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['staff'] ?? 'Staff' }}</label>
-                        <input type="text" name="staff" id="staff" value="{{ $imeiFieldValue('staff') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md {{ $roFieldClass }} @error('staff') border-red-500 @enderror">
-                        @error('staff')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        <input type="text" id="staff" value="{{ $imeiFieldValue('staff') }}" readonly class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md bg-gray-50 cursor-default">
+                        <p class="mt-1 text-xs text-gray-500">Users who created or edited this record (filled in automatically).</p>
                     </div>
                 </div>
 
@@ -401,12 +388,21 @@
                     </div>
                 </div>
 
-                <div>
-                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['notes'] ?? 'Notes' }}</label>
-                    <textarea name="notes" id="notes" rows="4" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('notes') border-red-500 @enderror">{{ $imeiFieldValue('notes') }}</textarea>
-                    @error('notes')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                <div class="space-y-4 pb-4 border-b border-gray-200">
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['notes'] ?? 'Customer Details' }}</label>
+                        <textarea name="notes" id="notes" rows="4" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('notes') border-red-500 @enderror">{{ $imeiFieldValue('notes') }}</textarea>
+                        @error('notes')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="ref" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ref'] ?? 'Deal Details' }}</label>
+                        <textarea name="ref" id="ref" rows="4" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ref') border-red-500 @enderror">{{ $imeiFieldValue('ref') }}</textarea>
+                        @error('ref')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -442,6 +438,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     const lookupUrl = @json(route('imeis.lookup'));
     const resultsBase = @json(route('imeis.index'));
+    const returnListUrl = @json($returnListUrl ?? null);
+    const returnQueryEncoded = @json($returnQuery ?? null);
     const storeUrl = @json(route('imeis.store'));
     const imeisResourceBase = @json(rtrim(url('/imeis'), '/'));
     const formUnlocked = @json($formUnlocked);
@@ -449,6 +447,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const readonlyAfterSave = @json($readonlyAfterSave);
     const maxNonStandardImeiLength = @json(\App\Support\ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH);
     const imeiModelsCatalog = @json($imeiModelsCatalogForScript);
+    let currentViewRecord = @json($viewRecord);
+    let viewReadonlyBanner = readonlyAfterSave ? 'saved' : 'existing';
+    let isEditingRecord = false;
 
     const form = document.getElementById('imei-create-form');
     const stepCheck = document.getElementById('imei-step-check');
@@ -589,6 +590,10 @@ document.addEventListener('DOMContentLoaded', function () {
         updateProbeBackgroundFromValue();
     }
 
+    function isActionBtnHidden(el) {
+        return !el || el.hasAttribute('hidden') || el.classList.contains('hidden');
+    }
+
     function syncTopActionButtons() {
         [
             [submitBtn, submitBtnTop],
@@ -601,10 +606,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!top) {
                 return;
             }
-            if (!bottom || bottom.hasAttribute('hidden')) {
+            if (isActionBtnHidden(bottom)) {
                 top.setAttribute('hidden', '');
+                top.classList.add('hidden');
             } else {
                 top.removeAttribute('hidden');
+                top.classList.remove('hidden');
             }
         });
         if (submitBtn && submitBtnTop) {
@@ -615,6 +622,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function hideActionBtn(el) {
         if (el) {
             el.setAttribute('hidden', '');
+            el.classList.add('hidden');
         }
         syncTopActionButtons();
     }
@@ -622,6 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function showActionBtn(el) {
         if (el) {
             el.removeAttribute('hidden');
+            el.classList.remove('hidden');
         }
         syncTopActionButtons();
     }
@@ -762,7 +771,6 @@ document.addEventListener('DOMContentLoaded', function () {
             status: record.status,
             location: record.location,
             date_in: record.date_in ? String(record.date_in).slice(0, 16) : '',
-            stock_take_date: record.stock_take_date ?? '',
             phonenumber: record.phonenumber,
             ref: record.ref,
             staff: record.staff,
@@ -826,7 +834,74 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function showExistingReadonly(record) {
+    function appendReturnQueryToUrl(url) {
+        if (!returnQueryEncoded) {
+            return url;
+        }
+
+        const separator = url.indexOf('?') >= 0 ? '&' : '?';
+
+        return url + separator + 'return_query=' + encodeURIComponent(returnQueryEncoded);
+    }
+
+    function goBackToResultsList() {
+        if (returnListUrl) {
+            window.location.href = returnListUrl;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    function resolveViewRecordId() {
+        if (currentViewRecord && currentViewRecord.id) {
+            return String(currentViewRecord.id);
+        }
+        if (prefillRecordId) {
+            return String(prefillRecordId);
+        }
+        if (recordIdInput && recordIdInput.value) {
+            return String(recordIdInput.value);
+        }
+
+        return null;
+    }
+
+    function exitEditToViewMode() {
+        const recordId = resolveViewRecordId();
+
+        if (isEditingRecord && recordId) {
+            window.location.href = appendReturnQueryToUrl(
+                imeisResourceBase + '/' + encodeURIComponent(recordId) + '/edit'
+            );
+
+            return;
+        }
+
+        if (goBackToResultsList()) {
+            return;
+        }
+
+        if (recordId) {
+            const imeiVal = (currentViewRecord && currentViewRecord.imei)
+                || (imeiFinal && imeiFinal.value)
+                || '';
+            const listUrl = imeiVal
+                ? resultsBase + '?search=' + encodeURIComponent(String(imeiVal)) + '&scope=all&date_scope=all'
+                : resultsBase;
+            window.location.href = listUrl;
+
+            return;
+        }
+
+        showCheck();
+    }
+
+    function showRecordReadonly(record, bannerKind) {
+        currentViewRecord = record;
+        viewReadonlyBanner = bannerKind;
+        isEditingRecord = false;
         setFormUpdateMode(record.id);
         if (nonStandardNewBanner) {
             nonStandardNewBanner.classList.add('hidden');
@@ -836,16 +911,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         populateFromRecord(record);
         if (existingBanner) {
-            existingBanner.classList.remove('hidden');
+            existingBanner.classList.toggle('hidden', bannerKind !== 'existing');
         }
         if (savedBanner) {
-            savedBanner.classList.add('hidden');
+            savedBanner.classList.toggle('hidden', bannerKind !== 'saved');
         }
         if (dateHintNew) {
             dateHintNew.classList.add('hidden');
         }
-        if (viewListLink && record.imei) {
-            viewListLink.href = resultsBase + '?search=' + encodeURIComponent(String(record.imei)) + '&scope=all&date_scope=all';
+        if (viewListLink) {
+            if (returnListUrl) {
+                viewListLink.href = returnListUrl;
+            } else if (record.imei) {
+                viewListLink.href = resultsBase + '?search=' + encodeURIComponent(String(record.imei)) + '&scope=all&date_scope=all';
+            }
         }
         setMutableReadonly(true);
         hideActionBtn(cancelNewBtn);
@@ -855,7 +934,12 @@ document.addEventListener('DOMContentLoaded', function () {
         setImeiDeleteActionsVisible(false);
     }
 
+    function showExistingReadonly(record) {
+        showRecordReadonly(record, 'existing');
+    }
+
     function enterEditExisting() {
+        isEditingRecord = true;
         setMutableReadonly(false);
         hideActionBtn(cancelNewBtn);
         if (submitBtn) {
@@ -1054,12 +1138,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', function () {
-            if (probe) {
-                probe.value = '';
-            }
-            showCheck();
-        });
+        cancelEditBtn.addEventListener('click', exitEditToViewMode);
     }
 
     if (cancelEditBtnTop) {
@@ -1071,13 +1150,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (formUnlocked && prefillRecordId && form && methodSpoof && !readonlyAfterSave) {
+        isEditingRecord = true;
         form.action = imeisResourceBase + '/' + encodeURIComponent(prefillRecordId);
         methodSpoof.disabled = false;
         if (dateHintNew) {
             dateHintNew.classList.add('hidden');
         }
-        if (viewListLink && imeiFinal && imeiFinal.value) {
-            viewListLink.href = resultsBase + '?search=' + encodeURIComponent(imeiFinal.value) + '&scope=all&date_scope=all';
+        if (viewListLink) {
+            if (returnListUrl) {
+                viewListLink.href = returnListUrl;
+            } else if (imeiFinal && imeiFinal.value) {
+                viewListLink.href = resultsBase + '?search=' + encodeURIComponent(imeiFinal.value) + '&scope=all&date_scope=all';
+            }
         }
         submitBtn.textContent = 'Save';
         showActionBtn(submitBtn);

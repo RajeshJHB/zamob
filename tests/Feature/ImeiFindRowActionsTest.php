@@ -33,6 +33,136 @@ beforeEach(function () {
     });
 });
 
+test('imei index uses full width main content area', function () {
+    $user = User::factory()->create();
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index'))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('w-full max-w-none');
+});
+
+test('view link from index preserves list filter state for exit return', function () {
+    $user = User::factory()->create();
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270284',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'search' => '358918502270284',
+            'scope' => 'all',
+            'sort1_column' => 'make',
+            'sort1_dir' => 'asc',
+        ]))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('return_query=');
+    expect($html)->toContain(rawurlencode('search=358918502270284'));
+});
+
+test('view page exposes return list url from return_query', function () {
+    $user = User::factory()->create();
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270284',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $returnQuery = http_build_query([
+        'search' => '358918502270284',
+        'scope' => 'all',
+        'sort1_column' => 'make',
+        'sort1_dir' => 'asc',
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.edit', $row).'?return_query='.rawurlencode($returnQuery))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('returnListUrl');
+    expect($html)->toContain('returnQueryEncoded');
+    expect($html)->toContain('search=358918502270284');
+    expect($html)->toContain('sort1_column=make');
+});
+
+test('update redirects back to view with return_query preserved', function () {
+    $user = User::factory()->create();
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270284',
+        'stock_take_date' => '',
+        'make' => 'Apple',
+        'model' => 'iPhone',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $returnQuery = http_build_query([
+        'search' => '358918502270284',
+        'scope' => 'all',
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('imeis.update', $row), [
+            '_token' => csrf_token(),
+            'return_query' => $returnQuery,
+            'date_in' => '',
+            'notes' => 'changed',
+        ])
+        ->assertRedirect(route('imeis.edit', $row).'?return_query='.rawurlencode($returnQuery));
+});
+
 test('find results include print and edit links per row', function () {
     $user = User::factory()->create();
     $row = Imei::query()->create([
@@ -64,6 +194,7 @@ test('find results include print and edit links per row', function () {
 
     expect($html)->toContain(route('imeis.receipt', $row));
     expect($html)->toContain(route('imeis.edit', $row));
+    expect($html)->toContain('>View</a>');
     expect($html)->not->toContain('name="_method" value="DELETE"');
 });
 
@@ -268,7 +399,7 @@ test('edit from find loads create form with record in read-only mode', function 
     $this->actingAs($user)
         ->get(route('imeis.edit', $row))
         ->assertSuccessful()
-        ->assertSee('Edit IMEI', false)
+        ->assertSee('View IMEI', false)
         ->assertSee('358918502270284', false)
         ->assertSee('Samsung', false)
         ->assertSee('imei-submit-btn', false);

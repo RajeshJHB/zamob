@@ -60,7 +60,7 @@ test('store persists the chosen location string from imei_locations', function (
             'date_in' => '',
             'location' => 'Warehouse A',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storelocok')->firstOrFail()));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storelocok',
@@ -98,7 +98,7 @@ test('update allows unchanged legacy location when it is not in imei_locations',
             'location' => 'LegacyShelf',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', $row));
 
     expect(Imei::query()->find($row->id)?->location)->toBe('LegacyShelf');
 });

@@ -1,8 +1,16 @@
 @extends('layouts.app')
 
+@section('contentWidth', 'full')
+
 @section('title', 'Find IMEI\'s')
 
 @section('content')
+@php
+    $listReturnQuery = http_build_query(array_filter(array_merge(
+        $filterParams ?? [],
+        request()->only(['page']),
+    ), fn (mixed $value): bool => $value !== null && $value !== ''));
+@endphp
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">IMEI's</h1>
@@ -29,27 +37,27 @@
     @endif
 
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-300">
+        <table class="min-w-full border-collapse bg-white border border-gray-300">
             <thead>
                 <tr class="bg-gray-100">
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b w-24">Print</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b w-24">Edit</th>
+                    <th class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">Print</th>
+                    <th class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">View</th>
                     @foreach($columns as $col)
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{{ $columnLabels[$col] ?? $col }}</th>
+                        <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">{{ $columnLabels[$col] ?? $col }}</th>
                     @endforeach
                 </tr>
             </thead>
             <tbody>
                 @forelse($imeis as $row)
-                    <tr class="border-b border-gray-200 hover:bg-gray-50">
-                        <td class="px-3 py-2 text-sm">
+                    <tr class="hover:bg-gray-50">
+                        <td class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
                             <a href="{{ route('imeis.receipt', $row) }}" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:text-blue-900 font-medium underline">Print</a>
                         </td>
-                        <td class="px-3 py-2 text-sm">
-                            <a href="{{ route('imeis.edit', $row) }}" class="text-blue-700 hover:text-blue-900 font-medium underline">Edit</a>
+                        <td class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
+                            <a href="{{ route('imeis.edit', $row).($listReturnQuery !== '' ? '?return_query='.rawurlencode($listReturnQuery) : '') }}" class="text-blue-700 hover:text-blue-900 font-medium underline">View</a>
                         </td>
                         @foreach($columns as $col)
-                            <td class="px-3 py-2 text-sm text-gray-700">
+                            <td class="border border-gray-300 px-3 py-2 text-sm text-gray-700">
                                 @if($col === 'date_in' || $col === 'date_updated')
                                     {{ $row->$col?->format('Y-m-d H:i') ?? '—' }}
                                 @elseif($col === 'notes')
@@ -62,7 +70,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ 2 + count($columns) }}" class="px-3 py-8 text-center text-gray-500">No IMEI records found.</td>
+                        <td colspan="{{ 2 + count($columns) }}" class="border border-gray-300 px-3 py-8 text-center text-gray-500">No IMEI records found.</td>
                     </tr>
                 @endforelse
             </tbody>

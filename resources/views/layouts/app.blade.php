@@ -68,7 +68,14 @@
     </nav>
 
     <main class="py-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        @php
+            $mainContentFullWidth = trim($__env->yieldContent('contentWidth')) === 'full';
+        @endphp
+        <div @class([
+            'mx-auto px-4 sm:px-6 lg:px-8',
+            'max-w-7xl' => ! $mainContentFullWidth,
+            'w-full max-w-none' => $mainContentFullWidth,
+        ])>
             @if(session('error'))
                 <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     {{ session('error') }}

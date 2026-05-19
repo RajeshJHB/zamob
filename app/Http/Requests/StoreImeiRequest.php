@@ -55,7 +55,6 @@ class StoreImeiRequest extends FormRequest
         $base = [
             'imei_non_standard' => ['required', 'in:0,1'],
             'date_in' => ['nullable', 'date'],
-            'stock_take_date' => ['nullable', 'string', 'max:255'],
             'make' => [
                 'nullable',
                 'string',
@@ -115,7 +114,6 @@ class StoreImeiRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:65535'],
             'phonenumber' => ['nullable', 'string', 'max:255'],
             'ref' => ['nullable', 'string', 'max:255'],
-            'staff' => ['nullable', 'string', 'max:255'],
             'item_code' => ['nullable', 'string', 'max:255'],
             'ourON' => ['nullable', 'string', 'max:255'],
             'salesON' => ['nullable', 'string', 'max:255'],

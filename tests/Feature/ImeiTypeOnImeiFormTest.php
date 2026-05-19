@@ -60,7 +60,7 @@ test('store persists the chosen type string from imei_types', function () {
             'date_in' => '',
             'type' => 'Retail',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storetypeok')->firstOrFail()));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storetypeok',
@@ -98,7 +98,7 @@ test('update allows unchanged legacy type when it is not in imei_types', functio
             'type' => 'LegacyFreeText',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', $row));
 
     expect(Imei::query()->find($row->id)?->type)->toBe('LegacyFreeText');
 });

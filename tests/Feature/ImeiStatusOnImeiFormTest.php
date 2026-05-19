@@ -60,7 +60,7 @@ test('store persists the chosen status string from imei_statuses', function () {
             'date_in' => '',
             'status' => 'In Stock',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storestatok')->firstOrFail()));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storestatok',
@@ -98,7 +98,7 @@ test('update allows unchanged legacy status when it is not in imei_statuses', fu
             'status' => 'LegacyStatusText',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.create'));
+        ->assertRedirect(route('imeis.edit', $row));
 
     expect(Imei::query()->find($row->id)?->status)->toBe('LegacyStatusText');
 });

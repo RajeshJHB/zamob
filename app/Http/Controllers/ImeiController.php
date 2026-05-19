@@ -11,6 +11,7 @@ use App\Models\ImeiMake;
 use App\Models\ImeiModel;
 use App\Models\ImeiStatus;
 use App\Models\ImeiType;
+use App\Support\ImeiStaffAudit;
 use App\Support\ImeiValidator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,27 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ImeiController extends Controller
 {
+    /**
+     * Query keys allowed when returning from view/edit to the IMEI results table.
+     *
+     * @var list<string>
+     */
+    private const INDEX_RETURN_QUERY_KEYS = [
+        'scope',
+        'columns',
+        'date_scope',
+        'date_column',
+        'start_date',
+        'end_date',
+        'search',
+        'search2',
+        'sort1_column',
+        'sort1_dir',
+        'sort2_column',
+        'sort2_dir',
+        'page',
+    ];
+
     public const DATE_COLUMNS = [
         'date_in' => 'Date In',
         'date_updated' => 'Date Updated',
@@ -37,12 +59,11 @@ class ImeiController extends Controller
         'location' => 'Location',
         'type' => 'Type',
         'status' => 'Status',
-        'notes' => 'Notes',
-        'phonenumber' => 'Phone',
-        'ref' => 'Ref',
+        'notes' => 'Customer Details',
+        'phonenumber' => 'Phone Number',
+        'ref' => 'Deal Details',
         'staff' => 'Staff',
         'item_code' => 'Item code',
-        'stock_take_date' => 'Stock take date',
         'ourON' => 'ourON',
         'salesON' => 'salesON',
         'cost_excl' => 'Cost excl',
@@ -59,36 +80,27 @@ class ImeiController extends Controller
             }
         }
 
-        return view('imeis.create', [
-            'columnLabels' => self::COLUMNS,
-            'viewRecord' => $viewRecord,
-            'createPageHeading' => null,
-            'createPageIntro' => null,
-            'defaultImeiNonStandard' => null,
-            'imeiTypes' => $this->imeiTypesForForm(),
-            'imeiStatuses' => $this->imeiStatusesForForm(),
-            'imeiLocations' => $this->imeiLocationsForForm(),
-            'imeiMakes' => $this->imeiMakesForForm(),
-            'allImeiModels' => $this->allImeiModelsForForm(),
-        ]);
+        return $this->imeiFormView(
+            viewRecord: $viewRecord,
+            createPageHeading: null,
+            createPageIntro: null,
+            defaultImeiNonStandard: null,
+            returnQuery: null,
+        );
     }
 
-    public function edit(Imei $imei): View
+    public function edit(Request $request, Imei $imei): View
     {
         $digits = ImeiValidator::normalizeDigits($imei->imei);
+        $returnQuery = $this->returnQueryStringFromRequest($request);
 
-        return view('imeis.create', [
-            'columnLabels' => self::COLUMNS,
-            'viewRecord' => $this->imeiRecordForLookup($imei),
-            'createPageHeading' => 'Edit IMEI',
-            'createPageIntro' => 'This record is loaded from Find IMEI\'s. Details are read-only until you choose Edit, then Save to update.',
-            'defaultImeiNonStandard' => ImeiValidator::isValidChecksum($digits) ? '0' : '1',
-            'imeiTypes' => $this->imeiTypesForForm(),
-            'imeiStatuses' => $this->imeiStatusesForForm(),
-            'imeiLocations' => $this->imeiLocationsForForm(),
-            'imeiMakes' => $this->imeiMakesForForm(),
-            'allImeiModels' => $this->allImeiModelsForForm(),
-        ]);
+        return $this->imeiFormView(
+            viewRecord: $this->imeiRecordForLookup($imei),
+            createPageHeading: 'View IMEI',
+            createPageIntro: 'This record is loaded from Find IMEI\'s. Details are read-only until you choose Edit, then Save to update.',
+            defaultImeiNonStandard: ImeiValidator::isValidChecksum($digits) ? '0' : '1',
+            returnQuery: $returnQuery,
+        );
     }
 
     public function receipt(Imei $imei): View
@@ -199,31 +211,33 @@ class ImeiController extends Controller
             $data['date_in'] = now();
         }
         $data['date_updated'] = now();
+        $data['staff'] = ImeiStaffAudit::appendEmail('', (string) $request->user()->email);
         $imei = Imei::create($data);
 
-        return redirect()
-            ->route('imeis.create')
-            ->with('message', 'IMEI record created.')
-            ->with('imei_view_id', $imei->id);
+        return $this->redirectToImeiView($imei, $this->returnQueryStringFromRequest($request), 'IMEI record created.');
     }
 
     public function update(UpdateImeiRequest $request, Imei $imei): RedirectResponse
     {
         $data = $request->validated();
         $data['date_updated'] = now();
+        $data['staff'] = ImeiStaffAudit::appendEmail((string) $imei->staff, (string) $request->user()->email);
         $imei->update($data);
 
-        return redirect()
-            ->route('imeis.create')
-            ->with('message', 'IMEI record updated.')
-            ->with('imei_view_id', $imei->id);
+        return $this->redirectToImeiView($imei, $this->returnQueryStringFromRequest($request), 'IMEI record updated.');
     }
 
     public function destroy(Request $request, Imei $imei): RedirectResponse
     {
         abort_unless($request->user()->canDeleteImeiReferenceData(), 403);
 
+        $returnQuery = $this->returnQueryStringFromRequest($request);
         $imei->delete();
+
+        $returnListUrl = $this->indexUrlFromReturnQuery($returnQuery);
+        if ($returnListUrl !== null) {
+            return redirect()->to($returnListUrl)->with('message', 'IMEI record deleted.');
+        }
 
         return redirect()
             ->route('imeis.create')
@@ -556,7 +570,6 @@ class ImeiController extends Controller
             'id' => $imei->id,
             'imei' => $imei->imei,
             'date_in' => $imei->date_in?->format('Y-m-d\TH:i'),
-            'stock_take_date' => $imei->stock_take_date,
             'make' => $imei->make,
             'model' => $imei->model,
             'sn' => $imei->sn,
@@ -573,5 +586,79 @@ class ImeiController extends Controller
             'cost_excl' => $imei->cost_excl,
             'selling_price' => $imei->selling_price,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $viewRecord
+     */
+    private function imeiFormView(
+        ?array $viewRecord,
+        ?string $createPageHeading,
+        ?string $createPageIntro,
+        ?string $defaultImeiNonStandard,
+        ?string $returnQuery,
+    ): View {
+        return view('imeis.create', [
+            'columnLabels' => self::COLUMNS,
+            'viewRecord' => $viewRecord,
+            'createPageHeading' => $createPageHeading,
+            'createPageIntro' => $createPageIntro,
+            'defaultImeiNonStandard' => $defaultImeiNonStandard,
+            'returnListUrl' => $this->indexUrlFromReturnQuery($returnQuery),
+            'returnQuery' => $returnQuery,
+            'imeiTypes' => $this->imeiTypesForForm(),
+            'imeiStatuses' => $this->imeiStatusesForForm(),
+            'imeiLocations' => $this->imeiLocationsForForm(),
+            'imeiMakes' => $this->imeiMakesForForm(),
+            'allImeiModels' => $this->allImeiModelsForForm(),
+        ]);
+    }
+
+    private function redirectToImeiView(Imei $imei, ?string $returnQuery, string $message): RedirectResponse
+    {
+        $url = route('imeis.edit', $imei);
+        if ($returnQuery !== null && $this->indexUrlFromReturnQuery($returnQuery) !== null) {
+            $url .= '?return_query='.rawurlencode($returnQuery);
+        }
+
+        return redirect()->to($url)->with('message', $message);
+    }
+
+    private function returnQueryStringFromRequest(Request $request): ?string
+    {
+        $returnQuery = $request->input('return_query', $request->query('return_query'));
+        if (! is_string($returnQuery)) {
+            return null;
+        }
+
+        $returnQuery = trim($returnQuery);
+        if ($returnQuery === '') {
+            return null;
+        }
+
+        if ($this->indexUrlFromReturnQuery($returnQuery) === null) {
+            return null;
+        }
+
+        return $returnQuery;
+    }
+
+    private function indexUrlFromReturnQuery(?string $returnQuery): ?string
+    {
+        if ($returnQuery === null || trim($returnQuery) === '') {
+            return null;
+        }
+
+        parse_str($returnQuery, $params);
+        if (! is_array($params)) {
+            return null;
+        }
+
+        $filtered = array_intersect_key($params, array_flip(self::INDEX_RETURN_QUERY_KEYS));
+        if ($filtered === []) {
+            return route('imeis.index');
+        }
+
+        return route('imeis.index', $filtered);
     }
 }
