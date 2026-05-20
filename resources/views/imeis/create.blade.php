@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @php
+    use App\Support\ImeiNewRecordDefaults;
     /** @var array<string, mixed>|null $viewRecord */
     $viewRecord = $viewRecord ?? null;
     $formUnlocked = $errors->any() || ! empty($viewRecord);
@@ -43,7 +44,15 @@
             return $val === null ? '' : (string) $val;
         }
 
-        return old($key, '');
+        $default = match ($key) {
+            'date_in' => now()->format('Y-m-d\TH:i'),
+            'location' => ImeiNewRecordDefaults::LOCATION,
+            'type' => ImeiNewRecordDefaults::TYPE,
+            'status' => ImeiNewRecordDefaults::STATUS,
+            default => '',
+        };
+
+        return old($key, $default);
     };
 
     $viewListHref = '#';
@@ -100,7 +109,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
             <h1 class="text-2xl font-bold">{{ $createPageHeading ?: 'Add IMEI' }}</h1>
             <div id="imei-form-actions-top-wrap" class="flex flex-wrap items-center justify-between gap-3 flex-1 min-w-0 shrink @unless($formUnlocked) hidden @endunless">
-                <div class="flex flex-wrap items-center justify-end gap-3">
+                <div class="flex flex-wrap items-center gap-3">
                     <button type="submit" form="imei-create-form" id="imei-submit-btn-top" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" @if($readonlyAfterSave) hidden @endif>
                         Save IMEI
                     </button>
@@ -114,6 +123,10 @@
                         Exit
                     </button>
                 </div>
+                <div class="flex flex-wrap items-center gap-3 shrink-0">
+                    <button type="button" id="imei-copy-last-btn-top" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400" hidden>
+                        Copy Last
+                    </button>
                 @if($updateRouteId !== null && auth()->user()->canDeleteImeiReferenceData())
                     <div class="imei-delete-action-wrap flex items-center shrink-0" @if($readonlyAfterSave && !$errors->any()) hidden @endif>
                         <button type="submit" form="imei-delete-form" id="imei-delete-btn-top" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -122,6 +135,7 @@
                         </button>
                     </div>
                 @endif
+                </div>
             </div>
         </div>
         <p class="text-sm text-gray-600 mb-6">
@@ -252,19 +266,21 @@
 
                 <div class="space-y-4 pb-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold">Identifiers</h2>
-                    <div>
-                        <label for="sn" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['sn'] ?? 'SN' }}</label>
-                        <input type="text" name="sn" id="sn" value="{{ $imeiFieldValue('sn') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md {{ $roFieldClass }} @error('sn') border-red-500 @enderror">
-                        @error('sn')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label for="item_code" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['item_code'] ?? 'Item code' }}</label>
-                        <input type="text" name="item_code" id="item_code" value="{{ $imeiFieldValue('item_code') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md {{ $roFieldClass }} @error('item_code') border-red-500 @enderror">
-                        @error('item_code')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="sn" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['sn'] ?? 'Serial Number' }}</label>
+                            <input type="text" name="sn" id="sn" value="{{ $imeiFieldValue('sn') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('sn') border-red-500 @enderror">
+                            @error('sn')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="item_code" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['item_code'] ?? 'Item code' }}</label>
+                            <input type="text" name="item_code" id="item_code" value="{{ $imeiFieldValue('item_code') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('item_code') border-red-500 @enderror">
+                            @error('item_code')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 
@@ -334,26 +350,6 @@
                             @enderror
                         </div>
                     </div>
-                </div>
-
-                <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">People &amp; reference</h2>
-                    <div>
-                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Phone Number' }}</label>
-                        <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
-                        @error('phonenumber')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label for="staff" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['staff'] ?? 'Staff' }}</label>
-                        <input type="text" id="staff" value="{{ $imeiFieldValue('staff') }}" readonly class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md bg-gray-50 cursor-default">
-                        <p class="mt-1 text-xs text-gray-500">Users who created or edited this record (filled in automatically).</p>
-                    </div>
-                </div>
-
-                <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Sales</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="ourON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ourON'] ?? 'ourON' }}</label>
@@ -390,6 +386,13 @@
 
                 <div class="space-y-4 pb-4 border-b border-gray-200">
                     <div>
+                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Customer Phone number' }}</label>
+                        <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
+                        @error('phonenumber')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
                         <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['notes'] ?? 'Customer Details' }}</label>
                         <textarea name="notes" id="notes" rows="4" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('notes') border-red-500 @enderror">{{ $imeiFieldValue('notes') }}</textarea>
                         @error('notes')
@@ -402,6 +405,14 @@
                         @error('ref')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                    </div>
+                </div>
+
+                <div class="space-y-4 pb-4 border-b border-gray-200">
+                    <div>
+                        <label for="staff" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['staff'] ?? 'Staff' }}</label>
+                        <input type="text" id="staff" value="{{ $imeiFieldValue('staff') }}" readonly class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md bg-gray-50 cursor-default">
+                        <p class="mt-1 text-xs text-gray-500">Users who created or edited this record (filled in automatically).</p>
                     </div>
                 </div>
 
@@ -420,14 +431,19 @@
                             Exit
                         </button>
                     </div>
-                    @if($updateRouteId !== null && auth()->user()->canDeleteImeiReferenceData())
-                        <div class="imei-delete-action-wrap flex items-center shrink-0" @if($readonlyAfterSave && !$errors->any()) hidden @endif>
-                            <button type="submit" form="imei-delete-form" id="imei-delete-btn-bottom" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                    onclick="return confirm('Are you sure you want to delete this record? This cannot be undone.');">
-                                Delete
-                            </button>
-                        </div>
-                    @endif
+                    <div class="flex flex-wrap items-center gap-3 shrink-0">
+                        <button type="button" id="imei-copy-last-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400" hidden>
+                            Copy Last
+                        </button>
+                        @if($updateRouteId !== null && auth()->user()->canDeleteImeiReferenceData())
+                            <div class="imei-delete-action-wrap flex items-center shrink-0" @if($readonlyAfterSave && !$errors->any()) hidden @endif>
+                                <button type="submit" form="imei-delete-form" id="imei-delete-btn-bottom" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        onclick="return confirm('Are you sure you want to delete this record? This cannot be undone.');">
+                                    Delete
+                                </button>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </form>
@@ -437,6 +453,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const lookupUrl = @json(route('imeis.lookup'));
+    const copyLastUrl = @json(route('imeis.last-for-copy'));
     const resultsBase = @json(route('imeis.index'));
     const returnListUrl = @json($returnListUrl ?? null);
     const returnQueryEncoded = @json($returnQuery ?? null);
@@ -447,6 +464,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const readonlyAfterSave = @json($readonlyAfterSave);
     const maxNonStandardImeiLength = @json(\App\Support\ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH);
     const imeiModelsCatalog = @json($imeiModelsCatalogForScript);
+    const newRecordSelectDefaults = @json(ImeiNewRecordDefaults::selectFields());
     let currentViewRecord = @json($viewRecord);
     let viewReadonlyBanner = readonlyAfterSave ? 'saved' : 'existing';
     let isEditingRecord = false;
@@ -460,6 +478,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const imeiFinal = document.getElementById('imei_final');
     const cancelNewBtn = document.getElementById('imei-cancel-new-btn');
     const cancelNewBtnTop = document.getElementById('imei-cancel-new-btn-top');
+    const copyLastBtn = document.getElementById('imei-copy-last-btn');
+    const copyLastBtnTop = document.getElementById('imei-copy-last-btn-top');
     const recordIdInput = document.getElementById('imei_record_id');
     const methodSpoof = document.getElementById('imei_method_spoof');
     const existingBanner = document.getElementById('imei-existing-banner');
@@ -600,6 +620,7 @@ document.addEventListener('DOMContentLoaded', function () {
             [cancelNewBtn, cancelNewBtnTop],
             [editBtn, editBtnTop],
             [cancelEditBtn, cancelEditBtnTop],
+            [copyLastBtn, copyLastBtnTop],
         ].forEach(function (pair) {
             const bottom = pair[0];
             const top = pair[1];
@@ -743,9 +764,43 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function defaultDateInLocalValue() {
+        const d = new Date();
+        const pad = function (n) {
+            return String(n).padStart(2, '0');
+        };
+
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+            + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    function setSelectValueIfPresent(selectEl, value) {
+        if (!selectEl || !value) {
+            return;
+        }
+        const hasOption = Array.from(selectEl.options).some(function (option) {
+            return option.value === value;
+        });
+        if (hasOption) {
+            selectEl.value = value;
+        } else {
+            selectEl.selectedIndex = 0;
+        }
+    }
+
     function clearMutableFields() {
         getMutableElements().forEach(function (el) {
             if (el.id === 'make' || el.id === 'model') {
+                return;
+            }
+            if (el.id === 'date_in') {
+                el.value = defaultDateInLocalValue();
+
+                return;
+            }
+            if (el.id === 'location' || el.id === 'type' || el.id === 'status') {
+                setSelectValueIfPresent(el, newRecordSelectDefaults[el.id]);
+
                 return;
             }
             if (el.tagName === 'SELECT') {
@@ -818,6 +873,7 @@ document.addEventListener('DOMContentLoaded', function () {
         hideActionBtn(editBtn);
         hideActionBtn(cancelEditBtn);
         showActionBtn(cancelNewBtn);
+        showActionBtn(copyLastBtn);
         setMutableReadonly(false);
         setImeiDeleteActionsVisible(false);
     }
@@ -929,6 +985,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setMutableReadonly(true);
         hideActionBtn(cancelNewBtn);
         hideActionBtn(submitBtn);
+        hideActionBtn(copyLastBtn);
         showActionBtn(editBtn);
         showActionBtn(cancelEditBtn);
         setImeiDeleteActionsVisible(false);
@@ -942,6 +999,7 @@ document.addEventListener('DOMContentLoaded', function () {
         isEditingRecord = true;
         setMutableReadonly(false);
         hideActionBtn(cancelNewBtn);
+        hideActionBtn(copyLastBtn);
         if (submitBtn) {
             submitBtn.textContent = 'Save';
             showActionBtn(submitBtn);
@@ -949,6 +1007,40 @@ document.addEventListener('DOMContentLoaded', function () {
         hideActionBtn(editBtn);
         showActionBtn(cancelEditBtn);
         setImeiDeleteActionsVisible(true);
+    }
+
+    async function copyLastRecord() {
+        if (copyLastBtn) {
+            copyLastBtn.disabled = true;
+        }
+        if (copyLastBtnTop) {
+            copyLastBtnTop.disabled = true;
+        }
+
+        try {
+            const res = await fetch(copyLastUrl, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+
+            if (!res.ok || !data.record) {
+                setFeedback(data.message ? String(data.message) : 'No previous record to copy.', true);
+                return;
+            }
+
+            populateFromRecord(data.record);
+            setFeedback('Copied fields from the last saved record. IMEI is unchanged.', false);
+        } catch (e) {
+            setFeedback('Could not load the last record. Try again.', true);
+        } finally {
+            if (copyLastBtn) {
+                copyLastBtn.disabled = false;
+            }
+            if (copyLastBtnTop) {
+                copyLastBtnTop.disabled = false;
+            }
+        }
     }
 
     function showRest() {
@@ -989,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateImeiEntryKindHints();
         clearMutableFields();
         setFormCreateMode();
+        hideActionBtn(copyLastBtn);
         setFeedback('', false);
         updateProbeBackgroundFromValue();
         syncTopActionButtons();
@@ -1125,6 +1218,14 @@ document.addEventListener('DOMContentLoaded', function () {
         cancelNewBtnTop.addEventListener('click', goBackToImeiStep);
     }
 
+    if (copyLastBtn) {
+        copyLastBtn.addEventListener('click', copyLastRecord);
+    }
+
+    if (copyLastBtnTop) {
+        copyLastBtnTop.addEventListener('click', copyLastRecord);
+    }
+
     if (editBtn) {
         editBtn.addEventListener('click', enterEditExisting);
     }
@@ -1168,9 +1269,14 @@ document.addEventListener('DOMContentLoaded', function () {
         hideActionBtn(editBtn);
         showActionBtn(cancelEditBtn);
         hideActionBtn(cancelNewBtn);
+        hideActionBtn(copyLastBtn);
         setMutableReadonly(false);
         setImeiDeleteActionsVisible(true);
         syncTopActionButtons();
+    }
+
+    if (formUnlocked && !readonlyAfterSave && prefillRecordId === null) {
+        showActionBtn(copyLastBtn);
     }
 
     updateImeiEntryKindHints();

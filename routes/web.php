@@ -86,6 +86,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/settings/status/{imeiStatus}', [ImeiStatusController::class, 'destroy'])->name('settings.status.destroy');
     Route::get('/imeis/create', [ImeiController::class, 'create'])->name('imeis.create');
     Route::get('/imeis/lookup', [ImeiController::class, 'lookup'])->name('imeis.lookup');
+    Route::get('/imeis/last-for-copy', [ImeiController::class, 'lastForCopy'])->name('imeis.last-for-copy');
     Route::post('/imeis', [ImeiController::class, 'store'])->name('imeis.store');
     Route::put('/imeis/{imei}', [ImeiController::class, 'update'])->name('imeis.update');
     Route::delete('/imeis/{imei}', [ImeiController::class, 'destroy'])->name('imeis.destroy');

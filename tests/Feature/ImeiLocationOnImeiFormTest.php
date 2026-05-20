@@ -2,9 +2,13 @@
 
 use App\Models\Imei;
 use App\Models\ImeiLocation;
+use App\Models\ImeiStatus;
+use App\Models\ImeiType;
 use App\Models\User;
+use App\Support\ImeiNewRecordDefaults;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
@@ -135,6 +139,33 @@ test('update rejects changing location to a value not in imei_locations', functi
             'date_in' => '',
         ])
         ->assertSessionHasErrors('location');
+});
+
+test('add imei form pre-fills date in with current date and time', function () {
+    Carbon::setTestNow('2026-05-20 09:15:00');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('imeis.create'))
+        ->assertSuccessful()
+        ->assertSee('id="date_in"', false)
+        ->assertSee('value="2026-05-20T09:15"', false);
+});
+
+test('add imei form pre-fills location type and status defaults', function () {
+    $user = User::factory()->create();
+    ImeiLocation::factory()->create(['location' => ImeiNewRecordDefaults::LOCATION]);
+    ImeiType::factory()->create(['type' => ImeiNewRecordDefaults::TYPE]);
+    ImeiStatus::factory()->create(['status' => ImeiNewRecordDefaults::STATUS]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.create'))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('value="'.ImeiNewRecordDefaults::LOCATION.'" selected');
+    expect($html)->toContain('value="'.ImeiNewRecordDefaults::TYPE.'" selected');
+    expect($html)->toContain('value="'.ImeiNewRecordDefaults::STATUS.'" selected');
 });
 
 test('add imei form lists locations from imei_locations as options', function () {

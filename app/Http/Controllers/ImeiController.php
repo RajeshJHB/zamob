@@ -23,6 +23,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class ImeiController extends Controller
 {
     /**
+     * When Find IMEI is searched with no text, date, column, or sort filters,
+     * only the newest records are loaded so the full table is not scanned.
+     */
+    private const UNFILTERED_BROWSE_LIMIT = 200;
+
+    /**
      * Query keys allowed when returning from view/edit to the IMEI results table.
      *
      * @var list<string>
@@ -55,12 +61,12 @@ class ImeiController extends Controller
         'make' => 'Make',
         'model' => 'Model',
         'imei' => 'IMEI',
-        'sn' => 'SN',
+        'sn' => 'Serial Number',
         'location' => 'Location',
         'type' => 'Type',
         'status' => 'Status',
         'notes' => 'Customer Details',
-        'phonenumber' => 'Phone Number',
+        'phonenumber' => 'Customer Phone number',
         'ref' => 'Deal Details',
         'staff' => 'Staff',
         'item_code' => 'Item code',
@@ -139,6 +145,22 @@ class ImeiController extends Controller
         }
 
         abort(404, 'Receipt logo image not found in resources/.');
+    }
+
+    public function lastForCopy(): JsonResponse
+    {
+        $imei = Imei::query()->orderByDesc('id')->first();
+
+        if ($imei === null) {
+            return response()->json([
+                'record' => null,
+                'message' => 'There are no IMEI records to copy yet.',
+            ]);
+        }
+
+        return response()->json([
+            'record' => $this->imeiRecordForLookup($imei),
+        ]);
     }
 
     public function lookup(Request $request): JsonResponse
@@ -407,6 +429,17 @@ class ImeiController extends Controller
             ]);
         }
 
+        if ($this->isUnfilteredBrowse($request)) {
+            // Pluck IDs first: MySQL (older versions) rejects LIMIT inside IN subqueries.
+            $latestIds = Imei::query()
+                ->orderByDesc('date_in')
+                ->orderByDesc('id')
+                ->limit(self::UNFILTERED_BROWSE_LIMIT)
+                ->pluck('id');
+
+            $query->whereIn('id', $latestIds);
+        }
+
         // Sorting: up to two levels based on selected columns.
         $allowedColumns = array_keys(self::COLUMNS);
 
@@ -439,6 +472,34 @@ class ImeiController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * True when the user pressed Search with default filter options only.
+     */
+    private function isUnfilteredBrowse(Request $request): bool
+    {
+        if (trim((string) $request->input('search', '')) !== '') {
+            return false;
+        }
+
+        if (trim((string) $request->input('search2', '')) !== '') {
+            return false;
+        }
+
+        if ($request->input('date_scope', 'all') === 'range') {
+            return false;
+        }
+
+        if ($request->input('scope', 'all') === 'selected') {
+            return false;
+        }
+
+        if ($request->filled('sort1_column') || $request->filled('sort2_column')) {
+            return false;
+        }
+
+        return true;
     }
 
     public function saveFilter(Request $request): RedirectResponse

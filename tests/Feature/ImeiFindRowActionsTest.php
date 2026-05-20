@@ -8,6 +8,41 @@ use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
+/**
+ * @return list<int>
+ */
+function seedImeiBrowseRows(int $count, string $prefix = 'BROWSE'): array
+{
+    $ids = [];
+    $now = now();
+
+    for ($i = 0; $i < $count; $i++) {
+        $ids[] = Imei::query()->create([
+            'date_in' => $now->copy()->subMinutes($i),
+            'date_updated' => $now,
+            'imei' => $prefix.$i,
+            'stock_take_date' => '',
+            'make' => 'Make',
+            'model' => 'Model',
+            'sn' => '',
+            'location' => '',
+            'type' => '',
+            'status' => '',
+            'notes' => '',
+            'phonenumber' => '',
+            'ref' => '',
+            'staff' => '',
+            'item_code' => '',
+            'ourON' => '',
+            'salesON' => '',
+            'cost_excl' => '',
+            'selling_price' => null,
+        ])->id;
+    }
+
+    return $ids;
+}
+
 beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
@@ -403,4 +438,74 @@ test('edit from find loads create form with record in read-only mode', function 
         ->assertSee('358918502270284', false)
         ->assertSee('Samsung', false)
         ->assertSee('imei-submit-btn', false);
+});
+
+test('unfiltered find imei search shows only the latest two hundred records', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(250);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 200);
+});
+
+test('unfiltered find imei search with no query params also limits to two hundred records', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(250);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index'))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 200);
+});
+
+test('find imei text search is not capped at two hundred records', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(250);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'search' => 'BROWSE',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 250);
+});
+
+test('find imei date range search is not capped at two hundred records', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(250);
+    $start = now()->subDays(2)->format('Y-m-d');
+    $end = now()->format('Y-m-d');
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'scope' => 'all',
+            'date_scope' => 'range',
+            'date_column' => 'date_in',
+            'start_date' => $start,
+            'end_date' => $end,
+        ]))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 250);
+});
+
+test('find imei with custom sort is not capped at two hundred records', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(250);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'scope' => 'all',
+            'date_scope' => 'all',
+            'sort1_column' => 'make',
+            'sort1_dir' => 'asc',
+        ]))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 250);
 });
