@@ -54,6 +54,11 @@ class ImeiController extends Controller
         'date_updated' => 'Date Updated',
     ];
 
+    /** @var list<string> */
+    public const VIRTUAL_COLUMNS = [
+        'cost_incl',
+    ];
+
     public const COLUMNS = [
         'id' => 'ID',
         'date_in' => 'Date in',
@@ -66,15 +71,24 @@ class ImeiController extends Controller
         'type' => 'Type',
         'status' => 'Status',
         'notes' => 'Customer Details',
-        'phonenumber' => 'Customer Phone number',
+        'phonenumber' => 'Deal Phone Number',
         'ref' => 'Deal Details',
         'staff' => 'Staff',
         'item_code' => 'Item code',
         'ourON' => 'ourON',
         'salesON' => 'salesON',
         'cost_excl' => 'Cost excl',
+        'cost_incl' => 'Cost incl',
         'selling_price' => 'Selling price',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    public static function databaseColumns(): array
+    {
+        return array_diff_key(self::COLUMNS, array_flip(self::VIRTUAL_COLUMNS));
+    }
 
     public function create(): View
     {
@@ -406,7 +420,7 @@ class ImeiController extends Controller
         if ($search !== '') {
             $term = '%'.$search.'%';
             $query->where(function ($q) use ($term) {
-                foreach (array_keys(self::COLUMNS) as $column) {
+                foreach (array_keys(self::databaseColumns()) as $column) {
                     $q->orWhere($column, 'LIKE', $term);
                 }
             });
@@ -416,7 +430,7 @@ class ImeiController extends Controller
         if ($search2 !== '') {
             $term2 = '%'.$search2.'%';
             $query->where(function ($q) use ($term2) {
-                foreach (array_keys(self::COLUMNS) as $column) {
+                foreach (array_keys(self::databaseColumns()) as $column) {
                     $q->orWhere($column, 'LIKE', $term2);
                 }
             });
@@ -441,7 +455,7 @@ class ImeiController extends Controller
         }
 
         // Sorting: up to two levels based on selected columns.
-        $allowedColumns = array_keys(self::COLUMNS);
+        $allowedColumns = array_keys(self::databaseColumns());
 
         $sort1Column = $request->input('sort1_column');
         $sort1Dir = strtolower((string) $request->input('sort1_dir', 'asc'));
@@ -661,6 +675,7 @@ class ImeiController extends Controller
     ): View {
         return view('imeis.create', [
             'columnLabels' => self::COLUMNS,
+            'vatPercent' => \App\Support\ImeiCostIncl::vatPercent(),
             'viewRecord' => $viewRecord,
             'createPageHeading' => $createPageHeading,
             'createPageIntro' => $createPageIntro,

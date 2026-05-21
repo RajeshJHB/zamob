@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\AppSetting;
 use App\Models\Imei;
 use App\Models\User;
+use App\Support\ImeiCostIncl;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -66,6 +68,46 @@ beforeEach(function () {
         $table->string('cost_excl')->default('');
         $table->integer('selling_price')->nullable();
     });
+});
+
+test('find imei index shows calculated cost incl between cost excl and selling price', function () {
+    AppSetting::setVatPercent(15);
+    $user = User::factory()->create();
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270999',
+        'stock_take_date' => '',
+        'make' => 'Samsung',
+        'model' => 'Galaxy',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '100',
+        'selling_price' => 200,
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'search' => '358918502270999',
+            'scope' => 'all',
+            'columns' => ['cost_excl', 'cost_incl', 'selling_price'],
+        ]))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('Cost excl', false);
+    expect($html)->toContain('Cost incl', false);
+    expect($html)->toContain('Selling price', false);
+    expect($html)->toContain(ImeiCostIncl::format('100'), false);
 });
 
 test('imei index uses full width main content area', function () {

@@ -36,32 +36,37 @@
         </div>
     @endif
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full border-collapse bg-white border border-gray-300">
+    <div class="-mx-6 overflow-x-auto overscroll-x-contain">
+        <table class="w-max min-w-full border-collapse bg-white border border-gray-300">
             <thead>
                 <tr class="bg-gray-100">
-                    <th class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">Print</th>
-                    <th class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">View</th>
+                    <th class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">Print</th>
+                    <th class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">View</th>
                     @foreach($columns as $col)
-                        <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">{{ $columnLabels[$col] ?? $col }}</th>
+                        <th class="whitespace-nowrap border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">{{ $columnLabels[$col] ?? $col }}</th>
                     @endforeach
                 </tr>
             </thead>
             <tbody>
                 @forelse($imeis as $row)
                     <tr class="hover:bg-gray-50">
-                        <td class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
+                        <td class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
                             <a href="{{ route('imeis.receipt', $row) }}" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:text-blue-900 font-medium underline">Print</a>
                         </td>
-                        <td class="w-0 whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
+                        <td class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
                             <a href="{{ route('imeis.edit', $row).($listReturnQuery !== '' ? '?return_query='.rawurlencode($listReturnQuery) : '') }}" class="text-blue-700 hover:text-blue-900 font-medium underline">View</a>
                         </td>
                         @foreach($columns as $col)
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                            <td @class([
+                                'border border-gray-300 px-3 py-2 text-sm text-gray-700',
+                                'whitespace-nowrap' => $col !== 'notes',
+                            ])>
                                 @if($col === 'date_in' || $col === 'date_updated')
                                     {{ $row->$col?->format('Y-m-d H:i') ?? '—' }}
+                                @elseif($col === 'cost_incl')
+                                    {{ \App\Support\ImeiCostIncl::format($row->cost_excl) ?? '—' }}
                                 @elseif($col === 'notes')
-                                    <span class="max-w-xs truncate block" title="{{ $row->$col }}">{{ $row->$col ?? '—' }}</span>
+                                    <span class="inline-block max-w-md truncate" title="{{ $row->$col }}">{{ $row->$col ?? '—' }}</span>
                                 @else
                                     {{ $row->$col ?? '—' }}
                                 @endif

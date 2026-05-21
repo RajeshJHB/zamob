@@ -366,13 +366,20 @@
                             @enderror
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label for="cost_excl" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_excl'] ?? 'Cost excl' }}</label>
                             <input type="text" name="cost_excl" id="cost_excl" value="{{ $imeiFieldValue('cost_excl') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('cost_excl') border-red-500 @enderror">
                             @error('cost_excl')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }}</label>
+                            <p id="cost_incl_display" class="border border-gray-200 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 min-h-[42px] flex items-center">
+                                {{ \App\Support\ImeiCostIncl::format($imeiFieldValue('cost_excl')) ?? '—' }}
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">Calculated at VAT {{ $vatPercent }}%</p>
                         </div>
                         <div>
                             <label for="selling_price" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['selling_price'] ?? 'Selling price' }}</label>
@@ -386,7 +393,7 @@
 
                 <div class="space-y-4 pb-4 border-b border-gray-200">
                     <div>
-                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Customer Phone number' }}</label>
+                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Deal Phone Number' }}</label>
                         <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
                         @error('phonenumber')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -465,6 +472,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const maxNonStandardImeiLength = @json(\App\Support\ImeiValidator::MAX_NON_STANDARD_IMEI_LENGTH);
     const imeiModelsCatalog = @json($imeiModelsCatalogForScript);
     const newRecordSelectDefaults = @json(ImeiNewRecordDefaults::selectFields());
+    const vatPercent = @json($vatPercent ?? \App\Support\ImeiCostIncl::DEFAULT_VAT_PERCENT);
+    const costExclInput = document.getElementById('cost_excl');
+    const costInclDisplay = document.getElementById('cost_incl_display');
     let currentViewRecord = @json($viewRecord);
     let viewReadonlyBanner = readonlyAfterSave ? 'saved' : 'existing';
     let isEditingRecord = false;
@@ -813,6 +823,43 @@ document.addEventListener('DOMContentLoaded', function () {
             makeSelect.selectedIndex = 0;
         }
         refreshModelSelectForMake(makeSelect ? makeSelect.value : '');
+        updateCostInclDisplay();
+    }
+
+    function parseCostExclAmount(value) {
+        if (value === null || value === undefined) {
+            return null;
+        }
+        const normalized = String(value).trim().replace(/\s+/g, '').replace(',', '.');
+        if (normalized === '' || Number.isNaN(Number(normalized))) {
+            return null;
+        }
+
+        return Number(normalized);
+    }
+
+    function formatCostInclAmount(amount) {
+        const formatted = amount.toFixed(2);
+        return formatted.replace(/\.?0+$/, '') || '0';
+    }
+
+    function updateCostInclDisplay() {
+        if (!costInclDisplay) {
+            return;
+        }
+        const amount = costExclInput ? parseCostExclAmount(costExclInput.value) : null;
+        if (amount === null) {
+            costInclDisplay.textContent = '—';
+
+            return;
+        }
+        const incl = amount * (1 + (vatPercent / 100));
+        costInclDisplay.textContent = formatCostInclAmount(incl);
+    }
+
+    if (costExclInput) {
+        costExclInput.addEventListener('input', updateCostInclDisplay);
+        costExclInput.addEventListener('change', updateCostInclDisplay);
     }
 
     function populateFromRecord(record) {
@@ -842,6 +889,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
         syncMakeModelFromRecord(record);
+        updateCostInclDisplay();
     }
 
     function setFormCreateMode() {

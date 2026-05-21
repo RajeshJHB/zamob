@@ -17,6 +17,7 @@ use App\Http\Controllers\Settings\ImeiStatusController;
 use App\Http\Controllers\Settings\ImeiTypeController;
 use App\Http\Controllers\Settings\NoteSettingsController;
 use App\Http\Controllers\Settings\NoteTypeController;
+use App\Http\Controllers\Settings\VatSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserRoleController;
 use Illuminate\Support\Facades\Route;
@@ -93,6 +94,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/note-types', [NoteTypeController::class, 'store'])->name('settings.note-types.store');
     Route::put('/settings/note-types/{noteType}', [NoteTypeController::class, 'update'])->name('settings.note-types.update');
     Route::delete('/settings/note-types/{noteType}', [NoteTypeController::class, 'destroy'])->name('settings.note-types.destroy');
+    Route::get('/settings/vat', [VatSettingsController::class, 'index'])->name('settings.vat.index');
+    Route::put('/settings/vat', [VatSettingsController::class, 'update'])->name('settings.vat.update');
     Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
     Route::get('/contacts/search', [ContactController::class, 'search'])->name('contacts.search');
     Route::get('/contacts/notes/search', [ContactController::class, 'searchNotes'])->name('contacts.notes.search');

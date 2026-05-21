@@ -43,6 +43,8 @@
                             <td class="px-2 py-1 text-sm text-gray-700">
                                 @if($col === 'date_in' || $col === 'date_updated')
                                     {{ $row->$col?->format('Y-m-d H:i') ?? '—' }}
+                                @elseif($col === 'cost_incl')
+                                    {{ \App\Support\ImeiCostIncl::format($row->cost_excl) ?? '—' }}
                                 @elseif($col === 'notes')
                                     {{ $row->$col ?? '—' }}
                                 @else
