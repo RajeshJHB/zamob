@@ -20,9 +20,26 @@
                     <a href="{{ route('imeis.create') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
                         Add IMEI
                     </a>
-                    <a href="{{ route('settings.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-                        IMEI Settings
+                    <a href="{{ route('contacts.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        Contacts
                     </a>
+                    <div class="relative" id="settings-menu-container">
+                        <button id="settings-menu-button" type="button" class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none">
+                            Settings
+                            <svg id="settings-menu-arrow" class="ml-1 h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="settings-menu-dropdown"
+                             class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 hidden">
+                            <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                IMEI Settings
+                            </a>
+                            <a href="{{ route('settings.notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Note Settings
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex items-center space-x-4">
                     @auth
@@ -98,6 +115,40 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Settings Menu dropdown
+            const settingsMenuButton = document.getElementById('settings-menu-button');
+            const settingsMenuDropdown = document.getElementById('settings-menu-dropdown');
+            const settingsMenuArrow = document.getElementById('settings-menu-arrow');
+
+            if (settingsMenuButton && settingsMenuDropdown) {
+                settingsMenuButton.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const isHidden = settingsMenuDropdown.classList.contains('hidden');
+
+                    if (isHidden) {
+                        settingsMenuDropdown.classList.remove('hidden');
+                        if (settingsMenuArrow) {
+                            settingsMenuArrow.style.transform = 'rotate(180deg)';
+                        }
+                    } else {
+                        settingsMenuDropdown.classList.add('hidden');
+                        if (settingsMenuArrow) {
+                            settingsMenuArrow.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                });
+
+                document.addEventListener('click', function (e) {
+                    const container = document.getElementById('settings-menu-container');
+                    if (container && ! container.contains(e.target)) {
+                        settingsMenuDropdown.classList.add('hidden');
+                        if (settingsMenuArrow) {
+                            settingsMenuArrow.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                });
+            }
+
             // User Menu dropdown
             const userMenuButton = document.getElementById('user-menu-button');
             const userMenuDropdown = document.getElementById('user-menu-dropdown');
