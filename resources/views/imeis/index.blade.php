@@ -6,10 +6,13 @@
 
 @section('content')
 @php
+    use Illuminate\Support\Str;
+
     $listReturnQuery = http_build_query(array_filter(array_merge(
         $filterParams ?? [],
         request()->only(['page']),
     ), fn (mixed $value): bool => $value !== null && $value !== ''));
+    $imeiBrowseTextDisplayLimit = 150;
 @endphp
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
@@ -59,14 +62,19 @@
                         @foreach($columns as $col)
                             <td @class([
                                 'border border-gray-300 px-3 py-2 text-sm text-gray-700',
-                                'whitespace-nowrap' => $col !== 'notes',
+                                'whitespace-nowrap' => ! in_array($col, ['notes', 'ref'], true),
                             ])>
                                 @if($col === 'date_in' || $col === 'date_updated')
                                     {{ $row->$col?->format('Y-m-d H:i') ?? '—' }}
                                 @elseif($col === 'cost_incl')
                                     {{ \App\Support\ImeiCostIncl::format($row->cost_excl) ?? '—' }}
-                                @elseif($col === 'notes')
-                                    <span class="inline-block max-w-md truncate" title="{{ $row->$col }}">{{ $row->$col ?? '—' }}</span>
+                                @elseif($col === 'notes' || $col === 'ref')
+                                    @php $cellText = (string) ($row->$col ?? ''); @endphp
+                                    @if($cellText !== '')
+                                        <span class="inline-block max-w-xs" title="{{ $cellText }}">{{ Str::limit($cellText, $imeiBrowseTextDisplayLimit) }}</span>
+                                    @else
+                                        —
+                                    @endif
                                 @else
                                     {{ $row->$col ?? '—' }}
                                 @endif

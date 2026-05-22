@@ -6,6 +6,7 @@ use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
 use App\Models\ServiceNote;
+use App\Support\BrowseListLimit;
 use App\Support\ContactPermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class ContactController extends Controller
                 ->with('relatedContact')
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
+                ->limit(BrowseListLimit::limit())
                 ->get();
 
             return view('contacts.search', [
@@ -37,6 +39,7 @@ class ContactController extends Controller
                 'contacts' => $contacts,
                 'listingAll' => true,
                 'showCreatePrompt' => false,
+                'browseListLimit' => BrowseListLimit::limit(),
             ]);
         }
 

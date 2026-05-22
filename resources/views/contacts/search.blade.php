@@ -15,7 +15,7 @@
         </div>
 
         @if($listingAll ?? false)
-            <p class="text-sm text-gray-600 mb-4">Showing <strong>all contacts</strong> (newest first).</p>
+            <p class="text-sm text-gray-600 mb-4">Showing the newest contacts (up to <strong>{{ $browseListLimit ?? \App\Support\BrowseListLimit::limit() }}</strong> records).</p>
         @else
             <p class="text-sm text-gray-600 mb-4">Search: <strong>{{ $term }}</strong></p>
         @endif

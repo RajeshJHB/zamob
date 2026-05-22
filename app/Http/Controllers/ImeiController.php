@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreImeiRequest;
 use App\Http\Requests\UpdateImeiRequest;
+use App\Models\Contact;
 use App\Models\Imei;
 use App\Models\ImeiFilter;
 use App\Models\ImeiLocation;
@@ -11,8 +12,13 @@ use App\Models\ImeiMake;
 use App\Models\ImeiModel;
 use App\Models\ImeiStatus;
 use App\Models\ImeiType;
+use App\Models\ServiceNote;
+use App\Support\BrowseListLimit;
+use App\Support\ContactImeiCustomerDetails;
 use App\Support\ImeiStaffAudit;
+use App\Support\ImeiTextLimits;
 use App\Support\ImeiValidator;
+use App\Support\ServiceNoteDealDetails;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,12 +28,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ImeiController extends Controller
 {
-    /**
-     * When Find IMEI is searched with no text, date, column, or sort filters,
-     * only the newest records are loaded so the full table is not scanned.
-     */
-    private const UNFILTERED_BROWSE_LIMIT = 200;
-
     /**
      * Query keys allowed when returning from view/edit to the IMEI results table.
      *
@@ -174,6 +174,50 @@ class ImeiController extends Controller
 
         return response()->json([
             'record' => $this->imeiRecordForLookup($imei),
+        ]);
+    }
+
+    public function browseContacts(): JsonResponse
+    {
+        $contacts = Contact::query()
+            ->orderBy('company_name')
+            ->orderBy('surname')
+            ->orderBy('first_name')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'contacts' => $contacts->map(fn (Contact $contact): array => [
+                'id' => $contact->id,
+                'company_name' => $contact->company_name,
+                'first_name' => $contact->first_name,
+                'surname' => $contact->surname,
+                'telephone_1' => $contact->telephone_1,
+                'customer_details' => ContactImeiCustomerDetails::format($contact),
+            ])->values()->all(),
+        ]);
+    }
+
+    public function browseContactServiceNotes(Contact $contact): JsonResponse
+    {
+        $notes = ServiceNote::query()
+            ->with('noteType')
+            ->where('contact_id', $contact->id)
+            ->orderByDesc('noted_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'contact_id' => $contact->id,
+            'notes' => $notes->map(fn (ServiceNote $note): array => [
+                'id' => $note->id,
+                'note_number' => $note->formattedNoteNumber(),
+                'note_type' => $note->noteType?->name,
+                'heading' => $note->heading,
+                'noted_at' => $note->noted_at?->format('Y-m-d H:i'),
+                'body' => $note->body,
+                'deal_details_text' => ServiceNoteDealDetails::format($note),
+            ])->values()->all(),
         ]);
     }
 
@@ -448,7 +492,7 @@ class ImeiController extends Controller
             $latestIds = Imei::query()
                 ->orderByDesc('date_in')
                 ->orderByDesc('id')
-                ->limit(self::UNFILTERED_BROWSE_LIMIT)
+                ->limit(BrowseListLimit::limit())
                 ->pluck('id');
 
             $query->whereIn('id', $latestIds);
@@ -676,6 +720,8 @@ class ImeiController extends Controller
         return view('imeis.create', [
             'columnLabels' => self::COLUMNS,
             'vatPercent' => \App\Support\ImeiCostIncl::vatPercent(),
+            'customerDetailsMaxLength' => ImeiTextLimits::CUSTOMER_DETAILS_MAX,
+            'dealDetailsMaxLength' => ImeiTextLimits::DEAL_DETAILS_MAX,
             'viewRecord' => $viewRecord,
             'createPageHeading' => $createPageHeading,
             'createPageIntro' => $createPageIntro,

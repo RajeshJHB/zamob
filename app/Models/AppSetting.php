@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BrowseListLimit;
 use App\Support\ImeiCostIncl;
 use Illuminate\Database\Eloquent\Model;
 
@@ -30,5 +31,10 @@ class AppSetting extends Model
     public static function setVatPercent(float $percent): void
     {
         self::setValue(ImeiCostIncl::SETTING_KEY, (string) $percent);
+    }
+
+    public static function setBrowseListLimit(int $limit): void
+    {
+        self::setValue(BrowseListLimit::SETTING_KEY, (string) $limit);
     }
 }

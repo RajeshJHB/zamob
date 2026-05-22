@@ -482,7 +482,21 @@ test('edit from find loads create form with record in read-only mode', function 
         ->assertSee('imei-submit-btn', false);
 });
 
-test('unfiltered find imei search shows only the latest two hundred records', function () {
+test('unfiltered find imei search respects configured browse list limit', function () {
+    AppSetting::setBrowseListLimit(50);
+    $user = User::factory()->create();
+    seedImeiBrowseRows(80);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 50);
+});
+
+test('unfiltered find imei search shows only the latest two hundred records by default', function () {
     $user = User::factory()->create();
     seedImeiBrowseRows(250);
 

@@ -77,7 +77,8 @@ test('blank contact search lists all contacts newest first', function () {
         ->assertSuccessful()
         ->getContent();
 
-    expect($html)->toContain('all contacts', false);
+    expect($html)->toContain('newest contacts', false);
+    expect($html)->toContain('200', false);
     expect($html)->toContain('Newer', false);
     expect($html)->toContain('Older', false);
     expect(strpos($html, 'Newer'))->toBeLessThan(strpos($html, 'Older'));

@@ -10,6 +10,7 @@ use App\Http\Controllers\ImeiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceNoteController;
+use App\Http\Controllers\Settings\DefaultSettingsController;
 use App\Http\Controllers\Settings\ImeiLocationController;
 use App\Http\Controllers\Settings\ImeiMakeController;
 use App\Http\Controllers\Settings\ImeiModelController;
@@ -96,6 +97,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/settings/note-types/{noteType}', [NoteTypeController::class, 'destroy'])->name('settings.note-types.destroy');
     Route::get('/settings/vat', [VatSettingsController::class, 'index'])->name('settings.vat.index');
     Route::put('/settings/vat', [VatSettingsController::class, 'update'])->name('settings.vat.update');
+    Route::get('/settings/default', [DefaultSettingsController::class, 'index'])->name('settings.default.index');
+    Route::put('/settings/default', [DefaultSettingsController::class, 'update'])->name('settings.default.update');
     Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
     Route::get('/contacts/search', [ContactController::class, 'search'])->name('contacts.search');
     Route::get('/contacts/notes/search', [ContactController::class, 'searchNotes'])->name('contacts.notes.search');
@@ -115,6 +118,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/imeis/create', [ImeiController::class, 'create'])->name('imeis.create');
     Route::get('/imeis/lookup', [ImeiController::class, 'lookup'])->name('imeis.lookup');
     Route::get('/imeis/last-for-copy', [ImeiController::class, 'lastForCopy'])->name('imeis.last-for-copy');
+    Route::get('/imeis/contacts/browse', [ImeiController::class, 'browseContacts'])->name('imeis.contacts.browse');
+    Route::get('/imeis/contacts/{contact}/service-notes/browse', [ImeiController::class, 'browseContactServiceNotes'])->name('imeis.contacts.service-notes.browse');
     Route::post('/imeis', [ImeiController::class, 'store'])->name('imeis.store');
     Route::put('/imeis/{imei}', [ImeiController::class, 'update'])->name('imeis.update');
     Route::delete('/imeis/{imei}', [ImeiController::class, 'destroy'])->name('imeis.destroy');

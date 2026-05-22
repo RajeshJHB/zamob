@@ -55,6 +55,9 @@
         return old($key, $default);
     };
 
+    $customerDetailsEmpty = trim($imeiFieldValue('notes')) === '';
+    $dealDetailsEmpty = trim($imeiFieldValue('ref')) === '';
+
     $viewListHref = '#';
     if ($readonlyAfterSave && ! empty($viewRecord['imei'])) {
         $viewListHref = route('imeis.index').'?search='.urlencode((string) $viewRecord['imei']).'&scope=all&date_scope=all';
@@ -400,15 +403,45 @@
                         @enderror
                     </div>
                     <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['notes'] ?? 'Customer Details' }}</label>
-                        <textarea name="notes" id="notes" rows="4" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('notes') border-red-500 @enderror">{{ $imeiFieldValue('notes') }}</textarea>
+                        <div class="flex items-center justify-between gap-3 mb-1">
+                            <label for="notes" class="block text-sm font-medium text-gray-700">{{ $columnLabels['notes'] ?? 'Customer Details' }}</label>
+                            <button
+                                type="button"
+                                id="imei-browse-contacts-btn"
+                                @disabled(! $customerDetailsEmpty)
+                                class="shrink-0 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded text-sm border border-gray-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-200 @if($readonlyAfterSave) hidden @endif"
+                                title="{{ $customerDetailsEmpty ? '' : 'Only available when Customer Details is empty' }}"
+                            >
+                                Browse
+                            </button>
+                        </div>
+                        <textarea name="notes" id="notes" rows="4" maxlength="{{ $customerDetailsMaxLength }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('notes') border-red-500 @enderror">{{ $imeiFieldValue('notes') }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500" aria-live="polite">
+                            <span id="notes-char-count" class="font-medium text-gray-700">0</span>
+                            / {{ number_format($customerDetailsMaxLength) }} characters
+                        </p>
                         @error('notes')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                     <div>
-                        <label for="ref" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ref'] ?? 'Deal Details' }}</label>
-                        <textarea name="ref" id="ref" rows="4" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ref') border-red-500 @enderror">{{ $imeiFieldValue('ref') }}</textarea>
+                        <div class="flex items-center justify-between gap-3 mb-1">
+                            <label for="ref" class="block text-sm font-medium text-gray-700">{{ $columnLabels['ref'] ?? 'Deal Details' }}</label>
+                            <button
+                                type="button"
+                                id="imei-browse-deal-notes-btn"
+                                disabled
+                                class="shrink-0 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded text-sm border border-gray-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-200 @if($readonlyAfterSave) hidden @endif"
+                                title="Only available when Deal Details is empty and a contact was chosen via Customer Details browse"
+                            >
+                                Browse notes
+                            </button>
+                        </div>
+                        <textarea name="ref" id="ref" rows="4" maxlength="{{ $dealDetailsMaxLength }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ref') border-red-500 @enderror">{{ $imeiFieldValue('ref') }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500" aria-live="polite">
+                            <span id="ref-char-count" class="font-medium text-gray-700">0</span>
+                            / {{ number_format($dealDetailsMaxLength) }} characters
+                        </p>
                         @error('ref')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -457,9 +490,81 @@
     </div>
 </div>
 
+<div
+    id="imei-contact-browse-modal"
+    class="fixed inset-0 z-50 hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="imei-contact-browse-title"
+>
+    <div class="absolute inset-0 bg-black/40" id="imei-contact-browse-backdrop"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[85vh] flex flex-col border border-gray-200">
+            <div class="flex items-center justify-between gap-3 px-6 py-4 border-b border-gray-200">
+                <h2 id="imei-contact-browse-title" class="text-xl font-bold text-gray-900">Browse contacts</h2>
+                <button type="button" id="imei-contact-browse-close" class="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">&times;</button>
+            </div>
+            <p class="px-6 pt-3 text-sm text-gray-600">All contacts (A&ndash;Z). Select one to fill Customer Details; you can still edit the text afterwards.</p>
+            <div id="imei-contact-browse-loading" class="px-6 py-8 text-sm text-gray-500 hidden">Loading contacts…</div>
+            <div id="imei-contact-browse-empty" class="px-6 py-8 text-sm text-gray-500 hidden">No contacts yet. Add contacts under Contacts first.</div>
+            <div id="imei-contact-browse-table-wrap" class="px-6 py-4 overflow-auto flex-1 hidden">
+                <table class="min-w-full border border-gray-300 text-sm">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold">Company</th>
+                            <th class="px-3 py-2 text-left font-semibold">First name</th>
+                            <th class="px-3 py-2 text-left font-semibold">Surname</th>
+                            <th class="px-3 py-2 text-left font-semibold">Telephone</th>
+                            <th class="px-3 py-2 text-left font-semibold"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="imei-contact-browse-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div
+    id="imei-deal-notes-browse-modal"
+    class="fixed inset-0 z-50 hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="imei-deal-notes-browse-title"
+>
+    <div class="absolute inset-0 bg-black/40" id="imei-deal-notes-browse-backdrop"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[85vh] flex flex-col border border-gray-200">
+            <div class="flex items-center justify-between gap-3 px-6 py-4 border-b border-gray-200">
+                <h2 id="imei-deal-notes-browse-title" class="text-xl font-bold text-gray-900">Browse service notes</h2>
+                <button type="button" id="imei-deal-notes-browse-close" class="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">&times;</button>
+            </div>
+            <p class="px-6 pt-3 text-sm text-gray-600">Service notes for the selected contact (newest first). Select one to copy into Deal Details; you can still edit the text afterwards.</p>
+            <div id="imei-deal-notes-browse-loading" class="px-6 py-8 text-sm text-gray-500 hidden">Loading service notes…</div>
+            <div id="imei-deal-notes-browse-empty" class="px-6 py-8 text-sm text-gray-500 hidden">This contact has no service notes yet.</div>
+            <div id="imei-deal-notes-browse-table-wrap" class="px-6 py-4 overflow-auto flex-1 hidden">
+                <table class="min-w-full border border-gray-300 text-sm">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold">Note</th>
+                            <th class="px-3 py-2 text-left font-semibold">Type</th>
+                            <th class="px-3 py-2 text-left font-semibold">Heading</th>
+                            <th class="px-3 py-2 text-left font-semibold">Recorded</th>
+                            <th class="px-3 py-2 text-left font-semibold">Preview</th>
+                            <th class="px-3 py-2 text-left font-semibold"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="imei-deal-notes-browse-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const lookupUrl = @json(route('imeis.lookup'));
+    const contactsBrowseUrl = @json(route('imeis.contacts.browse'));
     const copyLastUrl = @json(route('imeis.last-for-copy'));
     const resultsBase = @json(route('imeis.index'));
     const returnListUrl = @json($returnListUrl ?? null);
@@ -473,6 +578,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const imeiModelsCatalog = @json($imeiModelsCatalogForScript);
     const newRecordSelectDefaults = @json(ImeiNewRecordDefaults::selectFields());
     const vatPercent = @json($vatPercent ?? \App\Support\ImeiCostIncl::DEFAULT_VAT_PERCENT);
+    const customerDetailsMaxLength = @json($customerDetailsMaxLength ?? \App\Support\ImeiTextLimits::CUSTOMER_DETAILS_MAX);
+    const dealDetailsMaxLength = @json($dealDetailsMaxLength ?? \App\Support\ImeiTextLimits::DEAL_DETAILS_MAX);
     const costExclInput = document.getElementById('cost_excl');
     const costInclDisplay = document.getElementById('cost_incl_display');
     let currentViewRecord = @json($viewRecord);
@@ -772,6 +879,18 @@ document.addEventListener('DOMContentLoaded', function () {
             el.classList.toggle('bg-gray-50', on);
             el.classList.toggle('cursor-default', on);
         });
+
+        const browseContactsBtn = document.getElementById('imei-browse-contacts-btn');
+        if (browseContactsBtn) {
+            browseContactsBtn.classList.toggle('hidden', on);
+        }
+
+        const dealBrowseBtn = document.getElementById('imei-browse-deal-notes-btn');
+        if (dealBrowseBtn) {
+            dealBrowseBtn.classList.toggle('hidden', on);
+        }
+
+        updateImeiBrowseButtonsState();
     }
 
     function defaultDateInLocalValue() {
@@ -890,6 +1009,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         syncMakeModelFromRecord(record);
         updateCostInclDisplay();
+
+        const notesElAfterPopulate = document.getElementById('notes');
+        const refElAfterPopulate = document.getElementById('ref');
+        if (notesElAfterPopulate) {
+            notesElAfterPopulate.dispatchEvent(new Event('input'));
+        }
+        if (refElAfterPopulate) {
+            refElAfterPopulate.dispatchEvent(new Event('input'));
+        }
     }
 
     function setFormCreateMode() {
@@ -1272,6 +1400,371 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (copyLastBtnTop) {
         copyLastBtnTop.addEventListener('click', copyLastRecord);
+    }
+
+    const contactBrowseModal = document.getElementById('imei-contact-browse-modal');
+    const contactBrowseBackdrop = document.getElementById('imei-contact-browse-backdrop');
+    const contactBrowseClose = document.getElementById('imei-contact-browse-close');
+    const contactBrowseBtn = document.getElementById('imei-browse-contacts-btn');
+    const contactBrowseLoading = document.getElementById('imei-contact-browse-loading');
+    const contactBrowseEmpty = document.getElementById('imei-contact-browse-empty');
+    const contactBrowseTableWrap = document.getElementById('imei-contact-browse-table-wrap');
+    const contactBrowseTbody = document.getElementById('imei-contact-browse-tbody');
+    let contactsBrowseLoaded = false;
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text === null || text === undefined ? '' : String(text);
+
+        return div.innerHTML;
+    }
+
+    function truncateToMaxLength(value, maxLength) {
+        const text = value === null || value === undefined ? '' : String(value);
+
+        return text.length > maxLength ? text.slice(0, maxLength) : text;
+    }
+
+    function setupCharCounter(textareaId, counterId, maxLength) {
+        const textarea = document.getElementById(textareaId);
+        const counter = document.getElementById(counterId);
+
+        if (!textarea || !counter) {
+            return;
+        }
+
+        function updateCharCounter() {
+            if (textarea.value.length > maxLength) {
+                textarea.value = textarea.value.slice(0, maxLength);
+            }
+
+            const length = textarea.value.length;
+            counter.textContent = String(length);
+            counter.classList.toggle('text-red-600', length >= maxLength);
+            counter.classList.toggle('text-gray-700', length < maxLength);
+        }
+
+        textarea.addEventListener('input', updateCharCounter);
+        textarea.addEventListener('change', updateCharCounter);
+        updateCharCounter();
+    }
+
+    setupCharCounter('notes', 'notes-char-count', customerDetailsMaxLength);
+    setupCharCounter('ref', 'ref-char-count', dealDetailsMaxLength);
+
+    let selectedContactIdForDealBrowse = null;
+    let dealNotesBrowseLoadedContactId = null;
+
+    const dealNotesBrowseBtn = document.getElementById('imei-browse-deal-notes-btn');
+    const dealNotesBrowseModal = document.getElementById('imei-deal-notes-browse-modal');
+    const dealNotesBrowseBackdrop = document.getElementById('imei-deal-notes-browse-backdrop');
+    const dealNotesBrowseClose = document.getElementById('imei-deal-notes-browse-close');
+    const dealNotesBrowseLoading = document.getElementById('imei-deal-notes-browse-loading');
+    const dealNotesBrowseEmpty = document.getElementById('imei-deal-notes-browse-empty');
+    const dealNotesBrowseTableWrap = document.getElementById('imei-deal-notes-browse-table-wrap');
+    const dealNotesBrowseTbody = document.getElementById('imei-deal-notes-browse-tbody');
+
+    function isImeiFieldEmpty(fieldId) {
+        const el = document.getElementById(fieldId);
+
+        return !el || el.value.trim() === '';
+    }
+
+    function isImeiFormReadonlyForBrowse() {
+        const notesEl = document.getElementById('notes');
+
+        return notesEl !== null && notesEl.readOnly;
+    }
+
+    function setCustomerBrowseEnabled(enabled) {
+        if (!contactBrowseBtn) {
+            return;
+        }
+
+        contactBrowseBtn.disabled = !enabled;
+        if (enabled) {
+            contactBrowseBtn.removeAttribute('title');
+        } else {
+            contactBrowseBtn.setAttribute('title', 'Only available when Customer Details is empty');
+        }
+    }
+
+    function setDealNotesBrowseEnabled(enabled) {
+        if (!dealNotesBrowseBtn) {
+            return;
+        }
+
+        dealNotesBrowseBtn.disabled = !enabled;
+        if (enabled) {
+            dealNotesBrowseBtn.removeAttribute('title');
+
+            return;
+        }
+
+        if (!isImeiFieldEmpty('ref')) {
+            dealNotesBrowseBtn.setAttribute('title', 'Only available when Deal Details is empty');
+        } else if (!selectedContactIdForDealBrowse) {
+            dealNotesBrowseBtn.setAttribute('title', 'Choose a contact via Customer Details browse first (Customer Details must be empty)');
+        } else {
+            dealNotesBrowseBtn.setAttribute('title', 'Only available when Deal Details is empty');
+        }
+    }
+
+    function updateImeiBrowseButtonsState() {
+        if (isImeiFormReadonlyForBrowse()) {
+            setCustomerBrowseEnabled(false);
+            setDealNotesBrowseEnabled(false);
+
+            return;
+        }
+
+        const notesEmpty = isImeiFieldEmpty('notes');
+        const refEmpty = isImeiFieldEmpty('ref');
+
+        if (notesEmpty) {
+            selectedContactIdForDealBrowse = null;
+            dealNotesBrowseLoadedContactId = null;
+        }
+
+        setCustomerBrowseEnabled(notesEmpty);
+        setDealNotesBrowseEnabled(refEmpty && selectedContactIdForDealBrowse !== null);
+    }
+
+    const notesFieldForBrowse = document.getElementById('notes');
+    const refFieldForBrowse = document.getElementById('ref');
+    if (notesFieldForBrowse) {
+        notesFieldForBrowse.addEventListener('input', updateImeiBrowseButtonsState);
+    }
+    if (refFieldForBrowse) {
+        refFieldForBrowse.addEventListener('input', updateImeiBrowseButtonsState);
+    }
+
+    function closeContactBrowseModal() {
+        if (contactBrowseModal) {
+            contactBrowseModal.classList.add('hidden');
+        }
+    }
+
+    function openContactBrowseModal() {
+        if (!contactBrowseModal || !isImeiFieldEmpty('notes')) {
+            return;
+        }
+        contactBrowseModal.classList.remove('hidden');
+        if (!contactsBrowseLoaded) {
+            loadContactsForBrowse();
+        }
+    }
+
+    function serviceNotesBrowseUrl(contactId) {
+        return imeisResourceBase + '/contacts/' + encodeURIComponent(String(contactId)) + '/service-notes/browse';
+    }
+
+    function applyContactToCustomerDetails(contact) {
+        const notesEl = document.getElementById('notes');
+        const phoneEl = document.getElementById('phonenumber');
+
+        if (notesEl) {
+            notesEl.value = truncateToMaxLength(contact.customer_details || '', customerDetailsMaxLength);
+            notesEl.dispatchEvent(new Event('input'));
+        }
+        if (phoneEl) {
+            phoneEl.value = contact.telephone_1 || '';
+        }
+
+        selectedContactIdForDealBrowse = contact.id;
+        dealNotesBrowseLoadedContactId = null;
+        closeContactBrowseModal();
+        updateImeiBrowseButtonsState();
+    }
+
+    function applyServiceNoteToDealDetails(note) {
+        const refEl = document.getElementById('ref');
+        if (refEl) {
+            refEl.value = truncateToMaxLength(note.deal_details_text || '', dealDetailsMaxLength);
+            refEl.dispatchEvent(new Event('input'));
+        }
+        closeDealNotesBrowseModal();
+    }
+
+    function closeDealNotesBrowseModal() {
+        if (dealNotesBrowseModal) {
+            dealNotesBrowseModal.classList.add('hidden');
+        }
+    }
+
+    function openDealNotesBrowseModal() {
+        if (!dealNotesBrowseModal || !selectedContactIdForDealBrowse || !isImeiFieldEmpty('ref')) {
+            return;
+        }
+        dealNotesBrowseModal.classList.remove('hidden');
+        if (dealNotesBrowseLoadedContactId !== selectedContactIdForDealBrowse) {
+            loadServiceNotesForDealBrowse(selectedContactIdForDealBrowse);
+        }
+    }
+
+    function renderDealNotesBrowseRows(notes) {
+        if (!dealNotesBrowseTbody) {
+            return;
+        }
+        dealNotesBrowseTbody.innerHTML = '';
+
+        notes.forEach(function (note) {
+            const preview = (note.body || '').length > 120
+                ? String(note.body).slice(0, 120) + '…'
+                : (note.body || '—');
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50 border-t border-gray-200';
+            tr.innerHTML =
+                '<td class="px-3 py-2 whitespace-nowrap font-mono text-xs">' + escapeHtml(note.note_number || '—') + '</td>' +
+                '<td class="px-3 py-2">' + escapeHtml(note.note_type || '—') + '</td>' +
+                '<td class="px-3 py-2">' + escapeHtml(note.heading || '—') + '</td>' +
+                '<td class="px-3 py-2 whitespace-nowrap">' + escapeHtml(note.noted_at || '—') + '</td>' +
+                '<td class="px-3 py-2 max-w-xs truncate" title="' + escapeHtml(note.body || '') + '">' + escapeHtml(preview) + '</td>' +
+                '<td class="px-3 py-2 whitespace-nowrap">' +
+                    '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-deal-note-pick-btn">Select</button>' +
+                '</td>';
+            const pickBtn = tr.querySelector('.imei-deal-note-pick-btn');
+            if (pickBtn) {
+                pickBtn.addEventListener('click', function () {
+                    applyServiceNoteToDealDetails(note);
+                });
+            }
+            dealNotesBrowseTbody.appendChild(tr);
+        });
+    }
+
+    async function loadServiceNotesForDealBrowse(contactId) {
+        if (dealNotesBrowseLoading) {
+            dealNotesBrowseLoading.classList.remove('hidden');
+        }
+        if (dealNotesBrowseEmpty) {
+            dealNotesBrowseEmpty.classList.add('hidden');
+            dealNotesBrowseEmpty.textContent = 'This contact has no service notes yet.';
+        }
+        if (dealNotesBrowseTableWrap) {
+            dealNotesBrowseTableWrap.classList.add('hidden');
+        }
+
+        try {
+            const res = await fetch(serviceNotesBrowseUrl(contactId), {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+            const notes = data.notes || [];
+            dealNotesBrowseLoadedContactId = contactId;
+
+            if (notes.length === 0) {
+                if (dealNotesBrowseEmpty) {
+                    dealNotesBrowseEmpty.classList.remove('hidden');
+                }
+            } else {
+                renderDealNotesBrowseRows(notes);
+                if (dealNotesBrowseTableWrap) {
+                    dealNotesBrowseTableWrap.classList.remove('hidden');
+                }
+            }
+        } catch (e) {
+            if (dealNotesBrowseEmpty) {
+                dealNotesBrowseEmpty.textContent = 'Could not load service notes. Try again.';
+                dealNotesBrowseEmpty.classList.remove('hidden');
+            }
+        } finally {
+            if (dealNotesBrowseLoading) {
+                dealNotesBrowseLoading.classList.add('hidden');
+            }
+        }
+    }
+
+    if (dealNotesBrowseBtn) {
+        dealNotesBrowseBtn.addEventListener('click', openDealNotesBrowseModal);
+    }
+    if (dealNotesBrowseClose) {
+        dealNotesBrowseClose.addEventListener('click', closeDealNotesBrowseModal);
+    }
+    if (dealNotesBrowseBackdrop) {
+        dealNotesBrowseBackdrop.addEventListener('click', closeDealNotesBrowseModal);
+    }
+
+    updateImeiBrowseButtonsState();
+
+    function renderContactBrowseRows(contacts) {
+        if (!contactBrowseTbody) {
+            return;
+        }
+        contactBrowseTbody.innerHTML = '';
+
+        contacts.forEach(function (contact) {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50 border-t border-gray-200';
+            tr.innerHTML =
+                '<td class="px-3 py-2">' + escapeHtml(contact.company_name || '—') + '</td>' +
+                '<td class="px-3 py-2">' + escapeHtml(contact.first_name || '—') + '</td>' +
+                '<td class="px-3 py-2">' + escapeHtml(contact.surname || '—') + '</td>' +
+                '<td class="px-3 py-2">' + escapeHtml(contact.telephone_1 || '—') + '</td>' +
+                '<td class="px-3 py-2 whitespace-nowrap">' +
+                    '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-contact-pick-btn">Select</button>' +
+                '</td>';
+            const pickBtn = tr.querySelector('.imei-contact-pick-btn');
+            if (pickBtn) {
+                pickBtn.addEventListener('click', function () {
+                    applyContactToCustomerDetails(contact);
+                });
+            }
+            contactBrowseTbody.appendChild(tr);
+        });
+    }
+
+    async function loadContactsForBrowse() {
+        if (contactBrowseLoading) {
+            contactBrowseLoading.classList.remove('hidden');
+        }
+        if (contactBrowseEmpty) {
+            contactBrowseEmpty.classList.add('hidden');
+        }
+        if (contactBrowseTableWrap) {
+            contactBrowseTableWrap.classList.add('hidden');
+        }
+
+        try {
+            const res = await fetch(contactsBrowseUrl, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+            const contacts = data.contacts || [];
+            contactsBrowseLoaded = true;
+
+            if (contacts.length === 0) {
+                if (contactBrowseEmpty) {
+                    contactBrowseEmpty.classList.remove('hidden');
+                }
+            } else {
+                renderContactBrowseRows(contacts);
+                if (contactBrowseTableWrap) {
+                    contactBrowseTableWrap.classList.remove('hidden');
+                }
+            }
+        } catch (e) {
+            if (contactBrowseEmpty) {
+                contactBrowseEmpty.textContent = 'Could not load contacts. Try again.';
+                contactBrowseEmpty.classList.remove('hidden');
+            }
+        } finally {
+            if (contactBrowseLoading) {
+                contactBrowseLoading.classList.add('hidden');
+            }
+        }
+    }
+
+    if (contactBrowseBtn) {
+        contactBrowseBtn.addEventListener('click', openContactBrowseModal);
+    }
+    if (contactBrowseClose) {
+        contactBrowseClose.addEventListener('click', closeContactBrowseModal);
+    }
+    if (contactBrowseBackdrop) {
+        contactBrowseBackdrop.addEventListener('click', closeContactBrowseModal);
     }
 
     if (editBtn) {
