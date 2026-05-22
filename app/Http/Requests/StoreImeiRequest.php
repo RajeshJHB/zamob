@@ -20,6 +20,9 @@ class StoreImeiRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $withoutDateIn = $this->except(['date_in']);
+        $this->replace($withoutDateIn);
+
         if ($this->has('imei') && is_string($this->input('imei'))) {
             if ($this->boolean('imei_non_standard')) {
                 $this->merge(['imei' => ImeiValidator::normalizeNonStandard($this->input('imei'))]);
@@ -29,10 +32,6 @@ class StoreImeiRequest extends FormRequest
                     $this->merge(['imei' => $normalized]);
                 }
             }
-        }
-
-        if ($this->input('date_in') === '') {
-            $this->merge(['date_in' => null]);
         }
 
         if ($this->input('selling_price') === '' || $this->input('selling_price') === null) {
@@ -54,7 +53,6 @@ class StoreImeiRequest extends FormRequest
     {
         $base = [
             'imei_non_standard' => ['required', 'in:0,1'],
-            'date_in' => ['nullable', 'date'],
             'make' => [
                 'nullable',
                 'string',

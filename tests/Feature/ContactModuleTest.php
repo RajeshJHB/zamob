@@ -138,6 +138,7 @@ test('user can create contact and service note with attachment', function () {
     $noteResponse->assertRedirect(route('contacts.show', ['contact' => $contact, 'note' => $note->id]));
 
     expect($note->noted_at)->not->toBeNull();
+    expect($note->noted_at->toDateTimeString())->toBe($note->created_at->toDateTimeString());
     expect($note->note_number)->toBe(1);
     expect($note->formattedNoteNumber())->toBe('SN-1');
     expect($note->hasAttachment())->toBeTrue();
@@ -156,6 +157,26 @@ test('service note requires note type', function () {
             'body' => 'Body text.',
         ])
         ->assertSessionHasErrors('note_type_id');
+});
+
+test('new service note recorded at matches creation timestamp in app timezone', function () {
+    config(['app.timezone' => 'Africa/Johannesburg']);
+    Carbon::setTestNow(Carbon::parse('2026-06-15 14:30:00', 'Africa/Johannesburg'));
+
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('contacts.service-notes.store', $contact), serviceNotePayload([
+            'heading' => 'Timed note',
+            'body' => 'Body text for timing test.',
+        ]))
+        ->assertRedirect();
+
+    $note = ServiceNote::query()->where('heading', 'Timed note')->firstOrFail();
+
+    expect($note->noted_at->format('Y-m-d H:i'))->toBe('2026-06-15 14:30');
+    expect($note->noted_at->toDateTimeString())->toBe($note->created_at->toDateTimeString());
 });
 
 test('service note update does not change noted at', function () {

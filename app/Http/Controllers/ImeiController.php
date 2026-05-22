@@ -14,6 +14,7 @@ use App\Models\ImeiStatus;
 use App\Models\ImeiType;
 use App\Models\ServiceNote;
 use App\Support\BrowseListLimit;
+use App\Support\CashDevicesTable;
 use App\Support\ContactImeiCustomerDetails;
 use App\Support\ImeiStaffAudit;
 use App\Support\ImeiTextLimits;
@@ -287,9 +288,7 @@ class ImeiController extends Controller
     public function store(StoreImeiRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        if (empty($data['date_in'])) {
-            $data['date_in'] = now();
-        }
+        $data['date_in'] = now();
         $data['date_updated'] = now();
         $data['staff'] = ImeiStaffAudit::appendEmail('', (string) $request->user()->email);
         $imei = Imei::create($data);
@@ -774,6 +773,13 @@ class ImeiController extends Controller
         parse_str($returnQuery, $params);
         if (! is_array($params)) {
             return null;
+        }
+
+        if (($params['return_to'] ?? '') === CashDevicesTable::RETURN_TO) {
+            return route('dashboard', array_filter([
+                'sort' => CashDevicesTable::sortColumn(is_string($params['sort'] ?? null) ? $params['sort'] : null),
+                'dir' => CashDevicesTable::sortDir(is_string($params['dir'] ?? null) ? $params['dir'] : null),
+            ], fn (string $value): bool => $value !== ''));
         }
 
         $filtered = array_intersect_key($params, array_flip(self::INDEX_RETURN_QUERY_KEYS));

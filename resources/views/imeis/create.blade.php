@@ -21,6 +21,8 @@
     $prefillRecordId = $updateRouteId;
     $roAttr = $readonlyAfterSave ? 'readonly' : '';
     $roFieldClass = $readonlyAfterSave ? 'bg-gray-50 cursor-default' : '';
+    $dateInReadonly = $readonlyAfterSave || $updateRouteId === null;
+    $dateInFieldClass = $dateInReadonly ? 'bg-gray-50 cursor-default' : '';
 
     $imeiFieldValue = function (string $key) use ($errors, $viewRecord): string {
         if ($errors->any()) {
@@ -45,7 +47,6 @@
         }
 
         $default = match ($key) {
-            'date_in' => now()->format('Y-m-d\TH:i'),
             'location' => ImeiNewRecordDefaults::LOCATION,
             'type' => ImeiNewRecordDefaults::TYPE,
             'status' => ImeiNewRecordDefaults::STATUS,
@@ -221,11 +222,11 @@
                 </div>
 
                 <div class="pb-4 border-b border-gray-200 space-y-3">
-                    <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Leave date in blank to use the current time when saving a new record.</p>
+                    <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Date in is recorded automatically when you save a new IMEI.</p>
                     <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,15rem)_1fr] gap-4 items-start">
                         <div>
                             <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['date_in'] ?? 'Date in' }}</label>
-                            <input type="datetime-local" name="date_in" id="date_in" value="{{ $imeiFieldValue('date_in') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('date_in') border-red-500 @enderror">
+                            <input type="datetime-local" name="date_in" id="date_in" value="{{ $imeiFieldValue('date_in') }}" @readonly($dateInReadonly) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $dateInFieldClass }} @error('date_in') border-red-500 @enderror">
                             @error('date_in')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -923,7 +924,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             if (el.id === 'date_in') {
-                el.value = defaultDateInLocalValue();
+                el.value = '';
 
                 return;
             }
@@ -991,7 +992,6 @@ document.addEventListener('DOMContentLoaded', function () {
             type: record.type,
             status: record.status,
             location: record.location,
-            date_in: record.date_in ? String(record.date_in).slice(0, 16) : '',
             phonenumber: record.phonenumber,
             ref: record.ref,
             staff: record.staff,

@@ -45,6 +45,21 @@ class ServiceNote extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (ServiceNote $note): void {
+            $note->noted_at ??= now();
+        });
+
+        static::created(function (ServiceNote $note): void {
+            if ($note->created_at === null) {
+                return;
+            }
+
+            $note->forceFill(['noted_at' => $note->created_at])->saveQuietly();
+        });
+    }
+
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);

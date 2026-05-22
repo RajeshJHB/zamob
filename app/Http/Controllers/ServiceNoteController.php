@@ -39,7 +39,6 @@ class ServiceNoteController extends Controller
             'note_type_id' => (int) $request->validated('note_type_id'),
             'status' => $request->validated('status'),
             'heading' => trim($request->validated('heading')),
-            'noted_at' => now(),
             'body' => trim($request->validated('body')),
             'created_by' => $request->user()->id,
             'staff' => ImeiStaffAudit::appendEmail('', (string) $request->user()->email),
