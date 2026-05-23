@@ -16,6 +16,7 @@ class DashboardController extends Controller
         $dir = CashDevicesTable::sortDir($request->input('dir'));
 
         $cashDevices = Imei::query()
+            ->visibleTo($request->user())
             ->where('type', ImeiCashDeviceType::TYPE)
             ->where('status', ImeiCashDeviceType::STATUS)
             ->tap(fn ($query) => CashDevicesTable::applySort($query, $sort, $dir))

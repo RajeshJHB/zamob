@@ -275,9 +275,8 @@ test('find results include print and edit links per row', function () {
     expect($html)->not->toContain('name="_method" value="DELETE"');
 });
 
-test('edit imei page includes delete for users with role 4', function () {
+test('edit imei page includes delete for all authenticated users', function () {
     $user = User::factory()->create();
-    grantRoleFourForImeiReferenceDeletes($user);
     $row = Imei::query()->create([
         'date_in' => now(),
         'date_updated' => now(),
@@ -309,7 +308,7 @@ test('edit imei page includes delete for users with role 4', function () {
     expect($html)->toContain('imei-delete-btn-top');
 });
 
-test('edit imei page does not include delete without role 4', function () {
+test('edit imei page includes delete form for authenticated users', function () {
     $user = User::factory()->create();
     $row = Imei::query()->create([
         'date_in' => now(),
@@ -338,11 +337,11 @@ test('edit imei page does not include delete without role 4', function () {
         ->assertSuccessful()
         ->getContent();
 
-    expect($html)->not->toContain('imei-delete-form');
+    expect($html)->toContain('imei-delete-form');
 });
 
-test('users without role 4 cannot delete an imei record', function () {
-    $user = User::factory()->create();
+test('any authenticated user can soft delete an imei record', function () {
+    $user = User::factory()->create(['email' => 'deleter@example.com']);
     $row = Imei::query()->create([
         'date_in' => now(),
         'date_updated' => now(),
@@ -368,12 +367,12 @@ test('users without role 4 cannot delete an imei record', function () {
     $this->actingAs($user)
         ->from(route('imeis.index'))
         ->delete(route('imeis.destroy', $row))
-        ->assertForbidden();
+        ->assertRedirect(route('imeis.create'));
 
-    expect(Imei::query()->find($row->id))->not->toBeNull();
+    expect($row->fresh()->status)->toBe('Deleted');
 });
 
-test('users with role 4 can delete an imei record', function () {
+test('users with role 4 can soft delete an imei record', function () {
     $user = User::factory()->create();
     grantRoleFourForImeiReferenceDeletes($user);
     $row = Imei::query()->create([
@@ -403,7 +402,7 @@ test('users with role 4 can delete an imei record', function () {
         ->delete(route('imeis.destroy', $row))
         ->assertRedirect(route('imeis.create'));
 
-    expect(Imei::query()->find($row->id))->toBeNull();
+    expect($row->fresh()->status)->toBe('Deleted');
 });
 
 test('receipt logo route serves png from resources', function () {

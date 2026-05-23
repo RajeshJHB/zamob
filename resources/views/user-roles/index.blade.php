@@ -1,118 +1,124 @@
 @extends('layouts.app')
 
-@section('title', 'User Role Assignment')
+@section('title', 'Assign Roles')
 
 @section('content')
-<div class="bg-white rounded-lg shadow-md p-6">
-    <div class="flex justify-between items-center mb-6">
-        <div class="flex items-center gap-3">
-            <h1 class="text-3xl font-bold">User Role Assignment</h1>
-            @if(session('success'))
-                <div id="success-message" class="bg-green-50 border border-green-200 text-green-800 px-3 py-1 rounded text-sm">
-                    {{ session('success') }}
-                </div>
-            @else
-                <div id="success-message" class="hidden"></div>
-            @endif
-            <button type="submit" form="user-roles-form" id="save-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm hidden">
-                Save Changes
+<div class="max-w-7xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h1 class="text-3xl font-bold">Assign Roles to Users</h1>
+            <button
+                type="submit"
+                form="user-roles-bulk-form"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+                Save all changes
             </button>
         </div>
-        <a href="{{ route('dashboard') }}" id="back-link" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-2 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-            Home
-        </a>
-    </div>
 
-    @if(session('error'))
-        <div class="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-            <p>{{ session('error') }}</p>
-        </div>
-    @endif
+        @if(session('success'))
+            <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                {{ session('success') }}
+            </div>
+        @endif
 
-    <form method="POST" action="{{ route('user-roles.bulk-update') }}" id="user-roles-form">
-        @csrf
+        @if(session('error'))
+            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {{ session('error') }}
+            </div>
+        @endif
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white border border-gray-300">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="px-4 py-2 border-b text-left align-top">User Name</th>
-                        <th class="px-4 py-2 border-b text-left align-top">Email</th>
-                        <th class="px-4 py-2 border-b text-left align-top">Assign Roles</th>
-                        <th class="px-4 py-2 border-b text-left align-top">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($users as $user)
-                        <tr>
-                            <td class="px-4 py-2 border-b">{{ $user->name }}</td>
-                            <td class="px-4 py-2 border-b">{{ $user->email }}</td>
-                            <td class="px-4 py-2 border-b">
-                                <div class="space-y-2">
+        <p class="text-sm text-gray-600 mb-4">
+            Use <strong>Edit</strong> to change one user, or tick roles in the table and choose <strong>Save all changes</strong>.
+            Role 4 cannot be removed from a user who already has it.
+        </p>
+
+        <form id="user-roles-bulk-form" method="POST" action="{{ route('user-roles.bulk-update') }}">
+            @csrf
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">User</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Email</th>
+                            @foreach($roles as $role)
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase whitespace-nowrap">
+                                    {{ $role->name }}<br><span class="font-normal normal-case text-gray-500">({{ $role->number }})</span>
+                                </th>
+                            @endforeach
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($users as $index => $user)
+                            @php
+                                $userRoleIds = $user->roles->pluck('id')->all();
+                            @endphp
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 border-t border-gray-200 text-sm font-medium text-gray-900">
+                                    {{ $user->name }}
+                                    @if(auth()->id() === $user->id)
+                                        <span class="text-xs text-gray-500">(You)</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 border-t border-gray-200 text-sm text-gray-700">{{ $user->email }}</td>
+                                @foreach($roles as $role)
                                     @php
-                                        $isCurrentUser = $user->id === auth()->id();
+                                        $isChecked = in_array($role->id, $userRoleIds, true);
+                                        $isLocked = \App\Support\Role4Protection::isLockedForUser($user, $role);
                                     @endphp
-                                    @foreach($roles as $role)
-                                        @php
-                                            $isChecked = $user->roles->contains($role->id);
-                                            $isRoleManager = $role->number === 1;
-                                            $isCurrentUserRoleManager = $isCurrentUser && $user->isRoleManager();
-                                            $isDisabled = $isCurrentUserRoleManager && $isRoleManager;
-                                        @endphp
-                                        <label class="flex items-center role-checkbox {{ $isDisabled ? 'opacity-75' : '' }}" 
-                                               data-user-id="{{ $user->id }}">
-                                            <input type="checkbox" 
-                                                   name="users[{{ $user->id }}][roles][]" 
-                                                   value="{{ $role->id }}"
-                                                   data-original-checked="{{ $isChecked ? 'true' : 'false' }}"
-                                                   {{ $isChecked ? 'checked' : '' }}
-                                                   {{ $isDisabled ? 'disabled' : '' }}
-                                                   class="mr-2 role-checkbox-input w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-                                            <span>
-                                                Role_{{ $role->number }} - {{ $role->name }}
-                                            </span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </td>
-                            <td class="px-4 py-2 border-b">
-                                @if($isCurrentUser)
-                                    <div class="flex flex-col gap-1">
-                                        @if($user->isRoleManager())
-                                            <span class="text-xs text-gray-500 italic">Role_1 - Cannot remove this Role yourself</span>
-                                        @endif
-                                        <span class="text-xs text-gray-500 italic">Cannot delete yourself</span>
-                                    </div>
-                                @else
-                                    <button type="button" 
-                                            class="delete-user-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
+                                    <td class="px-4 py-3 border-t border-gray-200 text-center">
+                                        <input type="hidden" name="user_roles[{{ $index }}][user_id]" value="{{ $user->id }}">
+                                        <input
+                                            type="checkbox"
+                                            name="user_roles[{{ $index }}][roles][]"
+                                            value="{{ $role->id }}"
+                                            @checked($isChecked)
+                                            @disabled($isLocked)
+                                            @class([
+                                                'rounded border-gray-300 text-blue-600 focus:ring-blue-500',
+                                                'opacity-60 cursor-not-allowed' => $isLocked,
+                                            ])
+                                            title="{{ $isLocked ? 'Role 4 cannot be removed from this user.' : '' }}"
+                                        >
+                                    </td>
+                                @endforeach
+                                <td class="px-4 py-3 border-t border-gray-200 text-sm">
+                                    <a
+                                        href="{{ route('user-roles.edit', $user) }}"
+                                        class="text-blue-600 hover:text-blue-800 font-medium"
+                                    >
+                                        Edit
+                                    </a>
+                                    @if(auth()->id() !== $user->id && ! $user->isFirstUser())
+                                        <button
+                                            type="button"
+                                            class="delete-user-btn ml-3 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
                                             data-user-id="{{ $user->id }}"
-                                            data-user-name="{{ $user->name }}">
-                                        Delete User
-                                    </button>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="px-4 py-2 text-center text-gray-500">No users found</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </form>
+                                            data-user-name="{{ $user->name }}"
+                                        >
+                                            Delete
+                                        </button>
+                                    @elseif(auth()->id() === $user->id)
+                                        <span class="ml-3 text-xs text-gray-500 italic">Cannot delete yourself</span>
+                                    @else
+                                        <span class="ml-3 text-xs text-gray-500 italic">Cannot delete first user</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
 </div>
 
-<!-- Delete User Confirmation Modal -->
 <div id="delete-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 class="text-lg font-bold mb-4">Confirm Delete</h3>
         <p class="mb-6">Are you sure you want to delete <span id="delete-user-name" class="font-semibold"></span>? This action cannot be undone.</p>
-        <div class="flex justify-end gap-4">
+        <div class="flex justify-end gap-3">
             <button type="button" id="cancel-delete" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
                 Cancel
             </button>
@@ -120,7 +126,7 @@
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                    Delete User
+                    Delete
                 </button>
             </form>
         </div>
@@ -128,110 +134,15 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    let hasUnsavedChanges = false;
-    const form = document.getElementById('user-roles-form');
-    const saveButton = document.getElementById('save-button');
-    const backLink = document.getElementById('back-link');
+document.addEventListener('DOMContentLoaded', function () {
     const deleteModal = document.getElementById('delete-modal');
-    const successMessage = document.getElementById('success-message');
-    let deleteForm = null;
 
-    // Track original state
-    const originalState = {};
-    const checkboxes = document.querySelectorAll('.role-checkbox-input');
-    
-    checkboxes.forEach(checkbox => {
-        const userId = checkbox.closest('.role-checkbox').dataset.userId;
-        const roleId = checkbox.value;
-        const key = `${userId}_${roleId}`;
-        originalState[key] = checkbox.dataset.originalChecked === 'true';
-    });
-
-    // Function to check if form has unsaved changes and update styling
-    function checkForChanges() {
-        let hasChanges = false;
-        
-        checkboxes.forEach(checkbox => {
-            if (checkbox.disabled) return;
-            
-            const userId = checkbox.closest('.role-checkbox').dataset.userId;
-            const roleId = checkbox.value;
-            const key = `${userId}_${roleId}`;
-            const isCurrentlyChecked = checkbox.checked;
-            const wasOriginallyChecked = originalState[key];
-            
-            // Apply yellow styling for unsaved changes, blue for saved/original state
-            if (isCurrentlyChecked !== wasOriginallyChecked) {
-                hasChanges = true;
-                // Yellow styling for unsaved changes
-                checkbox.classList.add('unsaved-changed');
-                checkbox.classList.remove('text-blue-600', 'focus:ring-blue-500');
-                checkbox.classList.add('text-yellow-600', 'focus:ring-yellow-500');
-            } else {
-                // Blue styling for saved/original state
-                checkbox.classList.remove('unsaved-changed', 'text-yellow-600', 'focus:ring-yellow-500');
-                checkbox.classList.add('text-blue-600', 'focus:ring-blue-500');
-            }
-        });
-        
-        hasUnsavedChanges = hasChanges;
-        
-        if (hasUnsavedChanges) {
-            saveButton.classList.remove('hidden');
-            // Hide success message when new changes are made
-            if (successMessage) {
-                successMessage.classList.add('hidden');
-            }
-        } else {
-            saveButton.classList.add('hidden');
-        }
-    }
-    
-    // Initialize styling on page load
-    checkForChanges();
-
-    // Track checkbox changes
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            checkForChanges();
-        });
-    });
-
-    // Warn before leaving page with unsaved changes
-    window.addEventListener('beforeunload', function(e) {
-        if (hasUnsavedChanges) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-            return e.returnValue;
-        }
-    });
-
-    // Handle link clicks
-    backLink.addEventListener('click', function(e) {
-        if (hasUnsavedChanges) {
-            if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
-                e.preventDefault();
-                return false;
-            }
-        }
-        hasUnsavedChanges = false;
-    });
-
-    // Handle form submission - clear unsaved changes flag
-    form.addEventListener('submit', function() {
-        hasUnsavedChanges = false;
-        saveButton.disabled = true;
-        saveButton.textContent = 'Saving...';
-    });
-
-    // Handle delete user button clicks
-    document.querySelectorAll('.delete-user-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const userId = this.dataset.userId;
-            const userName = this.dataset.userName;
+    document.querySelectorAll('.delete-user-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const userId = button.getAttribute('data-user-id');
+            const userName = button.getAttribute('data-user-name');
             const deleteFormAction = '{{ route("user-roles.destroy", ":id") }}'.replace(':id', userId);
-            
+
             document.getElementById('delete-user-name').textContent = userName;
             document.getElementById('delete-user-form').action = deleteFormAction;
             deleteModal.classList.remove('hidden');
@@ -239,32 +150,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle cancel delete
-    document.getElementById('cancel-delete').addEventListener('click', function() {
+    document.getElementById('cancel-delete').addEventListener('click', function () {
         deleteModal.classList.add('hidden');
         deleteModal.classList.remove('flex');
     });
 
-    // Close modal when clicking outside
-    deleteModal.addEventListener('click', function(e) {
-        if (e.target === deleteModal) {
+    deleteModal.addEventListener('click', function (event) {
+        if (event.target === deleteModal) {
             deleteModal.classList.add('hidden');
             deleteModal.classList.remove('flex');
         }
     });
 });
 </script>
-
-<style>
-    /* Yellow checkbox styling for unsaved changes */
-    input.role-checkbox-input.unsaved-changed:checked {
-        accent-color: #eab308;
-        background-color: #fef08a;
-    }
-    
-    /* Blue checkbox styling for saved/original state */
-    input.role-checkbox-input:checked:not(.unsaved-changed) {
-        accent-color: #2563eb;
-    }
-</style>
 @endsection

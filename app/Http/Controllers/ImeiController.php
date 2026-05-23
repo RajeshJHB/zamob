@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkChangeImeiStatusRequest;
 use App\Http\Requests\StoreImeiRequest;
 use App\Http\Requests\UpdateImeiRequest;
 use App\Models\Contact;
@@ -16,6 +17,9 @@ use App\Models\ServiceNote;
 use App\Support\BrowseListLimit;
 use App\Support\CashDevicesTable;
 use App\Support\ContactImeiCustomerDetails;
+use App\Support\ImeiDeletedStatus;
+use App\Support\ImeiFieldFilter;
+use App\Support\ImeiNormalizedLookup;
 use App\Support\ImeiStaffAudit;
 use App\Support\ImeiTextLimits;
 use App\Support\ImeiValidator;
@@ -47,6 +51,10 @@ class ImeiController extends Controller
         'sort1_dir',
         'sort2_column',
         'sort2_dir',
+        'field_filter_1',
+        'field_value_1',
+        'field_filter_2',
+        'field_value_2',
         'page',
     ];
 
@@ -95,7 +103,7 @@ class ImeiController extends Controller
     {
         $viewRecord = null;
         if ($id = session()->pull('imei_view_id')) {
-            $imei = Imei::query()->find($id);
+            $imei = Imei::query()->visibleTo(auth()->user())->find($id);
             if ($imei !== null) {
                 $viewRecord = $this->imeiRecordForLookup($imei);
             }
@@ -112,6 +120,8 @@ class ImeiController extends Controller
 
     public function edit(Request $request, Imei $imei): View
     {
+        $this->abortIfDeletedAndNotAuthorized($request, $imei);
+
         $digits = ImeiValidator::normalizeDigits($imei->imei);
         $returnQuery = $this->returnQueryStringFromRequest($request);
 
@@ -124,8 +134,10 @@ class ImeiController extends Controller
         );
     }
 
-    public function receipt(Imei $imei): View
+    public function receipt(Request $request, Imei $imei): View
     {
+        $this->abortIfDeletedAndNotAuthorized($request, $imei);
+
         return view('imeis.receipt', [
             'imei' => $imei,
         ]);
@@ -164,7 +176,7 @@ class ImeiController extends Controller
 
     public function lastForCopy(): JsonResponse
     {
-        $imei = Imei::query()->orderByDesc('id')->first();
+        $imei = Imei::query()->visibleTo(auth()->user())->orderByDesc('id')->first();
 
         if ($imei === null) {
             return response()->json([
@@ -252,21 +264,16 @@ class ImeiController extends Controller
                 ]);
             }
 
-            $record = Imei::query()->whereNormalizedImei($normalizedNs)->first();
+            $record = ImeiNormalizedLookup::find($normalizedNs);
 
-            return response()->json([
-                'valid' => true,
-                'exists' => $record !== null,
-                'canonical_imei' => $normalizedNs,
-                'record' => $record ? $this->imeiRecordForLookup($record) : null,
-                'non_standard' => true,
-            ]);
+            return $this->lookupJsonResponse($request, $record, $normalizedNs, true);
         }
 
         if (! ImeiValidator::isValidChecksum($normalized)) {
             return response()->json([
                 'valid' => false,
                 'exists' => false,
+                'deleted' => false,
                 'canonical_imei' => strlen($normalized) === 15 ? $normalized : null,
                 'record' => null,
                 'non_standard' => false,
@@ -274,14 +281,66 @@ class ImeiController extends Controller
             ]);
         }
 
-        $record = Imei::query()->whereNormalizedImei($normalized)->first();
+        $record = ImeiNormalizedLookup::find($normalized);
+
+        return $this->lookupJsonResponse($request, $record, $normalized, false);
+    }
+
+    private function lookupJsonResponse(Request $request, ?Imei $record, string $canonicalImei, bool $nonStandard): JsonResponse
+    {
+        if ($record === null) {
+            return response()->json([
+                'valid' => true,
+                'exists' => false,
+                'deleted' => false,
+                'canonical_imei' => $canonicalImei,
+                'record' => null,
+                'non_standard' => $nonStandard,
+            ]);
+        }
+
+        if (ImeiDeletedStatus::isDeleted($record) && ! ImeiDeletedStatus::userCanViewDeleted($request->user())) {
+            return response()->json([
+                'valid' => true,
+                'exists' => true,
+                'deleted' => true,
+                'canonical_imei' => $canonicalImei,
+                'record' => null,
+                'non_standard' => $nonStandard,
+                'message' => ImeiNormalizedLookup::DELETED_IMEI_MESSAGE,
+            ]);
+        }
+
+        if (! ImeiDeletedStatus::isDeleted($record)) {
+            $visibleRecord = Imei::query()
+                ->visibleTo($request->user())
+                ->whereKey($record->id)
+                ->first();
+
+            if ($visibleRecord === null) {
+                return response()->json([
+                    'valid' => true,
+                    'exists' => false,
+                    'deleted' => false,
+                    'canonical_imei' => $canonicalImei,
+                    'record' => null,
+                    'non_standard' => $nonStandard,
+                ]);
+            }
+
+            $record = $visibleRecord;
+        }
 
         return response()->json([
             'valid' => true,
-            'exists' => $record !== null,
-            'canonical_imei' => $normalized,
-            'record' => $record ? $this->imeiRecordForLookup($record) : null,
-            'non_standard' => false,
+            'exists' => true,
+            'deleted' => ImeiDeletedStatus::isDeleted($record),
+            'canonical_imei' => $canonicalImei,
+            'record' => $this->imeiRecordForLookup($record),
+            'non_standard' => $nonStandard,
+            'message' => ImeiDeletedStatus::isDeleted($record)
+                ? ImeiNormalizedLookup::DELETED_IMEI_ROLE4_MESSAGE
+                : null,
         ]);
     }
 
@@ -308,19 +367,26 @@ class ImeiController extends Controller
 
     public function destroy(Request $request, Imei $imei): RedirectResponse
     {
-        abort_unless($request->user()->canDeleteImeiReferenceData(), 403);
+        abort_unless($request->user() !== null, 403);
 
         $returnQuery = $this->returnQueryStringFromRequest($request);
-        $imei->delete();
+
+        if (! ImeiDeletedStatus::isDeleted($imei)) {
+            $imei->update([
+                'status' => ImeiDeletedStatus::VALUE,
+                'date_updated' => now(),
+                'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, (string) $request->user()->email),
+            ]);
+        }
 
         $returnListUrl = $this->indexUrlFromReturnQuery($returnQuery);
         if ($returnListUrl !== null) {
-            return redirect()->to($returnListUrl)->with('message', 'IMEI record deleted.');
+            return redirect()->to($returnListUrl)->with('message', 'IMEI record marked as deleted.');
         }
 
         return redirect()
             ->route('imeis.create')
-            ->with('message', 'IMEI record deleted.');
+            ->with('message', 'IMEI record marked as deleted.');
     }
 
     public function filter(Request $request): View
@@ -356,6 +422,11 @@ class ImeiController extends Controller
             'oldSort1Dir' => $request->input('sort1_dir', 'asc'),
             'oldSort2Column' => $request->input('sort2_column'),
             'oldSort2Dir' => $request->input('sort2_dir', 'asc'),
+            'oldFieldFilter1' => $request->input('field_filter_1', ''),
+            'oldFieldValue1' => $request->input('field_value_1', ''),
+            'oldFieldFilter2' => $request->input('field_filter_2', ''),
+            'oldFieldValue2' => $request->input('field_value_2', ''),
+            'fieldFilterPicklists' => ImeiFieldFilter::picklistOptions($user),
             'savedFilters' => $savedFilters,
             'currentProfileName' => $currentProfileName,
         ]);
@@ -370,24 +441,17 @@ class ImeiController extends Controller
 
         if ($dateScope === 'range' && $startDate && $endDate && $startDate > $endDate) {
             return redirect()
-                ->route('imeis.filter', $request->only([
-                    'scope',
-                    'date_scope',
-                    'date_column',
-                    'start_date',
-                    'end_date',
-                    'columns',
-                    'search',
-                    'search2',
-                    'sort1_column',
-                    'sort1_dir',
-                    'sort2_column',
-                    'sort2_dir',
-                ]))
+                ->route('imeis.filter', $this->imeiFilterParams($request))
                 ->with('error', 'The dates must be fixed. Start date cannot be after end date.');
         }
 
         $query = $this->buildImeiQuery($request);
+
+        $statusFilterValue = ImeiFieldFilter::statusFilterValue($request);
+        $roleFourWithStatusFilter = $request->user()?->canDeleteImeiReferenceData() === true
+            && $statusFilterValue !== null;
+        $bulkStatusCount = $roleFourWithStatusFilter ? (clone $query)->count() : 0;
+        $canBulkChangeStatus = $roleFourWithStatusFilter && $bulkStatusCount > 1;
 
         $imeis = $query->paginate(25)->withQueryString();
 
@@ -408,20 +472,11 @@ class ImeiController extends Controller
             'imeis' => $imeis,
             'columns' => $selectedColumns,
             'columnLabels' => self::COLUMNS,
-            'filterParams' => $request->only([
-                'scope',
-                'columns',
-                'date_scope',
-                'date_column',
-                'start_date',
-                'end_date',
-                'search',
-                'search2',
-                'sort1_column',
-                'sort1_dir',
-                'sort2_column',
-                'sort2_dir',
-            ]),
+            'filterParams' => $this->imeiFilterParams($request),
+            'canBulkChangeStatus' => $canBulkChangeStatus,
+            'statusFilterValue' => $statusFilterValue,
+            'bulkStatusCount' => $bulkStatusCount,
+            'statusOptions' => ImeiStatus::query()->orderBy('status')->pluck('status')->all(),
         ]);
     }
 
@@ -450,6 +505,32 @@ class ImeiController extends Controller
         ]);
     }
 
+    public function bulkChangeStatus(BulkChangeImeiStatusRequest $request): RedirectResponse
+    {
+        $fromStatus = ImeiFieldFilter::statusFilterValue($request);
+        $toStatus = (string) $request->validated('status_to');
+        $userEmail = (string) $request->user()->email;
+        $now = now();
+
+        $query = $this->buildImeiQuery($request);
+        $updated = 0;
+
+        $query->chunkById(100, function ($imeis) use ($toStatus, $userEmail, $now, &$updated): void {
+            foreach ($imeis as $imei) {
+                $imei->update([
+                    'status' => $toStatus,
+                    'date_updated' => $now,
+                    'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
+                ]);
+                $updated++;
+            }
+        });
+
+        return redirect()
+            ->route('imeis.index', $this->imeiFilterParams($request))
+            ->with('message', "Updated {$updated} record(s) from {$fromStatus} to {$toStatus}.");
+    }
+
     private function buildImeiQuery(Request $request): \Illuminate\Database\Eloquent\Builder
     {
         $dateScope = $request->input('date_scope', 'all');
@@ -458,6 +539,7 @@ class ImeiController extends Controller
         $endDate = $request->input('end_date');
 
         $query = Imei::query();
+        ImeiDeletedStatus::applyVisibleScope($query, $request->user());
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
@@ -486,9 +568,12 @@ class ImeiController extends Controller
             ]);
         }
 
+        ImeiFieldFilter::applyToQuery($query, $request);
+
         if ($this->isUnfilteredBrowse($request)) {
             // Pluck IDs first: MySQL (older versions) rejects LIMIT inside IN subqueries.
             $latestIds = Imei::query()
+                ->visibleTo($request->user())
                 ->orderByDesc('date_in')
                 ->orderByDesc('id')
                 ->limit(BrowseListLimit::limit())
@@ -556,7 +641,33 @@ class ImeiController extends Controller
             return false;
         }
 
+        if (ImeiFieldFilter::hasActive($request)) {
+            return false;
+        }
+
         return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function imeiFilterParams(Request $request): array
+    {
+        return $request->only([
+            'scope',
+            'columns',
+            'date_scope',
+            'date_column',
+            'start_date',
+            'end_date',
+            'search',
+            'search2',
+            'sort1_column',
+            'sort1_dir',
+            'sort2_column',
+            'sort2_dir',
+            ...ImeiFieldFilter::queryKeys(),
+        ]);
     }
 
     public function saveFilter(Request $request): RedirectResponse
@@ -729,6 +840,7 @@ class ImeiController extends Controller
             'returnQuery' => $returnQuery,
             'imeiTypes' => $this->imeiTypesForForm(),
             'imeiStatuses' => $this->imeiStatusesForForm(),
+            'canSelectDeletedStatus' => ImeiDeletedStatus::userCanViewDeleted(auth()->user()),
             'imeiLocations' => $this->imeiLocationsForForm(),
             'imeiMakes' => $this->imeiMakesForForm(),
             'allImeiModels' => $this->allImeiModelsForForm(),
@@ -788,5 +900,13 @@ class ImeiController extends Controller
         }
 
         return route('imeis.index', $filtered);
+    }
+
+    private function abortIfDeletedAndNotAuthorized(Request $request, Imei $imei): void
+    {
+        abort_if(
+            ImeiDeletedStatus::isDeleted($imei) && ! ImeiDeletedStatus::userCanViewDeleted($request->user()),
+            404,
+        );
     }
 }

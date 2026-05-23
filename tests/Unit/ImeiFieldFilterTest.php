@@ -1,0 +1,33 @@
+<?php
+
+use App\Support\ImeiFieldFilter;
+use Illuminate\Http\Request;
+
+test('imei field filter detects active pairs', function () {
+    $inactive = Request::create('/', 'GET', [
+        'field_filter_1' => '',
+        'field_value_1' => '',
+        'field_filter_2' => '',
+        'field_value_2' => '',
+    ]);
+
+    expect(ImeiFieldFilter::hasActive($inactive))->toBeFalse();
+
+    $active = Request::create('/', 'GET', [
+        'field_filter_1' => 'status',
+        'field_value_1' => 'In Shop',
+        'field_filter_2' => '',
+        'field_value_2' => '',
+    ]);
+
+    expect(ImeiFieldFilter::hasActive($active))->toBeTrue();
+});
+
+test('imei field filter rejects invalid field names', function () {
+    $request = Request::create('/', 'GET', [
+        'field_filter_1' => 'imei',
+        'field_value_1' => '123',
+    ]);
+
+    expect(ImeiFieldFilter::pairFromRequest($request, 1))->toBeNull();
+});

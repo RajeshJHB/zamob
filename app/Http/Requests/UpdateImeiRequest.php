@@ -4,9 +4,11 @@ namespace App\Http\Requests;
 
 use App\Models\Imei;
 use App\Models\ImeiModel;
+use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiOptionalStringFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateImeiRequest extends FormRequest
 {
@@ -130,7 +132,7 @@ class UpdateImeiRequest extends FormRequest
                 Rule::when(
                     function (): bool {
                         $value = (string) $this->input('status', '');
-                        if ($value === '') {
+                        if ($value === '' || $value === ImeiDeletedStatus::VALUE) {
                             return false;
                         }
                         $imei = $this->route('imei');
@@ -152,5 +154,15 @@ class UpdateImeiRequest extends FormRequest
             'cost_excl' => ['nullable', 'string', 'max:255'],
             'selling_price' => ['nullable', 'integer'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ((string) $this->input('status', '') === ImeiDeletedStatus::VALUE
+                && ! ImeiDeletedStatus::userCanViewDeleted($this->user())) {
+                $validator->errors()->add('status', 'You cannot set this status.');
+            }
+        });
     }
 }

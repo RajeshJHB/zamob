@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ImeiDeletedStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -53,5 +54,15 @@ class Imei extends Model
             "replace(replace(replace(trim(imei), ' ', ''), '-', ''), '/', '') = ?",
             [$normalizedKey]
         );
+    }
+
+    /**
+     * @param  Builder<Imei>  $query
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        ImeiDeletedStatus::applyVisibleScope($query, $user);
+
+        return $query;
     }
 }

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureRoleManager;
-use App\Models\Role;
+use App\Http\Requests\BulkUpdateUserRolesRequest;
+use App\Http\Requests\UpdateUserRolesRequest;
 use App\Models\User;
+use App\Support\Role4Protection;
+use App\Support\UserRoleTable;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\View\View;
 
@@ -23,106 +25,69 @@ class UserRoleController extends Controller implements HasMiddleware
 
     public function index(): View
     {
-        $users = User::with('roles')
-            ->whereNotNull('email_verified_at')
-            ->orderBy('name')
-            ->get();
-        $roles = Role::orderBy('number')->get();
-
-        return view('user-roles.index', compact('users', 'roles'));
+        return view('user-roles.index', UserRoleTable::indexData());
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function edit(User $user): View
     {
-        $request->validate([
-            'roles' => ['array'],
-            'roles.*' => ['exists:roles,id'],
+        abort_unless($user->email_verified_at !== null, 404);
+
+        $user->load('roles');
+
+        return view('user-roles.edit', [
+            'user' => $user,
+            'roles' => UserRoleTable::indexData()['roles'],
         ]);
-
-        // Prevent logged-in role manager from removing their own Role Manager role
-        $roleManager = Role::where('number', 1)->first();
-        $isCurrentUser = $user->id === auth()->id();
-        $isCurrentUserRoleManager = $isCurrentUser && $user->isRoleManager();
-
-        if ($isCurrentUserRoleManager && $roleManager) {
-            $requestedRoles = $request->roles ?? [];
-            // Ensure Role_1 is always included for the current user if they are a role manager
-            if (! in_array($roleManager->id, $requestedRoles)) {
-                $requestedRoles[] = $roleManager->id;
-            }
-            $user->roles()->sync($requestedRoles);
-        } else {
-            $user->roles()->sync($request->roles ?? []);
-        }
-
-        // Ensure at least one role manager exists after update
-        User::ensureRoleManagerExists();
-
-        return redirect()->route('user-roles.index')->with('success', 'User roles updated successfully.');
     }
 
-    public function bulkUpdate(Request $request): RedirectResponse
+    public function update(UpdateUserRolesRequest $request, User $user): RedirectResponse
     {
-        $request->validate([
-            'users' => ['required', 'array'],
-            'users.*' => ['array'],
-            'users.*.roles' => ['nullable', 'array'],
-            'users.*.roles.*' => ['exists:roles,id'],
-        ]);
+        abort_unless($user->email_verified_at !== null, 404);
 
-        $roleManager = Role::where('number', 1)->first();
-        $currentUserId = auth()->id();
-        $updatedCount = 0;
+        $roles = Role4Protection::ensureRoleFourPreserved(
+            $user,
+            $request->input('roles', []),
+        );
 
-        foreach ($request->users as $userId => $userData) {
-            $user = User::find($userId);
+        $user->syncRoles($roles);
 
-            if (! $user) {
-                continue;
-            }
+        return redirect()
+            ->route('user-roles.index')
+            ->with('success', 'Roles updated successfully for '.$user->name.'.');
+    }
 
-            // Get roles from request - if no checkboxes are checked, roles will be empty array
-            $requestedRoles = $userData['roles'] ?? [];
+    public function bulkUpdate(BulkUpdateUserRolesRequest $request): RedirectResponse
+    {
+        foreach ($request->input('user_roles', []) as $entry) {
+            $user = User::query()->findOrFail((int) $entry['user_id']);
 
-            // Convert array keys to values if needed (checkbox arrays can come in different formats)
-            if (! empty($requestedRoles) && array_keys($requestedRoles) !== range(0, count($requestedRoles) - 1)) {
-                $requestedRoles = array_values($requestedRoles);
-            }
+            abort_unless($user->email_verified_at !== null, 404);
 
-            $isCurrentUser = (int) $userId === $currentUserId;
-            $isCurrentUserRoleManager = $isCurrentUser && $user->isRoleManager();
+            $roles = Role4Protection::ensureRoleFourPreserved(
+                $user,
+                $entry['roles'] ?? [],
+            );
 
-            // Prevent logged-in role manager from removing their own Role Manager role
-            if ($isCurrentUserRoleManager && $roleManager) {
-                if (! in_array($roleManager->id, $requestedRoles)) {
-                    $requestedRoles[] = $roleManager->id;
-                }
-            }
-
-            $user->roles()->sync($requestedRoles);
-            $updatedCount++;
+            $user->syncRoles($roles);
         }
 
-        // Ensure at least one role manager exists after update
-        User::ensureRoleManagerExists();
-
-        return redirect()->route('user-roles.index')->with('success', 'Roles Updated');
+        return redirect()
+            ->route('user-roles.index')
+            ->with('success', 'Roles updated successfully.');
     }
 
     public function destroy(User $user): RedirectResponse
     {
-        // Prevent deleting yourself
-        if ($user->id === auth()->id()) {
+        if (auth()->id() === $user->id) {
             return redirect()->route('user-roles.index')->with('error', 'You cannot delete your own account.');
         }
 
-        // Detach all roles before deleting
-        $user->roles()->detach();
+        if ($user->isFirstUser()) {
+            return redirect()->route('user-roles.index')->with('error', 'The first user cannot be deleted.');
+        }
 
-        // Delete the user
         $user->delete();
 
-        // Ensure at least one role manager exists after deletion
         User::ensureRoleManagerExists();
 
         return redirect()->route('user-roles.index')->with('success', 'User deleted successfully.');

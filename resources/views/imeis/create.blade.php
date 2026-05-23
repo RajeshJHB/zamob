@@ -72,7 +72,8 @@
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiStatus>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiStatus> $imeiStatuses */
     $imeiStatuses = $imeiStatuses ?? collect();
     $currentStatusForSelect = $imeiFieldValue('status');
-    $statusInReferenceTable = $imeiStatuses->contains(fn (\App\Models\ImeiStatus $s): bool => $s->status === $currentStatusForSelect);
+    $statusInReferenceTable = $imeiStatuses->contains(fn (\App\Models\ImeiStatus $s): bool => $s->status === $currentStatusForSelect)
+        || $currentStatusForSelect === \App\Support\ImeiDeletedStatus::VALUE;
 
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiLocation>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiLocation> $imeiLocations */
     $imeiLocations = $imeiLocations ?? collect();
@@ -131,10 +132,10 @@
                     <button type="button" id="imei-copy-last-btn-top" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400" hidden>
                         Copy Last
                     </button>
-                @if($updateRouteId !== null && auth()->user()->canDeleteImeiReferenceData())
+                @if($updateRouteId !== null)
                     <div class="imei-delete-action-wrap flex items-center shrink-0" @if($readonlyAfterSave && !$errors->any()) hidden @endif>
                         <button type="submit" form="imei-delete-form" id="imei-delete-btn-top" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                onclick="return confirm('Are you sure you want to delete this record? This cannot be undone.');">
+                                onclick="return confirm('This will mark the record as Deleted. Continue?');">
                             Delete
                         </button>
                     </div>
@@ -152,7 +153,7 @@
             </div>
         @endif
 
-        @if($updateRouteId !== null && auth()->user()->canDeleteImeiReferenceData())
+        @if($updateRouteId !== null)
             <form id="imei-delete-form" method="POST" action="{{ route('imeis.destroy', ['imei' => $updateRouteId]) }}" class="hidden" aria-hidden="true">
                 @csrf
                 @method('DELETE')
@@ -348,6 +349,9 @@
                                 @foreach($imeiStatuses as $imeiStatus)
                                     <option value="{{ $imeiStatus->status }}" @selected($currentStatusForSelect === $imeiStatus->status)>{{ $imeiStatus->status }}</option>
                                 @endforeach
+                                @if($canSelectDeletedStatus ?? false)
+                                    <option value="{{ \App\Support\ImeiDeletedStatus::VALUE }}" @selected($currentStatusForSelect === \App\Support\ImeiDeletedStatus::VALUE)>Deleted</option>
+                                @endif
                             </select>
                             @error('status')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -476,10 +480,10 @@
                         <button type="button" id="imei-copy-last-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400" hidden>
                             Copy Last
                         </button>
-                        @if($updateRouteId !== null && auth()->user()->canDeleteImeiReferenceData())
+                        @if($updateRouteId !== null)
                             <div class="imei-delete-action-wrap flex items-center shrink-0" @if($readonlyAfterSave && !$errors->any()) hidden @endif>
                                 <button type="submit" form="imei-delete-form" id="imei-delete-btn-bottom" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                        onclick="return confirm('Are you sure you want to delete this record? This cannot be undone.');">
+                                        onclick="return confirm('This will mark the record as Deleted. Continue?');">
                                     Delete
                                 </button>
                             </div>
@@ -1318,8 +1322,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 imeiFinal.value = data.canonical_imei;
             }
 
+            if (data.deleted && ! data.record) {
+                setFeedback(data.message ? String(data.message) : 'This IMEI cannot be added.', true);
+                return;
+            }
+
             if (data.exists && data.record) {
-                setFeedback('', false);
+                if (data.deleted && data.message) {
+                    setFeedback(String(data.message), true);
+                } else {
+                    setFeedback('', false);
+                }
                 showExistingReadonly(data.record);
                 showRest();
                 return;

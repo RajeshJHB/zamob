@@ -130,6 +130,54 @@
                     </div>
                 </div>
 
+                {{-- Field filters (Location / Make / Type / Status) --}}
+                <div class="pb-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold mb-3">Filter by field</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Choose up to two filters. Values come from <strong>IMEI Settings</strong> (locations, makes, types, statuses).
+                        Leave the field as <strong>No filter</strong> to ignore a row.
+                    </p>
+                    <div class="space-y-4">
+                        @foreach([1, 2] as $filterIndex)
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                <div>
+                                    <label for="field_filter_{{ $filterIndex }}" class="block text-xs font-medium text-gray-700 mb-1">
+                                        Filter {{ $filterIndex }} — field
+                                    </label>
+                                    <select
+                                        name="field_filter_{{ $filterIndex }}"
+                                        id="field_filter_{{ $filterIndex }}"
+                                        class="imei-field-filter-field border border-gray-300 rounded px-2 py-1 shadow-sm w-full"
+                                        data-filter-index="{{ $filterIndex }}"
+                                    >
+                                        <option value="">No filter</option>
+                                        @foreach(\App\Support\ImeiFieldFilter::FIELD_LABELS as $fieldKey => $fieldLabel)
+                                            <option
+                                                value="{{ $fieldKey }}"
+                                                @selected(($filterIndex === 1 ? ($oldFieldFilter1 ?? '') : ($oldFieldFilter2 ?? '')) === $fieldKey)
+                                            >{{ $fieldLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="field_value_{{ $filterIndex }}" class="block text-xs font-medium text-gray-700 mb-1">
+                                        Filter {{ $filterIndex }} — value
+                                    </label>
+                                    <select
+                                        name="field_value_{{ $filterIndex }}"
+                                        id="field_value_{{ $filterIndex }}"
+                                        class="imei-field-filter-value border border-gray-300 rounded px-2 py-1 shadow-sm w-full"
+                                        data-filter-index="{{ $filterIndex }}"
+                                        data-initial-value="{{ $filterIndex === 1 ? e($oldFieldValue1 ?? '') : e($oldFieldValue2 ?? '') }}"
+                                    >
+                                        <option value="">(choose value)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
                 {{-- Sort order --}}
                 <div>
                     <h2 class="text-lg font-semibold mb-3">Sort order</h2>
@@ -277,6 +325,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const profileSelect = document.getElementById('profile_select');
     const profileNameInput = document.getElementById('profile_name');
     const existingProfileNames = @json($savedFilters->pluck('name')->values());
+    const fieldFilterPicklists = @json($fieldFilterPicklists);
+
+    function populateFieldFilterValueSelect(index) {
+        const fieldSelect = document.getElementById('field_filter_' + index);
+        const valueSelect = document.getElementById('field_value_' + index);
+        if (!fieldSelect || !valueSelect) {
+            return;
+        }
+
+        const field = fieldSelect.value;
+        const initialValue = valueSelect.getAttribute('data-initial-value') || '';
+        const currentValue = valueSelect.value || initialValue;
+
+        valueSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = field ? '(choose value)' : '(select a field first)';
+        valueSelect.appendChild(placeholder);
+
+        if (!field) {
+            valueSelect.disabled = true;
+            valueSelect.removeAttribute('name');
+
+            return;
+        }
+
+        valueSelect.disabled = false;
+        valueSelect.setAttribute('name', 'field_value_' + index);
+
+        const options = fieldFilterPicklists[field] || [];
+        options.forEach(function (label) {
+            const option = document.createElement('option');
+            option.value = label;
+            option.textContent = label;
+            if (label === currentValue) {
+                option.selected = true;
+            }
+            valueSelect.appendChild(option);
+        });
+
+        valueSelect.removeAttribute('data-initial-value');
+    }
+
+    function initFieldFilters() {
+        document.querySelectorAll('.imei-field-filter-field').forEach(function (fieldSelect) {
+            const index = fieldSelect.getAttribute('data-filter-index');
+            fieldSelect.addEventListener('change', function () {
+                populateFieldFilterValueSelect(index);
+            });
+            populateFieldFilterValueSelect(index);
+        });
+    }
 
     function updateColumnsUi() {
         const selected = scopeSelected && scopeSelected.checked;
@@ -300,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     updateColumnsUi();
     updateDateRangeUi();
+    initFieldFilters();
 
     document.getElementById('imei-filter-form').addEventListener('submit', function(e) {
         if (scopeAll && scopeAll.checked) {
@@ -308,6 +409,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateScopeAll && dateScopeAll.checked) {
             document.querySelectorAll('.date-range-input').forEach(function(input) { input.removeAttribute('name'); });
         }
+        [1, 2].forEach(function (index) {
+            const fieldSelect = document.getElementById('field_filter_' + index);
+            const valueSelect = document.getElementById('field_value_' + index);
+            if (fieldSelect && fieldSelect.value === '') {
+                fieldSelect.removeAttribute('name');
+                if (valueSelect) {
+                    valueSelect.removeAttribute('name');
+                }
+            } else if (valueSelect && valueSelect.value === '') {
+                valueSelect.removeAttribute('name');
+            }
+        });
     });
 
     if (saveProfileButton && filterForm) {

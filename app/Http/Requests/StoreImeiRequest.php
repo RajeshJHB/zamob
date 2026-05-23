@@ -6,10 +6,12 @@ use App\Models\ImeiModel;
 use App\Rules\UniqueNormalizedImei;
 use App\Rules\UniqueNormalizedNonStandardImei;
 use App\Rules\ValidImei;
+use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiOptionalStringFields;
 use App\Support\ImeiValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreImeiRequest extends FormRequest
 {
@@ -134,5 +136,15 @@ class StoreImeiRequest extends FormRequest
         $base['imei'] = ['required', 'string', 'size:15', new ValidImei, new UniqueNormalizedImei];
 
         return $base;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ((string) $this->input('status', '') === ImeiDeletedStatus::VALUE
+                && ! ImeiDeletedStatus::userCanViewDeleted($this->user())) {
+                $validator->errors()->add('status', 'You cannot set this status.');
+            }
+        });
     }
 }

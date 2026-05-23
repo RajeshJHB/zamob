@@ -2,7 +2,8 @@
 
 namespace App\Rules;
 
-use App\Models\Imei;
+use App\Support\ImeiDeletedStatus;
+use App\Support\ImeiNormalizedLookup;
 use App\Support\ImeiValidator;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -16,8 +17,18 @@ class UniqueNormalizedImei implements ValidationRule
             return;
         }
 
-        if (Imei::query()->whereNormalizedImei($digits)->exists()) {
-            $fail('An IMEI record with this number already exists.');
+        $existing = ImeiNormalizedLookup::find($digits);
+
+        if ($existing === null) {
+            return;
         }
+
+        if (ImeiDeletedStatus::isDeleted($existing)) {
+            $fail(ImeiNormalizedLookup::deletedImeiMessage());
+
+            return;
+        }
+
+        $fail('An IMEI record with this number already exists.');
     }
 }

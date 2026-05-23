@@ -67,6 +67,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole(4);
     }
 
+    public function syncRoles(array $roleIds): void
+    {
+        $this->roles()->sync($roleIds);
+    }
+
     public function isFirstUser(): bool
     {
         return $this->id === User::min('id');

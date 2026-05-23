@@ -131,6 +131,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/imeis/{imei}/receipt', [ImeiController::class, 'receipt'])->name('imeis.receipt');
     Route::get('/imeis/{imei}/edit', [ImeiController::class, 'edit'])->name('imeis.edit');
     Route::get('/imeis/print', [ImeiController::class, 'print'])->name('imeis.print');
+    Route::post('/imeis/bulk-status', [ImeiController::class, 'bulkChangeStatus'])->name('imeis.bulk-status');
     Route::get('/imeis', [ImeiController::class, 'index'])->name('imeis.index');
 });
 
@@ -154,6 +155,7 @@ Route::middleware(['auth', 'verified'])->prefix('roles')->name('roles.')->group(
 Route::middleware(['auth', 'verified'])->prefix('user-roles')->name('user-roles.')->group(function () {
     Route::get('/', [UserRoleController::class, 'index'])->name('index');
     Route::post('/bulk-update', [UserRoleController::class, 'bulkUpdate'])->name('bulk-update');
+    Route::get('/{user}/edit', [UserRoleController::class, 'edit'])->name('edit');
     Route::put('/{user}', [UserRoleController::class, 'update'])->name('update');
     Route::delete('/{user}', [UserRoleController::class, 'destroy'])->name('destroy');
 });
