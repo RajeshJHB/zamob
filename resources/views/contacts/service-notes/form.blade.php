@@ -93,6 +93,58 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const isCreate = @json($note === null);
+    const repairNoteTypeId = @json($repairNoteTypeId);
+    const repairNoteHeadingTemplate = @json($repairNoteHeadingTemplate);
+    const repairNoteBodyTemplate = @json($repairNoteBodyTemplate);
+    const noteTypeSelect = document.getElementById('note_type_id');
+    const headingInput = document.getElementById('heading');
+    const bodyTextarea = document.getElementById('body');
+
+    function shouldApplyRepairHeading() {
+        if (!headingInput) {
+            return false;
+        }
+        const current = headingInput.value;
+        if (current.trim() === '') {
+            return true;
+        }
+
+        return current === repairNoteHeadingTemplate;
+    }
+
+    function shouldApplyRepairTemplate() {
+        if (!bodyTextarea) {
+            return false;
+        }
+        const current = bodyTextarea.value;
+        if (current.trim() === '') {
+            return true;
+        }
+
+        return current === repairNoteBodyTemplate;
+    }
+
+    function applyRepairTemplateIfNeeded() {
+        if (!isCreate || !noteTypeSelect || repairNoteTypeId === null) {
+            return;
+        }
+        if (parseInt(noteTypeSelect.value, 10) !== repairNoteTypeId) {
+            return;
+        }
+        if (headingInput && shouldApplyRepairHeading()) {
+            headingInput.value = repairNoteHeadingTemplate;
+        }
+        if (bodyTextarea && shouldApplyRepairTemplate()) {
+            bodyTextarea.value = repairNoteBodyTemplate;
+        }
+    }
+
+    if (noteTypeSelect) {
+        noteTypeSelect.addEventListener('change', applyRepairTemplateIfNeeded);
+        applyRepairTemplateIfNeeded();
+    }
+
     const dropZone = document.getElementById('attachment-drop-zone');
     const fileInput = document.getElementById('attachment');
     const fileNameEl = document.getElementById('attachment-file-name');

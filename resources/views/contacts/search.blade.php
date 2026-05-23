@@ -39,6 +39,7 @@
                 <table class="min-w-full border border-gray-300 text-sm">
                     <thead class="bg-gray-100">
                         <tr>
+                            <th class="px-3 py-2 text-left font-semibold">Select</th>
                             <th class="px-3 py-2 text-left font-semibold">Company</th>
                             <th class="px-3 py-2 text-left font-semibold">First name</th>
                             <th class="px-3 py-2 text-left font-semibold">Surname</th>
@@ -47,12 +48,14 @@
                             <th class="px-3 py-2 text-left font-semibold">Email</th>
                             <th class="px-3 py-2 text-left font-semibold">Address</th>
                             <th class="px-3 py-2 text-left font-semibold">Created</th>
-                            <th class="px-3 py-2 text-left font-semibold"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($contacts as $row)
                             <tr class="hover:bg-gray-50 border-t border-gray-200">
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <a href="{{ route('contacts.show', $row) }}" class="text-blue-600 hover:text-blue-800 font-medium">Select</a>
+                                </td>
                                 <td class="px-3 py-2">{{ $row->company_name ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->first_name ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->surname ?: '—' }}</td>
@@ -61,9 +64,6 @@
                                 <td class="px-3 py-2">{{ $row->email_address ?: '—' }}</td>
                                 <td class="px-3 py-2 max-w-xs truncate" title="{{ $row->physical_address }}">{{ $row->physical_address ?: '—' }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap">{{ $row->created_at?->format('Y-m-d H:i') }}</td>
-                                <td class="px-3 py-2 whitespace-nowrap">
-                                    <a href="{{ route('contacts.show', $row) }}" class="text-blue-600 hover:text-blue-800 font-medium">Select</a>
-                                </td>
                             </tr>
                         @endforeach
                     </tbody>

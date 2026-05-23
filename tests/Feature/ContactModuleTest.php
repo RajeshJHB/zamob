@@ -29,6 +29,11 @@ function defaultNoteTypeId(): int
     return (int) NoteType::query()->orderBy('sort_order')->value('id');
 }
 
+function repairNoteTypeId(): int
+{
+    return (int) NoteType::query()->where('name', 'Repair')->value('id');
+}
+
 function serviceNotePayload(array $overrides = []): array
 {
     return array_merge([
@@ -94,6 +99,35 @@ test('no contact match prompts create new contact', function () {
         ->assertSee('Create new contact', false);
 });
 
+test('blank service note search lists all notes paginated', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    for ($i = 1; $i <= 21; $i++) {
+        $note = ServiceNote::factory()->create([
+            'contact_id' => $contact->id,
+            'heading' => 'Note '.$i,
+            'body' => 'Body for note '.$i,
+            'created_by' => $user->id,
+        ]);
+        $note->forceFill(['noted_at' => now()->subMinutes($i)])->saveQuietly();
+    }
+
+    $this->actingAs($user)
+        ->get(route('contacts.notes.search'))
+        ->assertSuccessful()
+        ->assertSee('Showing all service notes', false)
+        ->assertSee('Note 1', false)
+        ->assertSee('Note 20', false)
+        ->assertDontSee('Note 21', false);
+
+    $this->actingAs($user)
+        ->get(route('contacts.notes.search', ['page' => 2]))
+        ->assertSuccessful()
+        ->assertSee('Note 21', false)
+        ->assertDontSee('Note 20', false);
+});
+
 test('service note search shows notes and contact links', function () {
     $user = User::factory()->create();
     $contact = Contact::factory()->create(['first_name' => 'Pat', 'surname' => 'Lee']);
@@ -144,6 +178,20 @@ test('user can create contact and service note with attachment', function () {
     expect($note->hasAttachment())->toBeTrue();
     expect($note->staff)->toContain($user->email);
     Storage::disk('attachments')->assertExists($note->attachment_path);
+});
+
+test('new service note form includes repair body template', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('contacts.service-notes.create', $contact))
+        ->assertSuccessful()
+        ->assertSee('repairNoteBodyTemplate', false)
+        ->assertSee('repairNoteHeadingTemplate', false)
+        ->assertSee('repairNoteTypeId', false)
+        ->assertSee('Repair Place: ', false)
+        ->assertSee('Make:', false);
 });
 
 test('service note requires note type', function () {
@@ -296,7 +344,37 @@ test('role 4 user can edit old service note', function () {
     expect($note->fresh()->heading)->toBe('Revised by role 4');
 });
 
-test('authenticated user can print service note', function () {
+test('authenticated user can print repair service note with receipt layout', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create([
+        'first_name' => 'Jane',
+        'surname' => 'Doe',
+    ]);
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'created_by' => $user->id,
+        'note_type_id' => repairNoteTypeId(),
+        'heading' => 'Repair',
+        'body' => "IMEI: 358918502270111\nMake: Apple\nModel: iPhone 14\nProblem: Screen cracked\nPrice: R1500\nRepair Place: Blairgowrie",
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('service-notes.print', $note))
+        ->assertSuccessful()
+        ->assertSee('Vodacom by zaMobile', false)
+        ->assertSee(route('imeis.receipt.logo'), false)
+        ->assertSee('Reference Number:', false)
+        ->assertSee($note->formattedNoteNumber(), false)
+        ->assertSee('Jane', false)
+        ->assertSee('Doe', false)
+        ->assertSee('358918502270111', false)
+        ->assertSee('Screen cracked', false)
+        ->assertSee('www.myVodacom.co.za', false)
+        ->assertSee('www.zaMobile.co.za', false)
+        ->assertDontSee('Contact', false);
+});
+
+test('authenticated user can print non repair service note with standard layout', function () {
     $user = User::factory()->create();
     $note = ServiceNote::factory()->create(['created_by' => $user->id]);
 
@@ -304,7 +382,8 @@ test('authenticated user can print service note', function () {
         ->get(route('service-notes.print', $note))
         ->assertSuccessful()
         ->assertSee($note->formattedNoteNumber(), false)
-        ->assertDontSee('Staff:', false);
+        ->assertSee('Contact', false)
+        ->assertDontSee('Vodacom by zaMobile', false);
 });
 
 test('note settings pages are available to authenticated users', function () {

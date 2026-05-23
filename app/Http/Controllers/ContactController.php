@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\ServiceNote;
 use App\Support\BrowseListLimit;
 use App\Support\ContactPermissions;
+use App\Support\ServiceNoteBrowsePageSize;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -72,25 +73,26 @@ class ContactController extends Controller
         ]);
     }
 
-    public function searchNotes(Request $request): View|RedirectResponse
+    public function searchNotes(Request $request): View
     {
         $term = trim((string) $request->input('note_q', ''));
-        if ($term === '') {
-            return redirect()
-                ->route('contacts.index')
-                ->with('error', 'Enter text to search service notes.');
+        $listingAll = $term === '';
+
+        $query = ServiceNote::query()
+            ->with(['contact', 'noteType'])
+            ->orderByDesc('noted_at')
+            ->orderByDesc('id');
+
+        if (! $listingAll) {
+            $query->searchTerm($term);
         }
 
-        $notes = ServiceNote::query()
-            ->with(['contact', 'noteType'])
-            ->searchTerm($term)
-            ->orderByDesc('noted_at')
-            ->orderByDesc('id')
-            ->get();
+        $notes = $query->paginate(ServiceNoteBrowsePageSize::SIZE)->withQueryString();
 
         return view('contacts.notes-search', [
             'term' => $term,
             'notes' => $notes,
+            'listingAll' => $listingAll,
         ]);
     }
 

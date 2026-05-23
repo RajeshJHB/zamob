@@ -21,7 +21,7 @@
 
         <form method="GET" action="{{ route('contacts.notes.search') }}" class="space-y-3">
             <h2 class="text-lg font-semibold">Search all service notes</h2>
-            <p class="text-sm text-gray-600">Matches heading or note text. Results show the note and linked contact.</p>
+            <p class="text-sm text-gray-600">Matches heading or note text. Leave blank and search to list all service notes (20 per page).</p>
             <input type="text" name="note_q" value="{{ $noteQuery }}" placeholder="Text in service notes…" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md">
             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Search notes</button>
         </form>

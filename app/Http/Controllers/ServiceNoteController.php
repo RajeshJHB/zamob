@@ -9,6 +9,8 @@ use App\Models\NoteType;
 use App\Models\ServiceNote;
 use App\Support\ContactPermissions;
 use App\Support\ImeiStaffAudit;
+use App\Support\RepairServiceNoteBodyParser;
+use App\Support\RepairServiceNoteTemplate;
 use App\Support\ServiceNoteAttachmentStorage;
 use App\Support\ServiceNoteNumberAssigner;
 use Illuminate\Http\RedirectResponse;
@@ -21,12 +23,7 @@ class ServiceNoteController extends Controller
 {
     public function create(Contact $contact): View
     {
-        return view('contacts.service-notes.form', [
-            'contact' => $contact,
-            'note' => null,
-            'noteTypes' => NoteType::query()->orderBy('sort_order')->orderBy('name')->get(),
-            'canEdit' => true,
-        ]);
+        return view('contacts.service-notes.form', $this->serviceNoteFormData($contact, null));
     }
 
     public function store(StoreServiceNoteRequest $request, Contact $contact): RedirectResponse
@@ -59,12 +56,7 @@ class ServiceNoteController extends Controller
 
         $serviceNote->load(['contact', 'noteType']);
 
-        return view('contacts.service-notes.form', [
-            'contact' => $serviceNote->contact,
-            'note' => $serviceNote,
-            'noteTypes' => NoteType::query()->orderBy('sort_order')->orderBy('name')->get(),
-            'canEdit' => true,
-        ]);
+        return view('contacts.service-notes.form', $this->serviceNoteFormData($serviceNote->contact, $serviceNote));
     }
 
     public function update(UpdateServiceNoteRequest $request, ServiceNote $serviceNote): RedirectResponse
@@ -116,10 +108,38 @@ class ServiceNoteController extends Controller
 
         $serviceNote->load(['contact.relatedContact', 'noteType']);
 
+        if (RepairServiceNoteTemplate::isRepairTypeName($serviceNote->noteType?->name ?? '')) {
+            return view('contacts.service-notes.print-repair', [
+                'note' => $serviceNote,
+                'contact' => $serviceNote->contact,
+                'fields' => RepairServiceNoteBodyParser::parse($serviceNote->body),
+            ]);
+        }
+
         return view('contacts.service-notes.print', [
             'note' => $serviceNote,
             'contact' => $serviceNote->contact,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serviceNoteFormData(Contact $contact, ?ServiceNote $note): array
+    {
+        $repairNoteTypeId = NoteType::query()
+            ->where('name', RepairServiceNoteTemplate::TYPE_NAME)
+            ->value('id');
+
+        return [
+            'contact' => $contact,
+            'note' => $note,
+            'noteTypes' => NoteType::query()->orderBy('sort_order')->orderBy('name')->get(),
+            'canEdit' => true,
+            'repairNoteTypeId' => $repairNoteTypeId !== null ? (int) $repairNoteTypeId : null,
+            'repairNoteHeadingTemplate' => RepairServiceNoteTemplate::HEADING,
+            'repairNoteBodyTemplate' => RepairServiceNoteTemplate::BODY,
+        ];
     }
 
     public function attachment(Request $request, ServiceNote $serviceNote): StreamedResponse

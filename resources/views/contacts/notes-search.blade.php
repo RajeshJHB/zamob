@@ -3,6 +3,9 @@
 @section('title', 'Search service notes')
 
 @section('content')
+@php
+    use Illuminate\Support\Str;
+@endphp
 <div class="max-w-4xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
@@ -10,7 +13,11 @@
             <a href="{{ route('contacts.index') }}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">← Back to Contacts</a>
         </div>
 
-        <p class="text-sm text-gray-600 mb-4">Search: <strong>{{ $term }}</strong></p>
+        @if($listingAll ?? false)
+            <p class="text-sm text-gray-600 mb-4">Showing all service notes (newest first, {{ \App\Support\ServiceNoteBrowsePageSize::SIZE }} per page).</p>
+        @else
+            <p class="text-sm text-gray-600 mb-4">Search: <strong>{{ $term }}</strong></p>
+        @endif
 
         @forelse($notes as $note)
             <div class="border border-gray-200 rounded-lg p-4 mb-4 hover:bg-gray-50">
@@ -33,8 +40,20 @@
                 </p>
             </div>
         @empty
-            <p class="text-gray-600">No service notes matched your search.</p>
+            <p class="text-gray-600">
+                @if($listingAll ?? false)
+                    No service notes yet.
+                @else
+                    No service notes matched your search.
+                @endif
+            </p>
         @endforelse
+
+        @if($notes->hasPages())
+            <div class="mt-4">
+                {{ $notes->links() }}
+            </div>
+        @endif
     </div>
 </div>
 @endsection
