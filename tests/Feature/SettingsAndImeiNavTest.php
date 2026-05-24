@@ -9,6 +9,19 @@ test('guests are redirected from settings', function () {
     $this->get(route('settings.index'))->assertRedirect(route('login'));
 });
 
+test('login page does not show authenticated app menu for guests', function () {
+    $html = $this->get(route('login'))
+        ->assertSuccessful()
+        ->assertSee('Login', false)
+        ->assertSee('Register', false)
+        ->assertDontSee('id="settings-menu-button"', false)
+        ->getContent();
+
+    expect($html)->not->toContain('>IMEI</')
+        ->and($html)->not->toContain('>Contacts</')
+        ->and($html)->not->toContain('>Notes</');
+});
+
 test('guests are redirected from add imei form', function () {
     $this->get(route('imeis.create'))->assertRedirect(route('login'));
 });

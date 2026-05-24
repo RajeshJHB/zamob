@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'ZAMOBILE HOME')</title>
+    <title>@yield('title', 'ZAMOBILE')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
@@ -14,8 +14,9 @@
     @endphp
     <nav class="bg-white border-b border-gray-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+            <div class="grid grid-cols-3 items-center h-16">
                 <div class="flex items-center gap-1.5">
+                    @auth
                     <a
                         href="{{ route('dashboard') }}"
                         @class([$navPillIdle => ! request()->routeIs('dashboard'), $navPillOn => request()->routeIs('dashboard')])
@@ -40,36 +41,40 @@
                     >
                         Notes
                     </a>
-                    <div class="relative" id="settings-menu-container">
-                        <button
-                            id="settings-menu-button"
-                            type="button"
-                            data-nav-pill-idle="{{ $navPillIdle }}"
-                            data-nav-pill-on="{{ $navPillOn }}"
-                            data-nav-route-active="{{ request()->routeIs('settings.*') ? '1' : '0' }}"
-                            @class([$navPillIdle => ! request()->routeIs('settings.*'), $navPillOn => request()->routeIs('settings.*')])
-                        >
-                            Settings
-                        </button>
-                        <div id="settings-menu-dropdown"
-                             class="absolute left-0 mt-2 w-52 bg-white rounded-lg shadow-lg py-1 z-50 border border-gray-200 hidden">
-                            <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
-                                IMEI Settings
-                            </a>
-                            <a href="{{ route('settings.notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
-                                Note Settings
-                            </a>
-                            <a href="{{ route('settings.vat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
-                                VAT Settings
-                            </a>
-                            <a href="{{ route('settings.default.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
-                                Default Settings
-                            </a>
-                        </div>
-                    </div>
+                    @endauth
                 </div>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center justify-center">
+                    <span class="text-xl font-bold text-red-600 tracking-wide">ZAMOBILE</span>
+                </div>
+                <div class="flex items-center gap-1.5 justify-end">
                     @auth
+                        <div class="relative" id="settings-menu-container">
+                            <button
+                                id="settings-menu-button"
+                                type="button"
+                                data-nav-pill-idle="{{ $navPillIdle }}"
+                                data-nav-pill-on="{{ $navPillOn }}"
+                                data-nav-route-active="{{ request()->routeIs('settings.*') ? '1' : '0' }}"
+                                @class([$navPillIdle => ! request()->routeIs('settings.*'), $navPillOn => request()->routeIs('settings.*')])
+                            >
+                                Settings
+                            </button>
+                            <div id="settings-menu-dropdown"
+                                 class="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-lg py-1 z-50 border border-gray-200 hidden">
+                                <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
+                                    IMEI Settings
+                                </a>
+                                <a href="{{ route('settings.notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
+                                    Note Settings
+                                </a>
+                                <a href="{{ route('settings.vat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
+                                    VAT Settings
+                                </a>
+                                <a href="{{ route('settings.default.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
+                                    Default Settings
+                                </a>
+                            </div>
+                        </div>
                         <div class="relative" id="user-menu-container">
                             <button
                                 id="user-menu-button"
