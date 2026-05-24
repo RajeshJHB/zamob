@@ -7,83 +7,111 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
-    <nav class="bg-white shadow-sm">
+    @php
+        $navPill = 'inline-flex items-center justify-center h-9 px-4 rounded-md text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1';
+        $navPillIdle = $navPill.' border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900';
+        $navPillOn = $navPill.' border-blue-600 bg-blue-600 text-white hover:bg-blue-700';
+    @endphp
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center gap-4">
-                    <a href="{{ route('dashboard') }}" class="flex items-center text-xl font-semibold text-gray-900 hover:text-gray-700 focus:outline-none">
+                <div class="flex items-center gap-1.5">
+                    <a
+                        href="{{ route('dashboard') }}"
+                        @class([$navPillIdle => ! request()->routeIs('dashboard'), $navPillOn => request()->routeIs('dashboard')])
+                    >
                         Home
                     </a>
-                    <a href="{{ route('imeis.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                    <a
+                        href="{{ route('imeis.index') }}"
+                        @class([$navPillIdle => ! request()->routeIs('imeis.*'), $navPillOn => request()->routeIs('imeis.*')])
+                    >
                         IMEI
                     </a>
-                    <a href="{{ route('contacts.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                    <a
+                        href="{{ route('contacts.index') }}"
+                        @class([$navPillIdle => ! request()->routeIs('contacts.*'), $navPillOn => request()->routeIs('contacts.*')])
+                    >
                         Contacts
                     </a>
-                    <a href="{{ route('notes.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                    <a
+                        href="{{ route('notes.index') }}"
+                        @class([$navPillIdle => ! request()->routeIs('notes.*'), $navPillOn => request()->routeIs('notes.*')])
+                    >
                         Notes
                     </a>
                     <div class="relative" id="settings-menu-container">
-                        <button id="settings-menu-button" type="button" class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none">
+                        <button
+                            id="settings-menu-button"
+                            type="button"
+                            data-nav-pill-idle="{{ $navPillIdle }}"
+                            data-nav-pill-on="{{ $navPillOn }}"
+                            data-nav-route-active="{{ request()->routeIs('settings.*') ? '1' : '0' }}"
+                            @class([$navPillIdle => ! request()->routeIs('settings.*'), $navPillOn => request()->routeIs('settings.*')])
+                        >
                             Settings
-                            <svg id="settings-menu-arrow" class="ml-1 h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
                         </button>
                         <div id="settings-menu-dropdown"
-                             class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 hidden">
-                            <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                             class="absolute left-0 mt-2 w-52 bg-white rounded-lg shadow-lg py-1 z-50 border border-gray-200 hidden">
+                            <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                 IMEI Settings
                             </a>
-                            <a href="{{ route('settings.notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{{ route('settings.notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                 Note Settings
                             </a>
-                            <a href="{{ route('settings.vat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{{ route('settings.vat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                 VAT Settings
                             </a>
-                            <a href="{{ route('settings.default.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{{ route('settings.default.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                 Default Settings
                             </a>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-1.5">
                     @auth
                         <div class="relative" id="user-menu-container">
-                            <button id="user-menu-button" class="flex items-center text-gray-700 hover:text-gray-900 focus:outline-none">
-                                <span>{{ Auth::user()->name }}</span>
-                                <svg id="user-menu-arrow" class="ml-1 h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
+                            <button
+                                id="user-menu-button"
+                                type="button"
+                                data-nav-pill-idle="{{ $navPillIdle }}"
+                                data-nav-pill-on="{{ $navPillOn }}"
+                                data-nav-route-active="{{ request()->routeIs('profile.*') || request()->routeIs('roles.*') || request()->routeIs('user-roles.*') ? '1' : '0' }}"
+                                @class([
+                                    $navPillIdle => ! request()->routeIs('profile.*') && ! request()->routeIs('roles.*') && ! request()->routeIs('user-roles.*'),
+                                    $navPillOn => request()->routeIs('profile.*') || request()->routeIs('roles.*') || request()->routeIs('user-roles.*'),
+                                ])
+                            >
+                                <span class="max-w-[12rem] truncate">{{ Auth::user()->name }}</span>
                             </button>
-                            
-                            <div id="user-menu-dropdown" 
-                                 class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 hidden">
+
+                            <div id="user-menu-dropdown"
+                                 class="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-lg py-1 z-50 border border-gray-200 hidden">
                                 @if(Auth::user()->isRoleManager())
-                                    <a href="{{ route('roles.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <a href="{{ route('roles.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                         Manage Roles
                                     </a>
-                                    <a href="{{ route('user-roles.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <a href="{{ route('user-roles.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                         Assign Roles
                                     </a>
                                 @endif
-                                <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                     Profile
                                 </a>
-                                <a href="{{ route('profile.password') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <a href="{{ route('profile.password') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                     Password Reset
                                 </a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-md mx-1">
                                         Logout
                                     </button>
                                 </form>
                             </div>
                         </div>
                     @else
-                        <a href="{{ route('login') }}" class="text-gray-700 hover:text-gray-900">Login</a>
-                        <a href="{{ route('register') }}" class="text-gray-700 hover:text-gray-900">Register</a>
+                        <a href="{{ route('login') }}" class="{{ $navPillIdle }}">Login</a>
+                        <a href="{{ route('register') }}" class="{{ $navPillIdle }}">Register</a>
                     @endauth
                 </div>
             </div>
@@ -120,70 +148,49 @@
     </main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Settings Menu dropdown
-            const settingsMenuButton = document.getElementById('settings-menu-button');
-            const settingsMenuDropdown = document.getElementById('settings-menu-dropdown');
-            const settingsMenuArrow = document.getElementById('settings-menu-arrow');
+        document.addEventListener('DOMContentLoaded', function () {
+            function setNavPillState(button, active) {
+                const idleClasses = (button.dataset.navPillIdle || '').split(' ').filter(Boolean);
+                const onClasses = (button.dataset.navPillOn || '').split(' ').filter(Boolean);
 
-            if (settingsMenuButton && settingsMenuDropdown) {
-                settingsMenuButton.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const isHidden = settingsMenuDropdown.classList.contains('hidden');
+                button.classList.remove(...idleClasses, ...onClasses);
+                button.classList.add(...(active ? onClasses : idleClasses));
+            }
+
+            function bindNavDropdown(buttonId, dropdownId, containerId) {
+                const button = document.getElementById(buttonId);
+                const dropdown = document.getElementById(dropdownId);
+                const container = document.getElementById(containerId);
+
+                if (! button || ! dropdown || ! container) {
+                    return;
+                }
+
+                const routeActive = button.dataset.navRouteActive === '1';
+
+                button.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    const isHidden = dropdown.classList.contains('hidden');
 
                     if (isHidden) {
-                        settingsMenuDropdown.classList.remove('hidden');
-                        if (settingsMenuArrow) {
-                            settingsMenuArrow.style.transform = 'rotate(180deg)';
-                        }
+                        dropdown.classList.remove('hidden');
+                        setNavPillState(button, true);
                     } else {
-                        settingsMenuDropdown.classList.add('hidden');
-                        if (settingsMenuArrow) {
-                            settingsMenuArrow.style.transform = 'rotate(0deg)';
-                        }
+                        dropdown.classList.add('hidden');
+                        setNavPillState(button, routeActive);
                     }
                 });
 
-                document.addEventListener('click', function (e) {
-                    const container = document.getElementById('settings-menu-container');
-                    if (container && ! container.contains(e.target)) {
-                        settingsMenuDropdown.classList.add('hidden');
-                        if (settingsMenuArrow) {
-                            settingsMenuArrow.style.transform = 'rotate(0deg)';
-                        }
+                document.addEventListener('click', function (event) {
+                    if (! container.contains(event.target)) {
+                        dropdown.classList.add('hidden');
+                        setNavPillState(button, routeActive);
                     }
                 });
             }
 
-            // User Menu dropdown
-            const userMenuButton = document.getElementById('user-menu-button');
-            const userMenuDropdown = document.getElementById('user-menu-dropdown');
-            const userMenuArrow = document.getElementById('user-menu-arrow');
-            
-            if (userMenuButton && userMenuDropdown) {
-                // Toggle dropdown on button click
-                userMenuButton.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const isHidden = userMenuDropdown.classList.contains('hidden');
-                    
-                    if (isHidden) {
-                        userMenuDropdown.classList.remove('hidden');
-                        userMenuArrow.style.transform = 'rotate(180deg)';
-                    } else {
-                        userMenuDropdown.classList.add('hidden');
-                        userMenuArrow.style.transform = 'rotate(0deg)';
-                    }
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(e) {
-                    const container = document.getElementById('user-menu-container');
-                    if (container && !container.contains(e.target)) {
-                        userMenuDropdown.classList.add('hidden');
-                        userMenuArrow.style.transform = 'rotate(0deg)';
-                    }
-                });
-            }
+            bindNavDropdown('settings-menu-button', 'settings-menu-dropdown', 'settings-menu-container');
+            bindNavDropdown('user-menu-button', 'user-menu-dropdown', 'user-menu-container');
         });
     </script>
 </body>

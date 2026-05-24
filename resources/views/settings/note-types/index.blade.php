@@ -10,9 +10,6 @@
             <a href="{{ route('settings.notes.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded text-sm">
                 Note Settings
             </a>
-            <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">
-                Home
-            </a>
         </div>
     </div>
 

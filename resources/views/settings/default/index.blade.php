@@ -5,10 +5,7 @@
 @section('content')
 <div class="max-w-xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h1 class="text-2xl font-bold">Default Settings</h1>
-            <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">Home</a>
-        </div>
+        <h1 class="text-2xl font-bold mb-4">Default Settings</h1>
 
         <p class="text-gray-600 text-sm mb-6">
             Used when <strong>IMEI</strong> or <strong>Contacts</strong> search is run with no search text

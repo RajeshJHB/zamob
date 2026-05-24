@@ -17,10 +17,13 @@
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
         <h1 class="text-3xl font-bold sm:justify-self-start">IMEI's</h1>
-        <button type="button" id="imei-add-open-btn" class="bg-green-600 hover:bg-green-800 text-white font-bold py-1 px-3 rounded text-sm inline-block text-center sm:justify-self-center">
+        <button type="button" id="imei-add-open-btn" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block text-center sm:justify-self-center">
             Add IMEI
         </button>
         <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:justify-self-end">
+            <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block">
+                Change Filter
+            </a>
             @if($canBulkChangeStatus ?? false)
                 <div class="relative" id="imei-advanced-menu-container">
                     <button id="imei-advanced-menu-button" type="button" class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-1">
@@ -37,9 +40,6 @@
                     </div>
                 </div>
             @endif
-            <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded text-sm">
-                Change filter
-            </a>
             <a href="{{ route('imeis.print', $filterParams ?? []) }}" target="_blank" class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-1 px-3 rounded text-sm">
                 Print all results
             </a>

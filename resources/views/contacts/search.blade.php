@@ -5,9 +5,10 @@
 @section('content')
 <div class="max-w-6xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <h1 class="text-2xl font-bold">Contacts</h1>
-            <a href="{{ route('contacts.create') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded text-sm inline-block">New contact</a>
+        <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
+            <h1 class="text-2xl font-bold sm:justify-self-start">Contacts</h1>
+            <a href="{{ route('contacts.create') }}" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base inline-block text-center shadow-sm ring-2 ring-blue-200 justify-self-center sm:justify-self-center">New Contact</a>
+            <div aria-hidden="true" class="hidden sm:block"></div>
         </div>
 
         @if(session('message'))
