@@ -99,7 +99,7 @@ class ImeiController extends Controller
         return array_diff_key(self::COLUMNS, array_flip(self::VIRTUAL_COLUMNS));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $viewRecord = null;
         if ($id = session()->pull('imei_view_id')) {
@@ -115,6 +115,8 @@ class ImeiController extends Controller
             createPageIntro: null,
             defaultImeiNonStandard: null,
             returnQuery: null,
+            embedded: $request->boolean('embedded'),
+            embeddedClose: $request->boolean('close'),
         );
     }
 
@@ -128,9 +130,10 @@ class ImeiController extends Controller
         return $this->imeiFormView(
             viewRecord: $this->imeiRecordForLookup($imei),
             createPageHeading: 'View IMEI',
-            createPageIntro: 'This record is loaded from Find IMEI\'s. Details are read-only until you choose Edit, then Save to update.',
+            createPageIntro: 'This record is loaded from IMEI search. Details are read-only until you choose Edit, then Save to update.',
             defaultImeiNonStandard: ImeiValidator::isValidChecksum($digits) ? '0' : '1',
             returnQuery: $returnQuery,
+            embedded: $request->boolean('embedded'),
         );
     }
 
@@ -352,7 +355,12 @@ class ImeiController extends Controller
         $data['staff'] = ImeiStaffAudit::appendEmail('', (string) $request->user()->email);
         $imei = Imei::create($data);
 
-        return $this->redirectToImeiView($imei, $this->returnQueryStringFromRequest($request), 'IMEI record created.');
+        return $this->redirectToImeiView(
+            $imei,
+            $this->returnQueryStringFromRequest($request),
+            'IMEI record created.',
+            $request->boolean('embedded'),
+        );
     }
 
     public function update(UpdateImeiRequest $request, Imei $imei): RedirectResponse
@@ -362,7 +370,12 @@ class ImeiController extends Controller
         $data['staff'] = ImeiStaffAudit::appendEmail((string) $imei->staff, (string) $request->user()->email);
         $imei->update($data);
 
-        return $this->redirectToImeiView($imei, $this->returnQueryStringFromRequest($request), 'IMEI record updated.');
+        return $this->redirectToImeiView(
+            $imei,
+            $this->returnQueryStringFromRequest($request),
+            'IMEI record updated.',
+            $request->boolean('embedded'),
+        );
     }
 
     public function destroy(Request $request, Imei $imei): RedirectResponse
@@ -382,6 +395,12 @@ class ImeiController extends Controller
         $returnListUrl = $this->indexUrlFromReturnQuery($returnQuery);
         if ($returnListUrl !== null) {
             return redirect()->to($returnListUrl)->with('message', 'IMEI record marked as deleted.');
+        }
+
+        if ($request->boolean('embedded')) {
+            return redirect()
+                ->route('imeis.create', ['embedded' => 1, 'close' => 1])
+                ->with('message', 'IMEI record marked as deleted.');
         }
 
         return redirect()
@@ -442,7 +461,7 @@ class ImeiController extends Controller
         if ($dateScope === 'range' && $startDate && $endDate && $startDate > $endDate) {
             return redirect()
                 ->route('imeis.filter', $this->imeiFilterParams($request))
-                ->with('error', 'The dates must be fixed. Start date cannot be after end date.');
+                ->with('error', 'The end date must be on or after the start date.');
         }
 
         $query = $this->buildImeiQuery($request);
@@ -826,6 +845,8 @@ class ImeiController extends Controller
         ?string $createPageIntro,
         ?string $defaultImeiNonStandard,
         ?string $returnQuery,
+        bool $embedded = false,
+        bool $embeddedClose = false,
     ): View {
         return view('imeis.create', [
             'columnLabels' => self::COLUMNS,
@@ -836,7 +857,10 @@ class ImeiController extends Controller
             'createPageHeading' => $createPageHeading,
             'createPageIntro' => $createPageIntro,
             'defaultImeiNonStandard' => $defaultImeiNonStandard,
-            'returnListUrl' => $this->indexUrlFromReturnQuery($returnQuery),
+            'embedded' => $embedded,
+            'embeddedClose' => $embeddedClose,
+            'layout' => $embedded ? 'layouts.embedded' : 'layouts.app',
+            'returnListUrl' => $embedded ? 'embedded:close' : $this->indexUrlFromReturnQuery($returnQuery),
             'returnQuery' => $returnQuery,
             'imeiTypes' => $this->imeiTypesForForm(),
             'imeiStatuses' => $this->imeiStatusesForForm(),
@@ -847,9 +871,13 @@ class ImeiController extends Controller
         ]);
     }
 
-    private function redirectToImeiView(Imei $imei, ?string $returnQuery, string $message): RedirectResponse
+    private function redirectToImeiView(Imei $imei, ?string $returnQuery, string $message, bool $embedded = false): RedirectResponse
     {
         $url = route('imeis.edit', $imei);
+        if ($embedded) {
+            return redirect()->to($url.'?embedded=1')->with('message', $message);
+        }
+
         if ($returnQuery !== null && $this->indexUrlFromReturnQuery($returnQuery) !== null) {
             $url .= '?return_query='.rawurlencode($returnQuery);
         }

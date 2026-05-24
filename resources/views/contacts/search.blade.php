@@ -1,22 +1,30 @@
 @extends('layouts.app')
 
-@section('title', 'Contact search')
+@section('title', 'Contacts')
 
 @section('content')
 <div class="max-w-6xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
-            <a href="{{ route('contacts.index') }}" class="text-sm text-blue-600 hover:text-blue-800 font-medium sm:justify-self-start">← Back to Contacts</a>
-            <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-self-center">
-                <h1 class="text-2xl font-bold">Contact search</h1>
-                <a href="{{ route('contacts.create') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded text-sm inline-block">New contact</a>
-            </div>
-            <div class="hidden sm:block" aria-hidden="true"></div>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h1 class="text-2xl font-bold">Contacts</h1>
+            <a href="{{ route('contacts.create') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded text-sm inline-block">New contact</a>
         </div>
+
+        @if(session('message'))
+            <div class="mb-4 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded">{{ session('message') }}</div>
+        @endif
+
+        <form method="GET" action="{{ route('contacts.index') }}" class="flex flex-wrap items-end gap-3 mb-6 pb-6 border-b border-gray-200">
+            <div class="flex-1 min-w-[12rem]">
+                <label for="q" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <input type="text" name="q" id="q" value="{{ $term }}" placeholder="Phone, name, company, email, address…" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md" autofocus>
+            </div>
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Search contacts</button>
+        </form>
 
         @if($listingAll ?? false)
             <p class="text-sm text-gray-600 mb-4">Showing the newest contacts (up to <strong>{{ $browseListLimit ?? \App\Support\BrowseListLimit::limit() }}</strong> records).</p>
-        @else
+        @elseif($term !== '')
             <p class="text-sm text-gray-600 mb-4">Search: <strong>{{ $term }}</strong></p>
         @endif
 

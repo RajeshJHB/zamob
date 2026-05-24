@@ -32,4 +32,15 @@ class StoreServiceNoteRequest extends FormRequest
             ],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'note_type_id.required' => 'Please select a note type.',
+            'note_type_id.exists' => 'Please select a valid note type.',
+        ];
+    }
 }

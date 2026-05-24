@@ -10,6 +10,7 @@
         'date_in' => 'Date In',
         'make' => 'Make',
         'model' => 'Model',
+        'ref' => 'Phone Spec',
         'imei' => 'IMEI',
         'selling_price' => 'Selling Price',
     ];
@@ -45,6 +46,7 @@
                             <td class="px-3 py-2 whitespace-nowrap">{{ $imei->date_in?->format('Y-m-d H:i') ?? '—' }}</td>
                             <td class="px-3 py-2">{{ $imei->make !== '' ? $imei->make : '—' }}</td>
                             <td class="px-3 py-2">{{ $imei->model !== '' ? $imei->model : '—' }}</td>
+                            <td class="px-3 py-2 max-w-xs truncate" title="{{ $imei->ref }}">{{ $imei->ref !== '' ? $imei->ref : '—' }}</td>
                             <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $imei->imei !== '' ? $imei->imei : '—' }}</td>
                             <td class="px-3 py-2 whitespace-nowrap">
                                 {{ $imei->selling_price !== null ? number_format($imei->selling_price) : '—' }}
@@ -52,7 +54,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-3 py-8 text-center text-gray-500">No cash device records found.</td>
+                            <td colspan="7" class="px-3 py-8 text-center text-gray-500">No cash device records found.</td>
                         </tr>
                     @endforelse
                 </tbody>

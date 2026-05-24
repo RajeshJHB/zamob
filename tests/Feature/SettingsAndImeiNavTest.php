@@ -63,4 +63,11 @@ test('verified users can view settings and add imei form', function () {
     $this->actingAs($user)
         ->get(route('imeis.create'))
         ->assertSuccessful();
+
+    $this->actingAs($user)
+        ->get(route('imeis.create', ['embedded' => 1]))
+        ->assertSuccessful()
+        ->assertSee('Add IMEI', false)
+        ->assertDontSee('id="settings-menu-button"', false)
+        ->assertDontSee('id="user-menu-button"', false);
 });

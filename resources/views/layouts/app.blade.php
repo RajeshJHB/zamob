@@ -14,14 +14,14 @@
                     <a href="{{ route('dashboard') }}" class="flex items-center text-xl font-semibold text-gray-900 hover:text-gray-700 focus:outline-none">
                         Home
                     </a>
-                    <a href="{{ route('imeis.filter') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-                        Find IMEI's
-                    </a>
-                    <a href="{{ route('imeis.create') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-                        Add IMEI
+                    <a href="{{ route('imeis.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        IMEI
                     </a>
                     <a href="{{ route('contacts.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
                         Contacts
+                    </a>
+                    <a href="{{ route('notes.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        Notes
                     </a>
                     <div class="relative" id="settings-menu-container">
                         <button id="settings-menu-button" type="button" class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none">

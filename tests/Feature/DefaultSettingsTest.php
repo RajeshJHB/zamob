@@ -19,7 +19,7 @@ test('authenticated user can view and update browse list limit', function () {
         ->get(route('settings.default.index'))
         ->assertSuccessful()
         ->assertSee('Default Settings', false)
-        ->assertSee('Find IMEI', false)
+        ->assertSee('IMEI', false)
         ->assertSee('Contacts', false);
 
     $this->actingAs($user)
@@ -50,7 +50,7 @@ test('blank contact search respects configured browse list limit', function () {
     Contact::factory()->count(60)->create();
 
     $response = $this->actingAs($user)
-        ->get(route('contacts.search'))
+        ->get(route('contacts.index'))
         ->assertSuccessful()
         ->assertViewHas('listingAll', true);
 

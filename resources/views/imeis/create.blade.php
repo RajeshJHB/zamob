@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends($layout ?? 'layouts.app')
 
 @php
     use App\Support\ImeiNewRecordDefaults;
@@ -110,10 +110,12 @@
 
 @section('content')
 <div class="max-w-2xl mx-auto">
-    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <div class="bg-white rounded-lg @if($embedded ?? false) p-0 @else shadow-md p-6 border border-gray-200 @endif">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
-            <h1 class="text-2xl font-bold">{{ $createPageHeading ?: 'Add IMEI' }}</h1>
-            <div id="imei-form-actions-top-wrap" class="flex flex-wrap items-center justify-between gap-3 flex-1 min-w-0 shrink @unless($formUnlocked) hidden @endunless">
+            @unless($embedded ?? false)
+                <h1 class="text-2xl font-bold">{{ $createPageHeading ?: 'Add IMEI' }}</h1>
+            @endunless
+            <div id="imei-form-actions-top-wrap" class="flex flex-wrap items-center justify-between gap-3 flex-1 min-w-0 shrink @unless($formUnlocked) hidden @endunless @if($embedded ?? false) w-full @endif">
                 <div class="flex flex-wrap items-center gap-3">
                     <button type="submit" form="imei-create-form" id="imei-submit-btn-top" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" @if($readonlyAfterSave) hidden @endif>
                         Save IMEI
@@ -160,11 +162,17 @@
                 @if(! empty($returnQuery))
                     <input type="hidden" name="return_query" value="{{ $returnQuery }}">
                 @endif
+                @if($embedded ?? false)
+                    <input type="hidden" name="embedded" value="1">
+                @endif
             </form>
         @endif
 
         <form method="POST" action="{{ $formAction }}" class="space-y-6" id="imei-create-form">
             @csrf
+            @if($embedded ?? false)
+                <input type="hidden" name="embedded" value="1">
+            @endif
             @if(! empty($returnQuery))
                 <input type="hidden" name="return_query" value="{{ $returnQuery }}">
             @endif
@@ -568,6 +576,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const embeddedMode = @json($embedded ?? false);
+    const embeddedCloseOnLoad = @json($embeddedClose ?? false);
     const lookupUrl = @json(route('imeis.lookup'));
     const contactsBrowseUrl = @json(route('imeis.contacts.browse'));
     const copyLastUrl = @json(route('imeis.last-for-copy'));
@@ -590,6 +600,19 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentViewRecord = @json($viewRecord);
     let viewReadonlyBanner = readonlyAfterSave ? 'saved' : 'existing';
     let isEditingRecord = false;
+
+    function notifyParentClose(reload) {
+        if (! embeddedMode || window.parent === window) {
+            return false;
+        }
+
+        window.parent.postMessage({
+            type: 'imei-form-close',
+            reload: !! reload,
+        }, window.location.origin);
+
+        return true;
+    }
 
     const form = document.getElementById('imei-create-form');
     const stepCheck = document.getElementById('imei-step-check');
@@ -1081,6 +1104,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function goBackToResultsList() {
+        if (embeddedMode && returnListUrl === 'embedded:close') {
+            notifyParentClose(true);
+
+            return true;
+        }
+
         if (returnListUrl) {
             window.location.href = returnListUrl;
 
@@ -1116,6 +1145,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (goBackToResultsList()) {
+            return;
+        }
+
+        if (embeddedMode) {
+            notifyParentClose(true);
+
             return;
         }
 
@@ -1835,6 +1870,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     updateImeiEntryKindHints();
     syncTopActionButtons();
+
+    if (embeddedCloseOnLoad) {
+        notifyParentClose(true);
+    }
 });
 </script>
 @endsection

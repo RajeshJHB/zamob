@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Find IMEI\'s - Filter')
+@section('title', 'IMEI - Filter')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
@@ -90,11 +90,25 @@
                             </div>
                             <div>
                                 <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Start date</label>
-                                <input type="date" name="start_date" id="start_date" value="{{ $oldStartDate ?? '' }}" class="border border-gray-300 rounded px-3 py-2 shadow-sm date-range-input">
+                                <input
+                                    type="date"
+                                    name="start_date"
+                                    id="start_date"
+                                    value="{{ $oldStartDate ?? '' }}"
+                                    @if(! empty($oldEndDate)) max="{{ $oldEndDate }}" @endif
+                                    class="border border-gray-300 rounded px-3 py-2 shadow-sm date-range-input"
+                                >
                             </div>
                             <div>
                                 <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">End date</label>
-                                <input type="date" name="end_date" id="end_date" value="{{ $oldEndDate ?? '' }}" class="border border-gray-300 rounded px-3 py-2 shadow-sm date-range-input">
+                                <input
+                                    type="date"
+                                    name="end_date"
+                                    id="end_date"
+                                    value="{{ $oldEndDate ?? '' }}"
+                                    @if(! empty($oldStartDate)) min="{{ $oldStartDate }}" @endif
+                                    class="border border-gray-300 rounded px-3 py-2 shadow-sm date-range-input"
+                                >
                             </div>
                         </div>
                     </div>
@@ -390,6 +404,43 @@ document.addEventListener('DOMContentLoaded', function() {
         dateRangeGroup.classList.toggle('opacity-70', !rangeSelected);
         dateRangeGroup.setAttribute('aria-hidden', !rangeSelected);
         dateRangeInputs.forEach(function(input) { input.disabled = !rangeSelected; });
+        syncImeiDateRange();
+    }
+
+    function syncImeiDateRange() {
+        const startInput = document.getElementById('start_date');
+        const endInput = document.getElementById('end_date');
+
+        if (! startInput || ! endInput) {
+            return;
+        }
+
+        if (startInput.value) {
+            endInput.min = startInput.value;
+            if (endInput.value && endInput.value < startInput.value) {
+                endInput.value = startInput.value;
+            }
+        } else {
+            endInput.removeAttribute('min');
+        }
+
+        if (endInput.value) {
+            startInput.max = endInput.value;
+            if (startInput.value && startInput.value > endInput.value) {
+                startInput.value = endInput.value;
+            }
+        } else {
+            startInput.removeAttribute('max');
+        }
+    }
+
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+
+    if (startDateInput && endDateInput) {
+        startDateInput.addEventListener('change', syncImeiDateRange);
+        endDateInput.addEventListener('change', syncImeiDateRange);
+        syncImeiDateRange();
     }
 
     document.querySelectorAll('.imei-scope-radio').forEach(function(radio) {

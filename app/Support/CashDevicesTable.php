@@ -11,6 +11,7 @@ final class CashDevicesTable
         'date_in',
         'make',
         'model',
+        'ref',
         'imei',
         'selling_price',
     ];

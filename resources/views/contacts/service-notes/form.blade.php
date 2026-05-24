@@ -8,11 +8,16 @@
         <div class="mb-4">
             <a href="{{ route('contacts.show', $contact) }}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">← {{ $contact->displayName() }}</a>
         </div>
-        <h1 class="text-2xl font-bold mb-2">{{ $note ? 'Edit service note' : 'New service note' }}</h1>
+
+        @include('contacts.partials.fields-display-compact', ['contact' => $contact, 'wrapperClass' => 'mb-4'])
+
+        <h1 class="text-2xl font-bold {{ $note ? 'mb-2' : 'mb-6' }}">{{ $note ? 'Edit service note' : 'New service note' }}</h1>
         @if($note)
-            <p class="text-sm text-gray-600 mb-2 font-mono font-semibold">{{ $note->formattedNoteNumber() }}</p>
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-6 text-sm">
+                <span class="font-mono font-semibold text-gray-800">{{ $note->formattedNoteNumber() }}</span>
+                @include('contacts.service-notes.partials.times', ['note' => $note, 'class' => 'sm:justify-end'])
+            </div>
         @endif
-        <p class="text-sm text-gray-600 mb-6">Recorded date/time is set automatically when the note is first saved and cannot be changed.</p>
 
         <form method="POST" action="{{ $note ? route('service-notes.update', $note) : route('contacts.service-notes.store', $contact) }}" enctype="multipart/form-data" class="space-y-4">
             @csrf
@@ -21,13 +26,24 @@
             @endif
 
             <div>
-                <label for="note_type_id" class="block text-sm font-medium text-gray-700 mb-1">Note type</label>
-                <select name="note_type_id" id="note_type_id" required class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full">
-                    <option value="">Select type…</option>
+                <label for="note_type_id" class="block text-sm font-medium text-gray-700 mb-1">
+                    Note type <span class="text-red-600" aria-hidden="true">*</span>
+                </label>
+                <select
+                    name="note_type_id"
+                    id="note_type_id"
+                    required
+                    aria-required="true"
+                    class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full @error('note_type_id') border-red-500 @enderror"
+                >
+                    <option value="" disabled @selected(old('note_type_id', $note->note_type_id ?? '') === '')>Select type…</option>
                     @foreach($noteTypes as $type)
                         <option value="{{ $type->id }}" @selected((int) old('note_type_id', $note->note_type_id ?? '') === $type->id)>{{ $type->name }}</option>
                     @endforeach
                 </select>
+                @error('note_type_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
@@ -43,13 +59,6 @@
                 <label for="heading" class="block text-sm font-medium text-gray-700 mb-1">Heading</label>
                 <input type="text" name="heading" id="heading" value="{{ old('heading', $note->heading ?? '') }}" maxlength="255" required class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full">
             </div>
-
-            @if($note)
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Recorded at</label>
-                    <p class="text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded px-3 py-2">{{ $note->noted_at->format('Y-m-d H:i') }}</p>
-                </div>
-            @endif
 
             <div>
                 <label for="body" class="block text-sm font-medium text-gray-700 mb-1">Note</label>
@@ -100,6 +109,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const noteTypeSelect = document.getElementById('note_type_id');
     const headingInput = document.getElementById('heading');
     const bodyTextarea = document.getElementById('body');
+    const serviceNoteForm = document.querySelector('form[action*="service-notes"]');
+
+    if (serviceNoteForm && noteTypeSelect) {
+        serviceNoteForm.addEventListener('submit', function (event) {
+            if (noteTypeSelect.value === '') {
+                event.preventDefault();
+                noteTypeSelect.focus();
+                noteTypeSelect.classList.add('border-red-500');
+            }
+        });
+
+        noteTypeSelect.addEventListener('change', function () {
+            if (noteTypeSelect.value !== '') {
+                noteTypeSelect.classList.remove('border-red-500');
+            }
+        });
+    }
 
     function shouldApplyRepairHeading() {
         if (!headingInput) {

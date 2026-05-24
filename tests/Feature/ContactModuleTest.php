@@ -54,7 +54,7 @@ test('contact search across all fields finds matches', function () {
     Contact::factory()->create(['telephone_1' => '0839998888']);
 
     $this->actingAs($user)
-        ->get(route('contacts.search', ['q' => '082111']))
+        ->get(route('contacts.index', ['q' => '082111']))
         ->assertRedirect(route('contacts.show', Contact::query()->where('telephone_1', '0821112222')->firstOrFail()));
 });
 
@@ -64,7 +64,7 @@ test('multiple contact matches show selection table', function () {
     Contact::factory()->create(['surname' => 'Smith', 'company_name' => 'Beta']);
 
     $this->actingAs($user)
-        ->get(route('contacts.search', ['q' => 'Smith']))
+        ->get(route('contacts.index', ['q' => 'Smith']))
         ->assertSuccessful()
         ->assertSee('Acme', false)
         ->assertSee('Beta', false)
@@ -78,7 +78,7 @@ test('blank contact search lists all contacts newest first', function () {
     $newer = Contact::factory()->create(['first_name' => 'Newer']);
 
     $html = $this->actingAs($user)
-        ->get(route('contacts.search'))
+        ->get(route('contacts.index'))
         ->assertSuccessful()
         ->getContent();
 
@@ -93,7 +93,7 @@ test('no contact match prompts create new contact', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get(route('contacts.search', ['q' => 'not-in-db']))
+        ->get(route('contacts.index', ['q' => 'not-in-db']))
         ->assertSuccessful()
         ->assertSee('No contact found', false)
         ->assertSee('Create new contact', false);
@@ -114,15 +114,15 @@ test('blank service note search lists all notes paginated', function () {
     }
 
     $this->actingAs($user)
-        ->get(route('contacts.notes.search'))
+        ->get(route('notes.index'))
         ->assertSuccessful()
-        ->assertSee('Showing all service notes', false)
+        ->assertSee('Showing open service notes', false)
         ->assertSee('Note 1', false)
         ->assertSee('Note 20', false)
         ->assertDontSee('Note 21', false);
 
     $this->actingAs($user)
-        ->get(route('contacts.notes.search', ['page' => 2]))
+        ->get(route('notes.index', ['page' => 2]))
         ->assertSuccessful()
         ->assertSee('Note 21', false)
         ->assertDontSee('Note 20', false);
@@ -139,7 +139,7 @@ test('service note search shows notes and contact links', function () {
     ]);
 
     $this->actingAs($user)
-        ->get(route('contacts.notes.search', ['note_q' => 'fibre router']))
+        ->get(route('notes.index', ['note_q' => 'fibre router']))
         ->assertSuccessful()
         ->assertSee('Router install', false)
         ->assertSee('Pat', false);
@@ -205,6 +205,28 @@ test('service note requires note type', function () {
             'body' => 'Body text.',
         ])
         ->assertSessionHasErrors('note_type_id');
+
+    $this->actingAs($user)
+        ->post(route('contacts.service-notes.store', $contact), [
+            'note_type_id' => '',
+            'status' => ServiceNote::STATUS_OPEN,
+            'heading' => 'Missing type',
+            'body' => 'Body text.',
+        ])
+        ->assertSessionHasErrors('note_type_id')
+        ->assertSessionHasErrors(['note_type_id' => 'Please select a note type.']);
+});
+
+test('new service note form marks note type as required', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('contacts.service-notes.create', $contact))
+        ->assertSuccessful()
+        ->assertSee('Note type', false)
+        ->assertSee('aria-required="true"', false)
+        ->assertSee('Select type…', false);
 });
 
 test('new service note recorded at matches creation timestamp in app timezone', function () {
@@ -250,6 +272,54 @@ test('service note update does not change noted at', function () {
     $note->refresh();
     expect($note->noted_at->toDateTimeString())->toBe($originalNotedAt);
     expect($note->heading)->toBe('Updated heading');
+});
+
+test('service note edit form shows start time and last time with note number', function () {
+    Carbon::setTestNow('2026-05-10 10:00:00');
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'created_by' => $user->id,
+    ]);
+    $note->forceFill([
+        'created_at' => Carbon::parse('2026-05-10 10:00:00'),
+        'updated_at' => Carbon::parse('2026-05-10 15:30:00'),
+    ])->saveQuietly();
+
+    $this->actingAs($user)
+        ->get(route('service-notes.edit', $note))
+        ->assertSuccessful()
+        ->assertSee($note->formattedNoteNumber(), false)
+        ->assertSee('Start Time:', false)
+        ->assertSee('2026-05-10 10:00', false)
+        ->assertSee('Last Time:', false)
+        ->assertSee('2026-05-10 15:30', false)
+        ->assertDontSee('Recorded at', false);
+});
+
+test('contact page lists service notes with start time and last time', function () {
+    Carbon::setTestNow('2026-05-10 10:00:00');
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Listed note',
+        'created_by' => $user->id,
+    ]);
+    $note->forceFill([
+        'created_at' => Carbon::parse('2026-05-10 10:00:00'),
+        'updated_at' => Carbon::parse('2026-05-10 15:30:00'),
+    ])->saveQuietly();
+
+    $this->actingAs($user)
+        ->get(route('contacts.show', $contact))
+        ->assertSuccessful()
+        ->assertSee('Listed note', false)
+        ->assertSee('Start Time:', false)
+        ->assertSee('2026-05-10 10:00', false)
+        ->assertSee('Last Time:', false)
+        ->assertSee('2026-05-10 15:30', false);
 });
 
 test('user can delete contact created today but not yesterday without role 4', function () {

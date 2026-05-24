@@ -18,7 +18,7 @@
             <div class="mb-4 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded">{{ session('message') }}</div>
         @endif
 
-        @include('contacts.partials.fields-display', ['contact' => $contact])
+        @include('contacts.partials.fields-display-compact', ['contact' => $contact, 'showCreated' => true])
 
         <div class="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-200">
             <a href="{{ route('contacts.edit', $contact) }}" class="inline-flex items-center px-4 py-2 border border-gray-900 text-sm font-medium rounded-md text-gray-900 bg-white hover:bg-gray-50">Edit contact</a>
@@ -49,20 +49,21 @@
                 'border-blue-400 bg-blue-50 ring-1 ring-blue-200' => $highlighted,
                 'border-gray-200' => ! $highlighted,
             ])>
-                <div class="flex flex-wrap items-center gap-2 mb-1 text-sm text-gray-600">
-                    @if($note->noteType)
-                        <span class="font-medium text-gray-800">{{ $note->noteType->name }}</span>
+                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-1 text-sm">
+                    <div class="flex flex-wrap items-center gap-2 text-gray-600">
+                        @if($note->noteType)
+                            <span class="font-medium text-gray-800">{{ $note->noteType->name }}</span>
+                            <span class="text-gray-400">·</span>
+                        @endif
+                        <span class="font-mono font-semibold text-gray-800">{{ $note->formattedNoteNumber() }}</span>
                         <span class="text-gray-400">·</span>
-                    @endif
-                    <span class="font-mono font-semibold text-gray-800">{{ $note->formattedNoteNumber() }}</span>
-                    <span class="text-gray-400">·</span>
-                    <span @class([
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                        'bg-green-100 text-green-800' => $note->status === \App\Models\ServiceNote::STATUS_OPEN,
-                        'bg-gray-200 text-gray-700' => $note->isClosed(),
-                    ])>{{ ucfirst($note->status) }}</span>
-                    <span class="text-gray-400">·</span>
-                    <span class="text-gray-500 whitespace-nowrap">{{ $note->noted_at->format('Y-m-d H:i') }}</span>
+                        <span @class([
+                            'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            'bg-green-100 text-green-800' => $note->status === \App\Models\ServiceNote::STATUS_OPEN,
+                            'bg-gray-200 text-gray-700' => $note->isClosed(),
+                        ])>{{ ucfirst($note->status) }}</span>
+                    </div>
+                    @include('contacts.service-notes.partials.times', ['note' => $note, 'class' => 'sm:justify-end'])
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ $note->heading }}</h3>
                 <p class="text-sm text-gray-700 whitespace-pre-wrap mb-3">{{ $note->body }}</p>

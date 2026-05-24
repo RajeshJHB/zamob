@@ -2,7 +2,7 @@
 
 @section('contentWidth', 'full')
 
-@section('title', 'Find IMEI\'s')
+@section('title', 'IMEI')
 
 @section('content')
 @php
@@ -15,9 +15,12 @@
     $imeiBrowseTextDisplayLimit = 150;
 @endphp
 <div class="bg-white rounded-lg shadow-md p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">IMEI's</h1>
-        <div class="flex items-center gap-2">
+    <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
+        <h1 class="text-3xl font-bold sm:justify-self-start">IMEI's</h1>
+        <button type="button" id="imei-add-open-btn" class="bg-green-600 hover:bg-green-800 text-white font-bold py-1 px-3 rounded text-sm inline-block text-center sm:justify-self-center">
+            Add IMEI
+        </button>
+        <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:justify-self-end">
             @if($canBulkChangeStatus ?? false)
                 <div class="relative" id="imei-advanced-menu-container">
                     <button id="imei-advanced-menu-button" type="button" class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-1">
@@ -34,17 +37,11 @@
                     </div>
                 </div>
             @endif
-            <a href="{{ route('imeis.print', $filterParams ?? []) }}" target="_blank" class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-1 px-3 rounded text-sm">
-                Print all results
-            </a>
             <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded text-sm">
                 Change filter
             </a>
-            <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-2 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                </svg>
-                Home
+            <a href="{{ route('imeis.print', $filterParams ?? []) }}" target="_blank" class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-1 px-3 rounded text-sm">
+                Print all results
             </a>
         </div>
     </div>
@@ -111,6 +108,30 @@
             {{ $imeis->links() }}
         </div>
     @endif
+</div>
+
+<div
+    id="imei-add-modal"
+    class="fixed inset-0 z-50 hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="imei-add-modal-title"
+>
+    <div class="absolute inset-0 bg-black/40" id="imei-add-backdrop"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col border border-gray-200 overflow-hidden">
+            <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 shrink-0">
+                <h2 id="imei-add-modal-title" class="text-lg font-bold text-gray-900">Add IMEI</h2>
+                <button type="button" id="imei-add-modal-close" class="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">&times;</button>
+            </div>
+            <iframe
+                id="imei-add-modal-frame"
+                name="imei-add-modal-frame"
+                class="w-full flex-1 min-h-[75vh] border-0 bg-white"
+                title="Add IMEI"
+            ></iframe>
+        </div>
+    </div>
 </div>
 
 @if($canBulkChangeStatus ?? false)
@@ -255,4 +276,68 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endif
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addModal = document.getElementById('imei-add-modal');
+    const addFrame = document.getElementById('imei-add-modal-frame');
+    const addOpenButton = document.getElementById('imei-add-open-btn');
+    const addCloseButton = document.getElementById('imei-add-modal-close');
+    const addBackdrop = document.getElementById('imei-add-backdrop');
+    const createEmbeddedUrl = @json(route('imeis.create', ['embedded' => 1]));
+
+    function closeAddModal(reload) {
+        if (! addModal) {
+            return;
+        }
+
+        addModal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+
+        if (addFrame) {
+            addFrame.src = 'about:blank';
+        }
+
+        if (reload) {
+            window.location.reload();
+        }
+    }
+
+    function openAddModal() {
+        if (! addModal || ! addFrame) {
+            return;
+        }
+
+        addFrame.src = createEmbeddedUrl;
+        addModal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    if (addOpenButton) {
+        addOpenButton.addEventListener('click', openAddModal);
+    }
+
+    if (addCloseButton) {
+        addCloseButton.addEventListener('click', function () {
+            closeAddModal(false);
+        });
+    }
+
+    if (addBackdrop) {
+        addBackdrop.addEventListener('click', function () {
+            closeAddModal(false);
+        });
+    }
+
+    window.addEventListener('message', function (event) {
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+
+        if (event.data && event.data.type === 'imei-form-close') {
+            closeAddModal(!! event.data.reload);
+        }
+    });
+});
+</script>
 @endsection

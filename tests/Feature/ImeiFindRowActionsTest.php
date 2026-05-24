@@ -518,6 +518,22 @@ test('unfiltered find imei search with no query params also limits to two hundre
         ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 200);
 });
 
+test('nav imei menu opens default unfiltered browse results', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(2);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index'))
+        ->assertSuccessful()
+        ->assertSee('BROWSE0', false)
+        ->getContent();
+
+    expect($html)->toContain(route('imeis.index'))
+        ->and($html)->toContain('>IMEI</')
+        ->and($html)->toContain('imei-add-modal')
+        ->and($html)->toContain('Add IMEI');
+});
+
 test('find imei text search is not capped at two hundred records', function () {
     $user = User::factory()->create();
     seedImeiBrowseRows(250);
@@ -548,6 +564,40 @@ test('find imei date range search is not capped at two hundred records', functio
         ]))
         ->assertSuccessful()
         ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 250);
+});
+
+test('imei filter rejects end date before start date', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'scope' => 'all',
+            'date_scope' => 'range',
+            'date_column' => 'date_in',
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-01-01',
+        ]))
+        ->assertRedirect(route('imeis.filter', [
+            'scope' => 'all',
+            'date_scope' => 'range',
+            'date_column' => 'date_in',
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-01-01',
+        ]))
+        ->assertSessionHas('error', 'The end date must be on or after the start date.');
+});
+
+test('imei filter end date picker is constrained by selected start date', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('imeis.filter', [
+            'date_scope' => 'range',
+            'start_date' => '2024-06-01',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('id="end_date"', false)
+        ->assertSee('min="2024-06-01"', false);
 });
 
 test('find imei with custom sort is not capped at two hundred records', function () {

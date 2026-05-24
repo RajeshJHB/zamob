@@ -23,6 +23,8 @@ class ServiceNoteController extends Controller
 {
     public function create(Contact $contact): View
     {
+        $contact->load('relatedContact');
+
         return view('contacts.service-notes.form', $this->serviceNoteFormData($contact, null));
     }
 
@@ -54,7 +56,7 @@ class ServiceNoteController extends Controller
     {
         abort_unless(ContactPermissions::canEditServiceNote($request->user(), $serviceNote), 403);
 
-        $serviceNote->load(['contact', 'noteType']);
+        $serviceNote->load(['contact.relatedContact', 'noteType']);
 
         return view('contacts.service-notes.form', $this->serviceNoteFormData($serviceNote->contact, $serviceNote));
     }

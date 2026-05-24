@@ -5,24 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
-use App\Models\ServiceNote;
 use App\Support\BrowseListLimit;
 use App\Support\ContactPermissions;
-use App\Support\ServiceNoteBrowsePageSize;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ContactController extends Controller
 {
-    public function index(Request $request): View
-    {
-        return view('contacts.index', [
-            'contactQuery' => $request->input('q', ''),
-            'noteQuery' => $request->input('note_q', ''),
-        ]);
-    }
-
     public function search(Request $request): View|RedirectResponse
     {
         $term = trim((string) $request->input('q', ''));
@@ -73,27 +63,9 @@ class ContactController extends Controller
         ]);
     }
 
-    public function searchNotes(Request $request): View
+    public function legacyContactsSearchRedirect(Request $request): RedirectResponse
     {
-        $term = trim((string) $request->input('note_q', ''));
-        $listingAll = $term === '';
-
-        $query = ServiceNote::query()
-            ->with(['contact', 'noteType'])
-            ->orderByDesc('noted_at')
-            ->orderByDesc('id');
-
-        if (! $listingAll) {
-            $query->searchTerm($term);
-        }
-
-        $notes = $query->paginate(ServiceNoteBrowsePageSize::SIZE)->withQueryString();
-
-        return view('contacts.notes-search', [
-            'term' => $term,
-            'notes' => $notes,
-            'listingAll' => $listingAll,
-        ]);
+        return redirect()->route('contacts.index', $request->query());
     }
 
     public function create(Request $request): View

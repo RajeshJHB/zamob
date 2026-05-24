@@ -11,7 +11,7 @@
         </div>
 
         <p class="text-gray-600 text-sm mb-6">
-            Used when <strong>Find IMEI&rsquo;s</strong> or <strong>Contacts</strong> search is run with no search text
+            Used when <strong>IMEI</strong> or <strong>Contacts</strong> search is run with no search text
             (and, for IMEI, no date range or custom sort). Only the newest records are shown, up to this limit.
         </p>
 

@@ -55,7 +55,7 @@ test('dashboard lists cash devices with view link to imei record', function () {
         'status' => ImeiCashDeviceType::STATUS,
         'notes' => '',
         'phonenumber' => '',
-        'ref' => '',
+        'ref' => '128GB Black, excellent condition',
         'staff' => '',
         'item_code' => '',
         'ourON' => '',
@@ -95,8 +95,10 @@ test('dashboard lists cash devices with view link to imei record', function () {
         ->get(route('dashboard'))
         ->assertSuccessful()
         ->assertSee('Cash Devices', false)
+        ->assertSee('Phone Spec', false)
         ->assertSee('Apple', false)
         ->assertSee('iPhone 14', false)
+        ->assertSee('128GB Black, excellent condition', false)
         ->assertSee('9,999', false)
         ->assertSee(route('imeis.edit', $cashDevice).'?return_query='.rawurlencode($returnQuery), false)
         ->assertDontSee('358918502270222', false)
