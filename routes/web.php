@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\ImeiController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ProfileController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Settings\DefaultSettingsController;
 use App\Http\Controllers\Settings\ImeiLocationController;
 use App\Http\Controllers\Settings\ImeiMakeController;
 use App\Http\Controllers\Settings\ImeiModelController;
+use App\Http\Controllers\Settings\ImeiSaleTypeController;
 use App\Http\Controllers\Settings\ImeiStatusController;
 use App\Http\Controllers\Settings\ImeiTypeController;
 use App\Http\Controllers\Settings\NoteSettingsController;
@@ -70,6 +72,7 @@ Route::middleware(['auth'])->group(function () {
 // Authenticated Routes
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/help', HelpController::class)->name('help.index');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/makes', [ImeiMakeController::class, 'index'])->name('settings.makes.index');
     Route::post('/settings/makes', [ImeiMakeController::class, 'store'])->name('settings.makes.store');
@@ -91,6 +94,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/status', [ImeiStatusController::class, 'store'])->name('settings.status.store');
     Route::put('/settings/status/{imeiStatus}', [ImeiStatusController::class, 'update'])->name('settings.status.update');
     Route::delete('/settings/status/{imeiStatus}', [ImeiStatusController::class, 'destroy'])->name('settings.status.destroy');
+    Route::get('/settings/sale-types', [ImeiSaleTypeController::class, 'index'])->name('settings.sale-types.index');
+    Route::post('/settings/sale-types', [ImeiSaleTypeController::class, 'store'])->name('settings.sale-types.store');
+    Route::put('/settings/sale-types/{imeiSaleType}', [ImeiSaleTypeController::class, 'update'])->name('settings.sale-types.update');
+    Route::delete('/settings/sale-types/{imeiSaleType}', [ImeiSaleTypeController::class, 'destroy'])->name('settings.sale-types.destroy');
     Route::get('/settings/notes', [NoteSettingsController::class, 'index'])->name('settings.notes.index');
     Route::get('/settings/note-types', [NoteTypeController::class, 'index'])->name('settings.note-types.index');
     Route::post('/settings/note-types', [NoteTypeController::class, 'store'])->name('settings.note-types.store');
@@ -131,6 +138,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/imeis/filter/save', [ImeiController::class, 'saveFilter'])->name('imeis.filter.save');
     Route::get('/imeis/filter/apply/{filter}', [ImeiController::class, 'applyFilter'])->name('imeis.filter.apply');
     Route::delete('/imeis/filter/{filter}', [ImeiController::class, 'deleteFilter'])->name('imeis.filter.delete');
+    Route::get('/imeis/filter/clear', [ImeiController::class, 'clearFilterProfile'])->name('imeis.filter.clear');
     Route::get('/imeis/receipt/logo', [ImeiController::class, 'receiptLogo'])->name('imeis.receipt.logo');
     Route::get('/imeis/{imei}/receipt', [ImeiController::class, 'receipt'])->name('imeis.receipt');
     Route::get('/imeis/{imei}/edit', [ImeiController::class, 'edit'])->name('imeis.edit');

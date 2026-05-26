@@ -21,6 +21,7 @@
         @endif
 
         <form method="GET" action="{{ route('imeis.index') }}" id="imei-filter-form">
+            <input type="hidden" name="from_filter" value="1">
             <div class="space-y-6">
                 {{-- Search text --}}
                 <div class="pb-4 border-b border-gray-200 space-y-3">
@@ -270,12 +271,13 @@
                                 </label>
                                 <select
                                     id="profile_select"
+                                    name="profile_id"
                                     class="border border-gray-300 rounded px-2 py-1.5 shadow-sm w-full text-sm"
                                 >
                                     <option value="">(none)</option>
                                     @foreach($savedFilters as $filter)
                                         <option value="{{ $filter->id }}"
-                                            @if(request('profile_id') == $filter->id) selected @endif
+                                            @if((string) request('profile_id', $activeProfileId ?? '') === (string) $filter->id) selected @endif
                                         >
                                             {{ $filter->name }}
                                         </option>
@@ -521,7 +523,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loadProfileButton.addEventListener('click', function () {
             const id = profileSelect.value;
             if (!id) {
-                alert('Please select a profile to load.');
+                window.location.href = '{{ route('imeis.filter.clear') }}';
+
                 return;
             }
             const url = '{{ url('/imeis/filter/apply') }}' + '/' + encodeURIComponent(id);

@@ -13,16 +13,55 @@
         request()->only(['page']),
     ), fn (mixed $value): bool => $value !== null && $value !== ''));
     $imeiBrowseTextDisplayLimit = 150;
+    $resetSearchParams = collect($filterParams ?? [])
+        ->except(['search', 'search2', 'page'])
+        ->all();
 @endphp
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
-        <h1 class="text-3xl font-bold sm:justify-self-start">IMEI's</h1>
-        <button type="button" id="imei-add-open-btn" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block text-center sm:justify-self-center">
-            Add IMEI
-        </button>
+        <div class="sm:justify-self-start">
+            <h1 class="text-3xl font-bold">IMEI's</h1>
+            @if(! empty($currentProfileName))
+                <div class="mt-1 text-sm font-semibold text-gray-700">
+                    Searched Profile: "{{ $currentProfileName }}"
+                </div>
+            @endif
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-self-center">
+            <button type="button" id="imei-add-open-btn" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block text-center shrink-0">
+                Add IMEI
+            </button>
+            <form method="GET" action="{{ route('imeis.index') }}" class="flex items-center gap-2 min-w-0">
+                @foreach($filterParams ?? [] as $key => $value)
+                    @if(is_array($value))
+                        @foreach($value as $item)
+                            <input type="hidden" name="{{ $key }}[]" value="{{ $item }}">
+                        @endforeach
+                    @elseif(! in_array($key, ['search', 'page'], true))
+                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endif
+                @endforeach
+                <input
+                    type="search"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Quick search…"
+                    class="border border-gray-300 rounded-md py-2 px-3 text-sm text-gray-900 shadow-sm w-40 sm:w-52 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button type="submit" class="bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-md text-sm shadow-sm shrink-0">
+                    Quick search
+                </button>
+                <a
+                    href="{{ route('imeis.index', $resetSearchParams) }}"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md text-sm shadow-sm shrink-0 inline-block text-center"
+                >
+                    Reset search
+                </a>
+            </form>
+        </div>
         <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:justify-self-end">
             <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block">
-                Change Filter
+                Filter
             </a>
             @if($canBulkChangeStatus ?? false)
                 <div class="relative" id="imei-advanced-menu-container">

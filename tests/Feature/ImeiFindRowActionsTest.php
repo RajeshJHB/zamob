@@ -121,6 +121,52 @@ test('imei index uses full width main content area', function () {
     expect($html)->toContain('w-full max-w-none');
 });
 
+test('imei index shows quick search and filter link labels', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('imeis.index'))
+        ->assertSuccessful()
+        ->assertSee('Quick search', false)
+        ->assertSee('Reset search', false)
+        ->assertSee('name="search"', false)
+        ->assertSee('Filter', false)
+        ->assertDontSee('Change Filter', false);
+});
+
+test('imei index quick search filters results by search term', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(1, 'OTHER');
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'QUICKFIND999',
+        'stock_take_date' => '',
+        'make' => 'FindMe',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', ['search' => 'QUICKFIND999', 'scope' => 'all', 'date_scope' => 'all']))
+        ->assertSuccessful()
+        ->assertSee('QUICKFIND999', false)
+        ->assertSee('FindMe', false)
+        ->assertDontSee('OTHER0', false);
+});
+
 test('view link from index preserves list filter state for exit return', function () {
     $user = User::factory()->create();
     Imei::query()->create([
@@ -514,6 +560,22 @@ test('unfiltered find imei search with no query params also limits to two hundre
 
     $this->actingAs($user)
         ->get(route('imeis.index'))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 200);
+});
+
+test('unfiltered find imei search with selected columns only still limits to browse list max', function () {
+    $user = User::factory()->create();
+    seedImeiBrowseRows(250);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'scope' => 'selected',
+            'columns' => ['date_in', 'date_updated', 'make', 'model', 'imei'],
+            'date_scope' => 'all',
+            'sort1_dir' => 'asc',
+            'sort2_dir' => 'asc',
+        ]))
         ->assertSuccessful()
         ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 200);
 });

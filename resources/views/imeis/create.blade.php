@@ -75,6 +75,11 @@
     $statusInReferenceTable = $imeiStatuses->contains(fn (\App\Models\ImeiStatus $s): bool => $s->status === $currentStatusForSelect)
         || $currentStatusForSelect === \App\Support\ImeiDeletedStatus::VALUE;
 
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiSaleType>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiSaleType> $imeiSaleTypes */
+    $imeiSaleTypes = $imeiSaleTypes ?? collect();
+    $currentSaleTypeForSelect = $imeiFieldValue('stock_take_date');
+    $saleTypeInReferenceTable = $imeiSaleTypes->contains(fn (\App\Models\ImeiSaleType $saleType): bool => $saleType->sale_type === $currentSaleTypeForSelect);
+
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiLocation>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiLocation> $imeiLocations */
     $imeiLocations = $imeiLocations ?? collect();
     $currentLocationForSelect = $imeiFieldValue('location');
@@ -365,6 +370,21 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                    </div>
+                    <div>
+                        <label for="stock_take_date" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['stock_take_date'] ?? 'Sale type' }}</label>
+                        <select name="stock_take_date" id="stock_take_date" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('stock_take_date') border-red-500 @enderror">
+                            <option value="">— Select sale type —</option>
+                            @if($currentSaleTypeForSelect !== '' && ! $saleTypeInReferenceTable)
+                                <option value="{{ $currentSaleTypeForSelect }}" selected>{{ $currentSaleTypeForSelect }} (not in list)</option>
+                            @endif
+                            @foreach($imeiSaleTypes as $imeiSaleType)
+                                <option value="{{ $imeiSaleType->sale_type }}" @selected($currentSaleTypeForSelect === $imeiSaleType->sale_type)>{{ $imeiSaleType->sale_type }}</option>
+                            @endforeach
+                        </select>
+                        @error('stock_take_date')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>

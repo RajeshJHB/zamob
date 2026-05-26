@@ -106,6 +106,9 @@
                                 <a href="{{ route('profile.password') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                     Password Reset
                                 </a>
+                                <a href="{{ route('help.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
+                                    Help
+                                </a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-md mx-1">

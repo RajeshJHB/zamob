@@ -70,6 +70,12 @@ test('verified users can view settings and add imei form', function () {
         ->assertSee('All statuses', false);
 
     $this->actingAs($user)
+        ->get(route('settings.sale-types.index'))
+        ->assertSuccessful()
+        ->assertSee('Sale types', false)
+        ->assertSee('Cash', false);
+
+    $this->actingAs($user)
         ->get('/settings/unknown-section')
         ->assertNotFound();
 

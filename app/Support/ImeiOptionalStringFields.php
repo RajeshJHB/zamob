@@ -15,6 +15,7 @@ final class ImeiOptionalStringFields
         'model',
         'sn',
         'location',
+        'stock_take_date',
         'type',
         'status',
         'notes',

@@ -17,6 +17,7 @@ class Imei extends Model
 
     protected $fillable = [
         'date_in',
+        'stock_take_date',
         'date_updated',
         'make',
         'model',

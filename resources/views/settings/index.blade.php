@@ -16,6 +16,7 @@
                         'locations' => route('settings.locations.index'),
                         'types' => route('settings.types.index'),
                         'status' => route('settings.status.index'),
+                        'sale_types' => route('settings.sale-types.index'),
                         default => route('settings.index'),
                     } }}" class="block text-blue-600 hover:text-blue-800 font-medium py-1">
                         {{ $label }}

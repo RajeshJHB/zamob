@@ -12,6 +12,7 @@ class SettingsController extends Controller
         'locations' => 'Locations',
         'types' => 'Types',
         'status' => 'Status',
+        'sale_types' => 'Sale types',
     ];
 
     public function index(): View

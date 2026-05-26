@@ -11,6 +11,7 @@ use App\Models\ImeiFilter;
 use App\Models\ImeiLocation;
 use App\Models\ImeiMake;
 use App\Models\ImeiModel;
+use App\Models\ImeiSaleType;
 use App\Models\ImeiStatus;
 use App\Models\ImeiType;
 use App\Models\ServiceNote;
@@ -33,12 +34,15 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ImeiController extends Controller
 {
+    private const ACTIVE_PROFILE_SESSION_KEY = 'imeis.active_profile_id';
+
     /**
      * Query keys allowed when returning from view/edit to the IMEI results table.
      *
      * @var list<string>
      */
     private const INDEX_RETURN_QUERY_KEYS = [
+        'profile_id',
         'scope',
         'columns',
         'date_scope',
@@ -71,6 +75,7 @@ class ImeiController extends Controller
     public const COLUMNS = [
         'id' => 'ID',
         'date_in' => 'Date in',
+        'stock_take_date' => 'Sale type',
         'date_updated' => 'Date updated',
         'make' => 'Make',
         'model' => 'Model',
@@ -417,14 +422,8 @@ class ImeiController extends Controller
             ->orderBy('name')
             ->get();
 
-        $currentProfileName = null;
-        $currentProfileId = $request->input('profile_id');
-        if ($currentProfileId) {
-            $current = $savedFilters->firstWhere('id', (int) $currentProfileId);
-            if ($current) {
-                $currentProfileName = $current->name;
-            }
-        }
+        $activeProfile = $this->applyActiveFilterProfile($request, $savedFilters);
+        $currentProfileName = $activeProfile?->name;
 
         return view('imeis.filter', [
             'columns' => self::COLUMNS,
@@ -448,11 +447,16 @@ class ImeiController extends Controller
             'fieldFilterPicklists' => ImeiFieldFilter::picklistOptions($user),
             'savedFilters' => $savedFilters,
             'currentProfileName' => $currentProfileName,
+            'activeProfileId' => $request->session()->get(self::ACTIVE_PROFILE_SESSION_KEY),
         ]);
     }
 
     public function index(Request $request): View|RedirectResponse
     {
+        if ($redirect = $this->resolveSearchProfileSwitch($request)) {
+            return $redirect;
+        }
+
         $dateScope = $request->input('date_scope', 'all');
         $dateColumn = $request->input('date_column');
         $startDate = $request->input('start_date');
@@ -496,6 +500,7 @@ class ImeiController extends Controller
             'statusFilterValue' => $statusFilterValue,
             'bulkStatusCount' => $bulkStatusCount,
             'statusOptions' => ImeiStatus::query()->orderBy('status')->pluck('status')->all(),
+            'currentProfileName' => $this->activeProfileName($request),
         ]);
     }
 
@@ -593,7 +598,7 @@ class ImeiController extends Controller
             // Pluck IDs first: MySQL (older versions) rejects LIMIT inside IN subqueries.
             $latestIds = Imei::query()
                 ->visibleTo($request->user())
-                ->orderByDesc('date_in')
+                ->orderByDesc('date_updated')
                 ->orderByDesc('id')
                 ->limit(BrowseListLimit::limit())
                 ->pluck('id');
@@ -627,16 +632,16 @@ class ImeiController extends Controller
             $hasSort = true;
         }
 
-        // Default sort if nothing chosen: newest Date In first.
+        // Default sort if nothing chosen: newest Date updated first.
         if (! $hasSort) {
-            $query->orderByDesc('date_in');
+            $query->orderByDesc('date_updated');
         }
 
         return $query;
     }
 
     /**
-     * True when the user pressed Search with default filter options only.
+     * True when the request has no search criteria (column display choices do not count).
      */
     private function isUnfilteredBrowse(Request $request): bool
     {
@@ -649,10 +654,6 @@ class ImeiController extends Controller
         }
 
         if ($request->input('date_scope', 'all') === 'range') {
-            return false;
-        }
-
-        if ($request->input('scope', 'all') === 'selected') {
             return false;
         }
 
@@ -673,6 +674,7 @@ class ImeiController extends Controller
     private function imeiFilterParams(Request $request): array
     {
         return $request->only([
+            'profile_id',
             'scope',
             'columns',
             'date_scope',
@@ -704,6 +706,7 @@ class ImeiController extends Controller
         $params = $request->except([
             '_token',
             'profile_name',
+            'from_filter',
         ]);
 
         $name = $request->input('profile_name');
@@ -724,6 +727,8 @@ class ImeiController extends Controller
                 'params' => $params,
             ]);
         }
+
+        $request->session()->put(self::ACTIVE_PROFILE_SESSION_KEY, (int) $filter->id);
 
         return redirect()
             ->route('imeis.filter', array_merge($params, [
@@ -747,6 +752,8 @@ class ImeiController extends Controller
         $params = $filter->params ?? [];
         $params['profile_id'] = $filter->id;
 
+        $request->session()->put(self::ACTIVE_PROFILE_SESSION_KEY, (int) $filter->id);
+
         return redirect()->route('imeis.filter', $params);
     }
 
@@ -764,9 +771,211 @@ class ImeiController extends Controller
 
         $filter->delete();
 
+        if ((int) $request->session()->get(self::ACTIVE_PROFILE_SESSION_KEY) === (int) $filter->id) {
+            $request->session()->forget(self::ACTIVE_PROFILE_SESSION_KEY);
+        }
+
         return redirect()
             ->route('imeis.filter', $request->query())
             ->with('message', 'Filter profile deleted.');
+    }
+
+    public function clearFilterProfile(Request $request): RedirectResponse
+    {
+        $request->session()->forget(self::ACTIVE_PROFILE_SESSION_KEY);
+
+        return redirect()->route('imeis.filter');
+    }
+
+    /**
+     * When Search is submitted from the filter form, load the chosen profile (or clear for none)
+     * before searching so stale form values from a previous profile are not kept.
+     */
+    private function resolveSearchProfileSwitch(Request $request): ?RedirectResponse
+    {
+        if (! $request->boolean('from_filter')) {
+            $this->applyActiveFilterProfile($request);
+
+            return null;
+        }
+
+        $user = $request->user();
+        if (! $user) {
+            return null;
+        }
+
+        $activeId = (int) $request->session()->get(self::ACTIVE_PROFILE_SESSION_KEY, 0);
+        $submitted = $request->input('profile_id');
+        $submittedId = ($submitted === null || $submitted === '') ? 0 : (int) $submitted;
+
+        if ($submittedId === 0) {
+            $request->session()->forget(self::ACTIVE_PROFILE_SESSION_KEY);
+            $params = $this->defaultFilterSearchParams();
+        } else {
+            /** @var ImeiFilter|null $filter */
+            $filter = ImeiFilter::query()
+                ->where('user_id', $user->id)
+                ->whereKey($submittedId)
+                ->first();
+
+            if (! $filter) {
+                $request->session()->forget(self::ACTIVE_PROFILE_SESSION_KEY);
+                $params = $this->defaultFilterSearchParams();
+            } else {
+                $request->session()->put(self::ACTIVE_PROFILE_SESSION_KEY, $submittedId);
+                $params = $this->sanitizeFilterProfileParams(
+                    is_array($filter->params) ? $filter->params : [],
+                );
+                $params['profile_id'] = $filter->id;
+            }
+        }
+
+        $formParams = $this->sanitizeFilterProfileParams($this->imeiFilterParams($request));
+        unset($formParams['profile_id']);
+
+        if ($submittedId !== 0 && $submittedId === $activeId) {
+            $params = array_merge($params, $formParams);
+        } elseif ($submittedId === 0) {
+            $params = array_merge($params, $this->searchSortOverridesFromForm($request));
+        }
+
+        $redirectParams = $this->filterParamsForRedirect($params);
+
+        if ($this->filterSearchRedirectMatchesRequest($request, $redirectParams)) {
+            $request->replace(array_merge($request->query(), $redirectParams));
+            $request->query->replace(array_merge($request->query(), $redirectParams));
+
+            return null;
+        }
+
+        return redirect()->route('imeis.index', $redirectParams);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultFilterSearchParams(): array
+    {
+        return [
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function searchSortOverridesFromForm(Request $request): array
+    {
+        return array_filter(
+            $request->only([
+                'search',
+                'search2',
+                'sort1_column',
+                'sort1_dir',
+                'sort2_column',
+                'sort2_dir',
+            ]),
+            fn (mixed $value): bool => $value !== null && $value !== '',
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function filterParamsForRedirect(array $params): array
+    {
+        return array_filter(
+            $this->sanitizeFilterProfileParams($params),
+            fn (mixed $value): bool => $value !== null && $value !== '',
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function sanitizeFilterProfileParams(array $params): array
+    {
+        unset($params['from_filter']);
+
+        return $params;
+    }
+
+    /**
+     * @param  array<string, mixed>  $redirectParams
+     */
+    private function filterSearchRedirectMatchesRequest(Request $request, array $redirectParams): bool
+    {
+        $current = $this->filterParamsForRedirect(
+            $this->sanitizeFilterProfileParams($this->imeiFilterParams($request)),
+        );
+
+        return $current === $redirectParams;
+    }
+
+    /**
+     * If a filter profile is active for this user, apply its params to the current request
+     * (without overwriting explicitly-provided query values) and ensure profile_id is present.
+     *
+     * @param  \Illuminate\Support\Collection<int, ImeiFilter>|null  $savedFilters
+     */
+    private function applyActiveFilterProfile(Request $request, $savedFilters = null): ?ImeiFilter
+    {
+        $user = $request->user();
+        if (! $user) {
+            return null;
+        }
+
+        $profileId = $request->input('profile_id') ?: $request->session()->get(self::ACTIVE_PROFILE_SESSION_KEY);
+        if (! $profileId) {
+            return null;
+        }
+
+        $profileId = (int) $profileId;
+        $request->session()->put(self::ACTIVE_PROFILE_SESSION_KEY, $profileId);
+
+        /** @var ImeiFilter|null $filter */
+        $filter = $savedFilters instanceof \Illuminate\Support\Collection
+            ? $savedFilters->firstWhere('id', $profileId)
+            : ImeiFilter::query()->where('user_id', $user->id)->whereKey($profileId)->first();
+
+        if (! $filter) {
+            return null;
+        }
+
+        $params = is_array($filter->params) ? $filter->params : [];
+
+        foreach ($params as $key => $value) {
+            if (! $request->has($key)) {
+                $request->merge([$key => $value]);
+            }
+        }
+
+        if (! $request->has('profile_id')) {
+            $request->merge(['profile_id' => $profileId]);
+        }
+
+        return $filter;
+    }
+
+    private function activeProfileName(Request $request): ?string
+    {
+        $user = $request->user();
+        if (! $user) {
+            return null;
+        }
+
+        $profileId = $request->input('profile_id') ?: $request->session()->get(self::ACTIVE_PROFILE_SESSION_KEY);
+        if (! $profileId) {
+            return null;
+        }
+
+        return ImeiFilter::query()
+            ->where('user_id', $user->id)
+            ->whereKey((int) $profileId)
+            ->value('name');
     }
 
     /**
@@ -783,6 +992,14 @@ class ImeiController extends Controller
     private function imeiStatusesForForm(): Collection
     {
         return ImeiStatus::query()->orderBy('status')->get();
+    }
+
+    /**
+     * @return Collection<int, ImeiSaleType>
+     */
+    private function imeiSaleTypesForForm(): Collection
+    {
+        return ImeiSaleType::query()->orderBy('sale_type')->get();
     }
 
     /**
@@ -822,6 +1039,7 @@ class ImeiController extends Controller
             'model' => $imei->model,
             'sn' => $imei->sn,
             'location' => $imei->location,
+            'stock_take_date' => $imei->stock_take_date,
             'type' => $imei->type,
             'status' => $imei->status,
             'notes' => $imei->notes,
@@ -864,6 +1082,7 @@ class ImeiController extends Controller
             'returnQuery' => $returnQuery,
             'imeiTypes' => $this->imeiTypesForForm(),
             'imeiStatuses' => $this->imeiStatusesForForm(),
+            'imeiSaleTypes' => $this->imeiSaleTypesForForm(),
             'canSelectDeletedStatus' => ImeiDeletedStatus::userCanViewDeleted(auth()->user()),
             'imeiLocations' => $this->imeiLocationsForForm(),
             'imeiMakes' => $this->imeiMakesForForm(),
