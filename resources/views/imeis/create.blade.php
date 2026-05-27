@@ -4,8 +4,9 @@
     use App\Support\ImeiNewRecordDefaults;
     /** @var array<string, mixed>|null $viewRecord */
     $viewRecord = $viewRecord ?? null;
+    $editableOnLoad = $editableOnLoad ?? false;
     $formUnlocked = $errors->any() || ! empty($viewRecord);
-    $readonlyAfterSave = ! empty($viewRecord) && ! $errors->any();
+    $readonlyAfterSave = ! empty($viewRecord) && ! $errors->any() && ! $editableOnLoad;
 
     $updateRouteId = null;
     if ($errors->any() && old('imei_record_id')) {
@@ -77,7 +78,7 @@
 
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiSaleType>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiSaleType> $imeiSaleTypes */
     $imeiSaleTypes = $imeiSaleTypes ?? collect();
-    $currentSaleTypeForSelect = $imeiFieldValue('stock_take_date');
+    $currentSaleTypeForSelect = $imeiFieldValue('cash_stock_type');
     $saleTypeInReferenceTable = $imeiSaleTypes->contains(fn (\App\Models\ImeiSaleType $saleType): bool => $saleType->sale_type === $currentSaleTypeForSelect);
 
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiLocation>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiLocation> $imeiLocations */
@@ -263,27 +264,40 @@
                     </div>
                 </div>
 
-                <div class="pb-4 border-b border-gray-200 space-y-2">
-                    <h2 class="text-lg font-semibold">IMEI</h2>
-                    <div class="max-w-md">
-                        <label for="imei_final" class="block text-sm font-medium text-gray-700 mb-1">IMEI</label>
-                        <input
-                            type="text"
-                            name="imei"
-                            id="imei_final"
-                            value="{{ $imeiFieldValue('imei') }}"
-                            readonly
-                            required
-                            class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 @error('imei') border-red-500 @enderror"
-                        >
-                        @error('imei')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
                 <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Identifiers</h2>
+                    <h2 class="text-lg font-semibold">Device</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="imei_final" class="block text-sm font-bold text-gray-700 mb-1">IMEI</label>
+                            <input
+                                type="text"
+                                name="imei"
+                                id="imei_final"
+                                value="{{ $imeiFieldValue('imei') }}"
+                                readonly
+                                required
+                                class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 font-bold @error('imei') border-red-500 @enderror"
+                            >
+                            @error('imei')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="cash_stock_type" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cash_stock_type'] ?? 'Sale type' }}</label>
+                            <select name="cash_stock_type" id="cash_stock_type" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('cash_stock_type') border-red-500 @enderror">
+                                <option value="">— Select sale type —</option>
+                                @if($currentSaleTypeForSelect !== '' && ! $saleTypeInReferenceTable)
+                                    <option value="{{ $currentSaleTypeForSelect }}" selected>{{ $currentSaleTypeForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($imeiSaleTypes as $imeiSaleType)
+                                    <option value="{{ $imeiSaleType->sale_type }}" @selected($currentSaleTypeForSelect === $imeiSaleType->sale_type)>{{ $imeiSaleType->sale_type }}</option>
+                                @endforeach
+                            </select>
+                            @error('cash_stock_type')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="sn" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['sn'] ?? 'Serial Number' }}</label>
@@ -300,14 +314,10 @@
                             @enderror
                         </div>
                     </div>
-                </div>
-
-                <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Device</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
+                        <div class="min-w-0">
                             <label for="make" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['make'] ?? 'Make' }}</label>
-                            <select name="make" id="make" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('make') border-red-500 @enderror">
+                            <select name="make" id="make" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white font-bold {{ $roFieldClass }} @error('make') border-red-500 @enderror">
                                 <option value="">— Select make —</option>
                                 @if($currentMakeForSelect !== '' && ! $makeInReferenceTable)
                                     <option value="{{ $currentMakeForSelect }}" selected>{{ $currentMakeForSelect }} (not in list)</option>
@@ -320,9 +330,9 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <label for="model" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['model'] ?? 'Model' }}</label>
-                            <select name="model" id="model" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('model') border-red-500 @enderror">
+                            <select name="model" id="model" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white font-bold {{ $roFieldClass }} @error('model') border-red-500 @enderror">
                                 <option value="">— Select model —</option>
                                 @if($showLegacyModelOption)
                                     <option value="{{ $currentModelForSelect }}" selected>{{ $currentModelForSelect }} (not in list)</option>
@@ -332,6 +342,44 @@
                                 @endforeach
                             </select>
                             @error('model')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="ourON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ourON'] ?? 'ourON' }}</label>
+                            <input type="text" name="ourON" id="ourON" value="{{ $imeiFieldValue('ourON') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ourON') border-red-500 @enderror">
+                            @error('ourON')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="salesON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['salesON'] ?? 'salesON' }}</label>
+                            <input type="text" name="salesON" id="salesON" value="{{ $imeiFieldValue('salesON') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('salesON') border-red-500 @enderror">
+                            @error('salesON')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="cost_excl" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_excl'] ?? 'Cost excl' }}</label>
+                            <input type="text" name="cost_excl" id="cost_excl" value="{{ $imeiFieldValue('cost_excl') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('cost_excl') border-red-500 @enderror">
+                            @error('cost_excl')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }}</label>
+                            <p id="cost_incl_display" class="border border-gray-200 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 min-h-[42px] flex items-center">
+                                {{ \App\Support\ImeiCostIncl::format($imeiFieldValue('cost_excl')) ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <label for="selling_price" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['selling_price'] ?? 'Selling price' }}</label>
+                            <input type="number" name="selling_price" id="selling_price" value="{{ $imeiFieldValue('selling_price') }}" step="1" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('selling_price') border-red-500 @enderror">
+                            @error('selling_price')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -371,70 +419,9 @@
                             @enderror
                         </div>
                     </div>
-                    <div>
-                        <label for="stock_take_date" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['stock_take_date'] ?? 'Sale type' }}</label>
-                        <select name="stock_take_date" id="stock_take_date" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('stock_take_date') border-red-500 @enderror">
-                            <option value="">— Select sale type —</option>
-                            @if($currentSaleTypeForSelect !== '' && ! $saleTypeInReferenceTable)
-                                <option value="{{ $currentSaleTypeForSelect }}" selected>{{ $currentSaleTypeForSelect }} (not in list)</option>
-                            @endif
-                            @foreach($imeiSaleTypes as $imeiSaleType)
-                                <option value="{{ $imeiSaleType->sale_type }}" @selected($currentSaleTypeForSelect === $imeiSaleType->sale_type)>{{ $imeiSaleType->sale_type }}</option>
-                            @endforeach
-                        </select>
-                        @error('stock_take_date')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="ourON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ourON'] ?? 'ourON' }}</label>
-                            <input type="text" name="ourON" id="ourON" value="{{ $imeiFieldValue('ourON') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ourON') border-red-500 @enderror">
-                            @error('ourON')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="salesON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['salesON'] ?? 'salesON' }}</label>
-                            <input type="text" name="salesON" id="salesON" value="{{ $imeiFieldValue('salesON') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('salesON') border-red-500 @enderror">
-                            @error('salesON')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label for="cost_excl" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_excl'] ?? 'Cost excl' }}</label>
-                            <input type="text" name="cost_excl" id="cost_excl" value="{{ $imeiFieldValue('cost_excl') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('cost_excl') border-red-500 @enderror">
-                            @error('cost_excl')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }}</label>
-                            <p id="cost_incl_display" class="border border-gray-200 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 min-h-[42px] flex items-center">
-                                {{ \App\Support\ImeiCostIncl::format($imeiFieldValue('cost_excl')) ?? '—' }}
-                            </p>
-                            <p class="mt-1 text-xs text-gray-500">Calculated at VAT {{ $vatPercent }}%</p>
-                        </div>
-                        <div>
-                            <label for="selling_price" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['selling_price'] ?? 'Selling price' }}</label>
-                            <input type="number" name="selling_price" id="selling_price" value="{{ $imeiFieldValue('selling_price') }}" step="1" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('selling_price') border-red-500 @enderror">
-                            @error('selling_price')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
                 </div>
 
                 <div class="space-y-4 pb-4 border-b border-gray-200">
-                    <div>
-                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Deal Phone Number' }}</label>
-                        <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
-                        @error('phonenumber')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
                     <div>
                         <div class="flex items-center justify-between gap-3 mb-1">
                             <label for="notes" class="block text-sm font-medium text-gray-700">{{ $columnLabels['notes'] ?? 'Customer Details' }}</label>
@@ -454,6 +441,13 @@
                             / {{ number_format($customerDetailsMaxLength) }} characters
                         </p>
                         @error('notes')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="phonenumber" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['phonenumber'] ?? 'Deal Phone Number' }}</label>
+                        <input type="text" name="phonenumber" id="phonenumber" value="{{ $imeiFieldValue('phonenumber') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('phonenumber') border-red-500 @enderror">
+                        @error('phonenumber')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -594,9 +588,37 @@
     </div>
 </div>
 
+<div
+    id="imei-unsaved-changes-modal"
+    class="fixed inset-0 z-50 hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="imei-unsaved-changes-title"
+>
+    <div class="absolute inset-0 bg-black/40" id="imei-unsaved-changes-backdrop"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md border border-gray-200 p-6">
+            <h2 id="imei-unsaved-changes-title" class="text-lg font-bold text-gray-900 mb-2">Unsaved changes</h2>
+            <p class="text-sm text-gray-600 mb-6">You have changed this IMEI record. Save your changes before leaving, or discard them and exit.</p>
+            <div class="flex flex-wrap justify-end gap-3">
+                <button type="button" id="imei-unsaved-changes-cancel" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Keep editing
+                </button>
+                <button type="button" id="imei-unsaved-changes-discard" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Exit without saving
+                </button>
+                <button type="button" id="imei-unsaved-changes-save" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const embeddedMode = @json($embedded ?? false);
+    const openedInEditMode = @json($editableOnLoad ?? false);
     const embeddedCloseOnLoad = @json($embeddedClose ?? false);
     const lookupUrl = @json(route('imeis.lookup'));
     const contactsBrowseUrl = @json(route('imeis.contacts.browse'));
@@ -620,6 +642,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentViewRecord = @json($viewRecord);
     let viewReadonlyBanner = readonlyAfterSave ? 'saved' : 'existing';
     let isEditingRecord = false;
+    let editBaselineSnapshot = null;
 
     function notifyParentClose(reload) {
         if (! embeddedMode || window.parent === window) {
@@ -1055,6 +1078,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
         syncMakeModelFromRecord(record);
+        const cashStockEl = document.getElementById('cash_stock_type');
+        if (cashStockEl) {
+            cashStockEl.value = record.cash_stock_type == null ? '' : String(record.cash_stock_type);
+        }
+        const dateInEl = document.getElementById('date_in');
+        if (dateInEl && record.date_in) {
+            dateInEl.value = String(record.date_in);
+        }
         updateCostInclDisplay();
 
         const notesElAfterPopulate = document.getElementById('notes');
@@ -1153,13 +1184,91 @@ document.addEventListener('DOMContentLoaded', function () {
         return null;
     }
 
-    function exitEditToViewMode() {
-        const recordId = resolveViewRecordId();
+    function serializeEditFormState() {
+        if (!form) {
+            return '';
+        }
 
-        if (isEditingRecord && recordId) {
-            window.location.href = appendReturnQueryToUrl(
-                imeisResourceBase + '/' + encodeURIComponent(recordId) + '/edit'
-            );
+        const fd = new FormData(form);
+        const parts = [];
+
+        fd.forEach(function (value, key) {
+            if (key === '_token' || key === '_method') {
+                return;
+            }
+            parts.push(key + '=' + String(value));
+        });
+        parts.sort();
+
+        return parts.join('\n');
+    }
+
+    function captureEditBaseline() {
+        editBaselineSnapshot = serializeEditFormState();
+    }
+
+    function hasUnsavedEditChanges() {
+        if (!isEditingRecord || editBaselineSnapshot === null) {
+            return false;
+        }
+
+        return serializeEditFormState() !== editBaselineSnapshot;
+    }
+
+    const unsavedChangesModal = document.getElementById('imei-unsaved-changes-modal');
+    const unsavedChangesBackdrop = document.getElementById('imei-unsaved-changes-backdrop');
+    const unsavedChangesCancel = document.getElementById('imei-unsaved-changes-cancel');
+    const unsavedChangesDiscard = document.getElementById('imei-unsaved-changes-discard');
+    const unsavedChangesSave = document.getElementById('imei-unsaved-changes-save');
+
+    function openUnsavedChangesModal() {
+        if (unsavedChangesModal) {
+            unsavedChangesModal.classList.remove('hidden');
+        }
+    }
+
+    function closeUnsavedChangesModal() {
+        if (unsavedChangesModal) {
+            unsavedChangesModal.classList.add('hidden');
+        }
+    }
+
+    function performExitEdit() {
+        isEditingRecord = false;
+        editBaselineSnapshot = null;
+
+        if (openedInEditMode) {
+            if (goBackToResultsList()) {
+                return;
+            }
+
+            if (embeddedMode) {
+                notifyParentClose(true);
+
+                return;
+            }
+
+            const recordId = resolveViewRecordId();
+            if (recordId) {
+                const imeiVal = (currentViewRecord && currentViewRecord.imei)
+                    || (imeiFinal && imeiFinal.value)
+                    || '';
+                const listUrl = imeiVal
+                    ? resultsBase + '?search=' + encodeURIComponent(String(imeiVal)) + '&scope=all&date_scope=all'
+                    : resultsBase;
+                window.location.href = listUrl;
+
+                return;
+            }
+
+            showCheck();
+
+            return;
+        }
+
+        if (currentViewRecord) {
+            populateFromRecord(currentViewRecord);
+            showRecordReadonly(currentViewRecord, viewReadonlyBanner);
 
             return;
         }
@@ -1174,19 +1283,23 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        if (recordId) {
-            const imeiVal = (currentViewRecord && currentViewRecord.imei)
-                || (imeiFinal && imeiFinal.value)
-                || '';
-            const listUrl = imeiVal
-                ? resultsBase + '?search=' + encodeURIComponent(String(imeiVal)) + '&scope=all&date_scope=all'
-                : resultsBase;
-            window.location.href = listUrl;
+        showCheck();
+    }
+
+    function exitEditToViewMode() {
+        if (!isEditingRecord) {
+            performExitEdit();
 
             return;
         }
 
-        showCheck();
+        if (hasUnsavedEditChanges()) {
+            openUnsavedChangesModal();
+
+            return;
+        }
+
+        performExitEdit();
     }
 
     function showRecordReadonly(record, bannerKind) {
@@ -1242,6 +1355,7 @@ document.addEventListener('DOMContentLoaded', function () {
         hideActionBtn(editBtn);
         showActionBtn(cancelEditBtn);
         setImeiDeleteActionsVisible(true);
+        captureEditBaseline();
     }
 
     async function copyLastRecord() {
@@ -1859,6 +1973,32 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    if (unsavedChangesCancel) {
+        unsavedChangesCancel.addEventListener('click', closeUnsavedChangesModal);
+    }
+
+    if (unsavedChangesBackdrop) {
+        unsavedChangesBackdrop.addEventListener('click', closeUnsavedChangesModal);
+    }
+
+    if (unsavedChangesDiscard) {
+        unsavedChangesDiscard.addEventListener('click', function () {
+            closeUnsavedChangesModal();
+            performExitEdit();
+        });
+    }
+
+    if (unsavedChangesSave) {
+        unsavedChangesSave.addEventListener('click', function () {
+            closeUnsavedChangesModal();
+            if (form && typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else if (form) {
+                form.submit();
+            }
+        });
+    }
+
     if (formUnlocked && prefillRecordId && form && methodSpoof && !readonlyAfterSave) {
         isEditingRecord = true;
         form.action = imeisResourceBase + '/' + encodeURIComponent(prefillRecordId);
@@ -1881,6 +2021,7 @@ document.addEventListener('DOMContentLoaded', function () {
         hideActionBtn(copyLastBtn);
         setMutableReadonly(false);
         setImeiDeleteActionsVisible(true);
+        captureEditBaseline();
         syncTopActionButtons();
     }
 

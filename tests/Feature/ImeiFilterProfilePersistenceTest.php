@@ -12,7 +12,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');

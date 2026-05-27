@@ -12,7 +12,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -33,7 +33,7 @@ beforeEach(function () {
     });
 });
 
-test('store rejects stock_take_date that is not in imei_sale_types', function () {
+test('store rejects cash_stock_type that is not in imei_sale_types', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
@@ -42,12 +42,12 @@ test('store rejects stock_take_date that is not in imei_sale_types', function ()
             'imei_non_standard' => '1',
             'imei' => 'store-sale-type-bad',
             'date_in' => '',
-            'stock_take_date' => 'NotInReferenceTable',
+            'cash_stock_type' => 'NotInReferenceTable',
         ])
-        ->assertSessionHasErrors('stock_take_date');
+        ->assertSessionHasErrors('cash_stock_type');
 });
 
-test('store persists the chosen sale type in stock_take_date', function () {
+test('store persists the chosen sale type in cash_stock_type', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
@@ -56,13 +56,13 @@ test('store persists the chosen sale type in stock_take_date', function () {
             'imei_non_standard' => '1',
             'imei' => 'storesaleok',
             'date_in' => '',
-            'stock_take_date' => 'Cash',
+            'cash_stock_type' => 'Cash',
         ])
         ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storesaleok')->firstOrFail()));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storesaleok',
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
     ]);
 });
 
@@ -72,7 +72,7 @@ test('add imei form lists sale types from imei_sale_types as options', function 
     $this->actingAs($user)
         ->get(route('imeis.create'))
         ->assertSuccessful()
-        ->assertSee('name="stock_take_date"', false)
+        ->assertSee('name="cash_stock_type"', false)
         ->assertSee('Voda_Sale', false)
         ->assertSee('Easy20wn', false);
 });

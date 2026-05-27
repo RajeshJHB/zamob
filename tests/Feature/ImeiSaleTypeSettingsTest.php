@@ -27,6 +27,17 @@ test('verified users can list sale types in alphabetical order', function () {
 
     $response = $this->actingAs($user)->get(route('settings.sale-types.index'));
 
+    $response->assertForbidden();
+});
+
+test('role 4 users can list sale types in alphabetical order', function () {
+    $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
+    ImeiSaleType::factory()->create(['sale_type' => 'Zulu']);
+    ImeiSaleType::factory()->create(['sale_type' => 'Alpha']);
+
+    $response = $this->actingAs($user)->get(route('settings.sale-types.index'));
+
     $response->assertSuccessful();
     $alphaPos = strpos($response->getContent(), 'Alpha');
     $zuluPos = strpos($response->getContent(), 'Zulu');
@@ -38,9 +49,9 @@ test('verified users can add a sale type', function () {
 
     $this->actingAs($user)
         ->post(route('settings.sale-types.store'), ['sale_type' => '  Promo  '])
-        ->assertRedirect(route('settings.sale-types.index'));
+        ->assertForbidden();
 
-    expect(ImeiSaleType::query()->where('sale_type', 'Promo')->exists())->toBeTrue();
+    expect(ImeiSaleType::query()->where('sale_type', 'Promo')->exists())->toBeFalse();
 });
 
 test('store rejects duplicate sale types', function () {
@@ -48,12 +59,31 @@ test('store rejects duplicate sale types', function () {
 
     $this->actingAs($user)
         ->post(route('settings.sale-types.store'), ['sale_type' => 'Cash'])
-        ->assertSessionHasErrors('sale_type');
+        ->assertForbidden();
 });
 
 test('verified users can update a sale type', function () {
     $user = User::factory()->create();
     $row = ImeiSaleType::factory()->create(['sale_type' => 'Old']);
+
+    $this->actingAs($user)
+        ->put(route('settings.sale-types.update', $row), ['sale_type' => 'New'])
+        ->assertForbidden();
+
+    expect($row->fresh()->sale_type)->toBe('Old');
+});
+
+test('role 4 users can add and update a sale type', function () {
+    $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
+
+    $this->actingAs($user)
+        ->post(route('settings.sale-types.store'), ['sale_type' => '  Promo  '])
+        ->assertRedirect(route('settings.sale-types.index'));
+
+    expect(ImeiSaleType::query()->where('sale_type', 'Promo')->exists())->toBeTrue();
+
+    $row = ImeiSaleType::query()->where('sale_type', 'Promo')->firstOrFail();
 
     $this->actingAs($user)
         ->put(route('settings.sale-types.update', $row), ['sale_type' => 'New'])

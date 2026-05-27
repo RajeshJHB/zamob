@@ -14,7 +14,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -57,7 +57,7 @@ test('find imei index applies two field filters', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '111111111111111',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'A1',
         'sn' => '',
@@ -79,7 +79,7 @@ test('find imei index applies two field filters', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '222222222222222',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Samsung',
         'model' => 'S1',
         'sn' => '',
@@ -101,7 +101,7 @@ test('find imei index applies two field filters', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '333333333333333',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'A2',
         'sn' => '',

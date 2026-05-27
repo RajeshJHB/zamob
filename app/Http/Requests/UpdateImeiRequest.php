@@ -105,18 +105,18 @@ class UpdateImeiRequest extends FormRequest
                     ['exists:imei_locations,location'],
                 ),
             ],
-            'stock_take_date' => [
+            'cash_stock_type' => [
                 'nullable',
                 'string',
                 'max:255',
                 Rule::when(
                     function (): bool {
-                        $value = (string) $this->input('stock_take_date', '');
+                        $value = (string) $this->input('cash_stock_type', '');
                         if ($value === '') {
                             return false;
                         }
                         $imei = $this->route('imei');
-                        if ($imei instanceof Imei && $imei->stock_take_date === $value) {
+                        if ($imei instanceof Imei && $imei->cash_stock_type === $value) {
                             return false;
                         }
 

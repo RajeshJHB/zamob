@@ -32,6 +32,20 @@ class UserFactory extends Factory
         ];
     }
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (\App\Models\User $user): void {
+            grantApplicationAccess($user);
+        });
+    }
+
+    public function withoutRoles(): static
+    {
+        return $this->afterCreating(function (\App\Models\User $user): void {
+            $user->roles()->sync([]);
+        });
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */

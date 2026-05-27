@@ -56,12 +56,12 @@ final class CashDevicesSaleTypeFilter
                 return;
             }
 
-            $query->whereIn('stock_take_date', $saleTypes);
+            $query->whereIn('cash_stock_type', $saleTypes);
 
             return;
         }
 
-        $query->where('stock_take_date', $selectedSaleType);
+        $query->where('cash_stock_type', $selectedSaleType);
     }
 
     /**

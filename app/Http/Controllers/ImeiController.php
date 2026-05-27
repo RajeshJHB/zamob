@@ -75,7 +75,7 @@ class ImeiController extends Controller
     public const COLUMNS = [
         'id' => 'ID',
         'date_in' => 'Date in',
-        'stock_take_date' => 'Sale type',
+        'cash_stock_type' => 'Sale type',
         'date_updated' => 'Date updated',
         'make' => 'Make',
         'model' => 'Model',
@@ -134,11 +134,12 @@ class ImeiController extends Controller
 
         return $this->imeiFormView(
             viewRecord: $this->imeiRecordForLookup($imei),
-            createPageHeading: 'View IMEI',
-            createPageIntro: 'This record is loaded from IMEI search. Details are read-only until you choose Edit, then Save to update.',
+            createPageHeading: 'Edit IMEI',
+            createPageIntro: 'Update the record below and choose Save.',
             defaultImeiNonStandard: ImeiValidator::isValidChecksum($digits) ? '0' : '1',
             returnQuery: $returnQuery,
             embedded: $request->boolean('embedded'),
+            editableOnLoad: true,
         );
     }
 
@@ -1039,7 +1040,7 @@ class ImeiController extends Controller
             'model' => $imei->model,
             'sn' => $imei->sn,
             'location' => $imei->location,
-            'stock_take_date' => $imei->stock_take_date,
+            'cash_stock_type' => $imei->cash_stock_type,
             'type' => $imei->type,
             'status' => $imei->status,
             'notes' => $imei->notes,
@@ -1065,6 +1066,7 @@ class ImeiController extends Controller
         ?string $returnQuery,
         bool $embedded = false,
         bool $embeddedClose = false,
+        bool $editableOnLoad = false,
     ): View {
         return view('imeis.create', [
             'columnLabels' => self::COLUMNS,
@@ -1072,6 +1074,7 @@ class ImeiController extends Controller
             'customerDetailsMaxLength' => ImeiTextLimits::CUSTOMER_DETAILS_MAX,
             'dealDetailsMaxLength' => ImeiTextLimits::DEAL_DETAILS_MAX,
             'viewRecord' => $viewRecord,
+            'editableOnLoad' => $editableOnLoad,
             'createPageHeading' => $createPageHeading,
             'createPageIntro' => $createPageIntro,
             'defaultImeiNonStandard' => $defaultImeiNonStandard,

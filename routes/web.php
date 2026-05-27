@@ -59,7 +59,9 @@ Route::middleware(['auth'])->group(function () {
         // Ensure at least one role manager exists after email verification
         \App\Models\User::ensureRoleManagerExists();
 
-        return redirect()->route('dashboard');
+        $user = $request->user();
+
+        return redirect($user->hasAnyRole() ? route('dashboard') : route('profile.show'));
     })->middleware(['signed'])->name('verification.verify');
 
     Route::post('/email/verification-notification', function (\Illuminate\Http\Request $request) {
@@ -70,9 +72,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Authenticated Routes
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'role.assigned'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/help', HelpController::class)->name('help.index');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/makes', [ImeiMakeController::class, 'index'])->name('settings.makes.index');
     Route::post('/settings/makes', [ImeiMakeController::class, 'store'])->name('settings.makes.store');
@@ -147,8 +148,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/imeis', [ImeiController::class, 'index'])->name('imeis.index');
 });
 
-// Profile Routes (accessible even when unverified after email change)
+// Profile Routes (accessible even when unverified or without roles)
 Route::middleware(['auth'])->group(function () {
+    Route::get('/help', HelpController::class)->name('help.index');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/profile/password', [ProfileController::class, 'showPasswordResetForm'])->name('profile.password');

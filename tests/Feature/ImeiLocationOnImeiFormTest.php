@@ -17,7 +17,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -78,7 +78,7 @@ test('update allows unchanged legacy location when it is not in imei_locations',
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'upd-legacy-loc',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',
@@ -114,7 +114,7 @@ test('update rejects changing location to a value not in imei_locations', functi
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'upd-bad-loc',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',

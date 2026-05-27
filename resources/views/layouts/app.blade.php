@@ -17,30 +17,32 @@
             <div class="grid grid-cols-3 items-center h-16">
                 <div class="flex items-center gap-1.5">
                     @auth
-                    <a
-                        href="{{ route('dashboard') }}"
-                        @class([$navPillIdle => ! request()->routeIs('dashboard'), $navPillOn => request()->routeIs('dashboard')])
-                    >
-                        Home
-                    </a>
-                    <a
-                        href="{{ route('imeis.index') }}"
-                        @class([$navPillIdle => ! request()->routeIs('imeis.*'), $navPillOn => request()->routeIs('imeis.*')])
-                    >
-                        IMEI
-                    </a>
-                    <a
-                        href="{{ route('contacts.index') }}"
-                        @class([$navPillIdle => ! request()->routeIs('contacts.*'), $navPillOn => request()->routeIs('contacts.*')])
-                    >
-                        Contacts
-                    </a>
-                    <a
-                        href="{{ route('notes.index') }}"
-                        @class([$navPillIdle => ! request()->routeIs('notes.*'), $navPillOn => request()->routeIs('notes.*')])
-                    >
-                        Notes
-                    </a>
+                        @if(Auth::user()->hasAnyRole())
+                            <a
+                                href="{{ route('dashboard') }}"
+                                @class([$navPillIdle => ! request()->routeIs('dashboard'), $navPillOn => request()->routeIs('dashboard')])
+                            >
+                                Home
+                            </a>
+                            <a
+                                href="{{ route('imeis.index') }}"
+                                @class([$navPillIdle => ! request()->routeIs('imeis.*'), $navPillOn => request()->routeIs('imeis.*')])
+                            >
+                                IMEI
+                            </a>
+                            <a
+                                href="{{ route('contacts.index') }}"
+                                @class([$navPillIdle => ! request()->routeIs('contacts.*'), $navPillOn => request()->routeIs('contacts.*')])
+                            >
+                                Contacts
+                            </a>
+                            <a
+                                href="{{ route('notes.index') }}"
+                                @class([$navPillIdle => ! request()->routeIs('notes.*'), $navPillOn => request()->routeIs('notes.*')])
+                            >
+                                Notes
+                            </a>
+                        @endif
                     @endauth
                 </div>
                 <div class="flex items-center justify-center">
@@ -48,6 +50,7 @@
                 </div>
                 <div class="flex items-center gap-1.5 justify-end">
                     @auth
+                        @if(Auth::user()->hasAnyRole())
                         <div class="relative" id="settings-menu-container">
                             <button
                                 id="settings-menu-button"
@@ -75,6 +78,7 @@
                                 </a>
                             </div>
                         </div>
+                        @endif
                         <div class="relative" id="user-menu-container">
                             <button
                                 id="user-menu-button"

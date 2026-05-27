@@ -93,12 +93,12 @@ class StoreImeiRequest extends FormRequest
                     ['exists:imei_locations,location'],
                 ),
             ],
-            'stock_take_date' => [
+            'cash_stock_type' => [
                 'nullable',
                 'string',
                 'max:255',
                 Rule::when(
-                    fn (): bool => filled($this->input('stock_take_date')),
+                    fn (): bool => filled($this->input('cash_stock_type')),
                     ['exists:imei_sale_types,sale_type'],
                 ),
             ],

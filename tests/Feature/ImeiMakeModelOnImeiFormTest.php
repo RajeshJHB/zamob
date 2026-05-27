@@ -14,7 +14,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -109,7 +109,7 @@ test('update allows unchanged legacy make and model when not in reference tables
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'mklegacy',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'OldMake',
         'model' => 'OldModel',
         'sn' => '',
@@ -148,7 +148,7 @@ test('update rejects changing make to a value not in imei_make', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'mkupdmake',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Listed',
         'model' => '',
         'sn' => '',
@@ -195,7 +195,7 @@ test('edit imei form lists models for the records make', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'editsamsungx',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Samsung',
         'model' => 'Galaxy S',
         'sn' => '',

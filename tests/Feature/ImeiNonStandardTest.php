@@ -12,7 +12,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -39,7 +39,7 @@ test('lookup accepts non-standard imei and finds existing row by normalized key'
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '12-34-56',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',
@@ -72,7 +72,7 @@ test('lookup finds non-standard alphanumeric imei when separators differ', funct
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'ab-12/x',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',
@@ -137,7 +137,7 @@ test('store rejects duplicate non-standard imei', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '11111',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',

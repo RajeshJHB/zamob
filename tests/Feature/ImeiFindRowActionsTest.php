@@ -23,7 +23,7 @@ function seedImeiBrowseRows(int $count, string $prefix = 'BROWSE'): array
             'date_in' => $now->copy()->subMinutes($i),
             'date_updated' => $now,
             'imei' => $prefix.$i,
-            'stock_take_date' => '',
+            'cash_stock_type' => '',
             'make' => 'Make',
             'model' => 'Model',
             'sn' => '',
@@ -49,7 +49,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -77,7 +77,7 @@ test('find imei index shows calculated cost incl between cost excl and selling p
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270999',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Samsung',
         'model' => 'Galaxy',
         'sn' => '',
@@ -141,7 +141,7 @@ test('imei index quick search filters results by search term', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'QUICKFIND999',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'FindMe',
         'model' => '',
         'sn' => '',
@@ -173,7 +173,7 @@ test('view link from index preserves list filter state for exit return', functio
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -211,7 +211,7 @@ test('view page exposes return list url from return_query', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -253,7 +253,7 @@ test('update redirects back to view with return_query preserved', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -292,7 +292,7 @@ test('find results include print and edit links per row', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -317,7 +317,7 @@ test('find results include print and edit links per row', function () {
 
     expect($html)->toContain(route('imeis.receipt', $row));
     expect($html)->toContain(route('imeis.edit', $row));
-    expect($html)->toContain('>View</a>');
+    expect($html)->toContain('>Edit</a>');
     expect($html)->not->toContain('name="_method" value="DELETE"');
 });
 
@@ -327,7 +327,7 @@ test('edit imei page includes delete for all authenticated users', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -360,7 +360,7 @@ test('edit imei page includes delete form for authenticated users', function () 
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270299',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -392,7 +392,7 @@ test('any authenticated user can soft delete an imei record', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270285',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -425,7 +425,7 @@ test('users with role 4 can soft delete an imei record', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270286',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone',
         'sn' => '',
@@ -466,7 +466,7 @@ test('receipt page shows device receipt fields for an imei', function () {
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Apple',
         'model' => 'iPhone 17',
         'sn' => '195950623888',
@@ -494,13 +494,13 @@ test('receipt page shows device receipt fields for an imei', function () {
         ->assertSee('Terms and Conditions Apply', false);
 });
 
-test('edit from find loads create form with record in read-only mode', function () {
+test('edit imei page includes unsaved changes prompt when exiting with edits', function () {
     $user = User::factory()->create();
     $row = Imei::query()->create([
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270284',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'Samsung',
         'model' => 'Galaxy',
         'sn' => '',
@@ -521,7 +521,40 @@ test('edit from find loads create form with record in read-only mode', function 
     $this->actingAs($user)
         ->get(route('imeis.edit', $row))
         ->assertSuccessful()
-        ->assertSee('View IMEI', false)
+        ->assertSee('id="imei-unsaved-changes-modal"', false)
+        ->assertSee('Unsaved changes', false)
+        ->assertSee('id="imei-unsaved-changes-save"', false)
+        ->assertSee('Exit without saving', false);
+});
+
+test('edit from find loads create form with record in edit mode', function () {
+    $user = User::factory()->create();
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '358918502270284',
+        'cash_stock_type' => '',
+        'make' => 'Samsung',
+        'model' => 'Galaxy',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.edit', $row))
+        ->assertSuccessful()
+        ->assertSee('Edit IMEI', false)
         ->assertSee('358918502270284', false)
         ->assertSee('Samsung', false)
         ->assertSee('imei-submit-btn', false);

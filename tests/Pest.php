@@ -48,6 +48,15 @@ expect()->extend('toBeOne', function () {
 |
 */
 
+function grantApplicationAccess(User $user, int $roleNumber = 2): void
+{
+    $role = Role::query()->firstOrCreate(
+        ['number' => $roleNumber],
+        ['name' => 'Role '.$roleNumber],
+    );
+    $user->roles()->syncWithoutDetaching([$role->id]);
+}
+
 function grantRoleFourForImeiReferenceDeletes(User $user): void
 {
     $role = Role::query()->firstOrCreate(

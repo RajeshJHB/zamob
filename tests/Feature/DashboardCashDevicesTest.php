@@ -14,7 +14,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -52,7 +52,7 @@ function createDashboardImei(array $overrides = []): Imei
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => '358918502270'.fake()->unique()->numerify('###'),
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'Make',
         'model' => 'Model',
         'sn' => '',
@@ -80,7 +80,7 @@ test('dashboard lists matching sale type records and excludes sold', function ()
 
     $visible = createDashboardImei([
         'imei' => '358918502270111',
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'Apple',
         'model' => 'iPhone 14',
         'type' => 'Trade-in',
@@ -91,7 +91,7 @@ test('dashboard lists matching sale type records and excludes sold', function ()
 
     createDashboardImei([
         'imei' => '358918502270222',
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'Samsung',
         'model' => 'Galaxy',
         'status' => 'Sold',
@@ -120,24 +120,24 @@ test('dashboard all sale type shows records for any configured sale type except 
     $user = User::factory()->create();
 
     createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'CashMake',
         'type' => 'New Cash device',
     ]);
 
     createDashboardImei([
-        'stock_take_date' => 'Voda_Sale',
+        'cash_stock_type' => 'Voda_Sale',
         'make' => 'VodaMake',
         'type' => 'Contract',
     ]);
 
     createDashboardImei([
-        'stock_take_date' => 'None',
+        'cash_stock_type' => 'None',
         'make' => 'NoneMake',
     ]);
 
     createDashboardImei([
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => 'BlankMake',
     ]);
 
@@ -154,13 +154,13 @@ test('dashboard can filter by a specific sale type regardless of device type', f
     $user = User::factory()->create();
 
     createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'CashOnly',
         'type' => 'New Cash device',
     ]);
 
     createDashboardImei([
-        'stock_take_date' => 'Voda_Sale',
+        'cash_stock_type' => 'Voda_Sale',
         'make' => 'VodaOnly',
         'type' => 'Other',
     ]);
@@ -176,13 +176,13 @@ test('dashboard never shows sold records for matching sale type', function () {
     $user = User::factory()->create();
 
     createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'AvailableCash',
         'status' => 'In Shop',
     ]);
 
     createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'SoldCash',
         'status' => 'Sold',
     ]);
@@ -198,13 +198,13 @@ test('dashboard cash devices table can be sorted by column', function () {
     $user = User::factory()->create();
 
     createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'Zebra',
         'model' => 'Z1',
     ]);
 
     createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'Apple',
         'model' => 'A1',
     ]);
@@ -219,7 +219,7 @@ test('view from cash devices returns to dashboard on exit', function () {
     $user = User::factory()->create();
 
     $cashDevice = createDashboardImei([
-        'stock_take_date' => 'Cash',
+        'cash_stock_type' => 'Cash',
         'make' => 'Apple',
         'model' => 'iPhone 14',
     ]);

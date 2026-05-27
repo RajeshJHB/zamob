@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -15,10 +16,16 @@ class SettingsController extends Controller
         'sale_types' => 'Sale types',
     ];
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $sections = self::SECTION_LABELS;
+
+        if ($request->user()?->canDeleteImeiReferenceData() !== true) {
+            unset($sections['sale_types']);
+        }
+
         return view('settings.index', [
-            'sections' => self::SECTION_LABELS,
+            'sections' => $sections,
         ]);
     }
 

@@ -22,6 +22,12 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+
+        if ($user !== null && ! $user->hasAnyRole()) {
+            return redirect()->route('profile.show');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 

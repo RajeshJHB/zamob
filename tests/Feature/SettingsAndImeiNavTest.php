@@ -34,6 +34,7 @@ test('verified users can view settings and add imei form', function () {
         ->assertSuccessful()
         ->assertSee('Make', false)
         ->assertSee('Models', false)
+        ->assertDontSee('Sale types', false)
         ->assertDontSee('Change password', false)
         ->getContent();
 
@@ -71,9 +72,7 @@ test('verified users can view settings and add imei form', function () {
 
     $this->actingAs($user)
         ->get(route('settings.sale-types.index'))
-        ->assertSuccessful()
-        ->assertSee('Sale types', false)
-        ->assertSee('Cash', false);
+        ->assertForbidden();
 
     $this->actingAs($user)
         ->get('/settings/unknown-section')
@@ -89,4 +88,19 @@ test('verified users can view settings and add imei form', function () {
         ->assertSee('Add IMEI', false)
         ->assertDontSee('id="settings-menu-button"', false)
         ->assertDontSee('id="user-menu-button"', false);
+});
+
+test('role 4 users can access sale type settings from imei settings', function () {
+    $user = User::factory()->create();
+    grantRoleFourForImeiReferenceDeletes($user);
+
+    $this->actingAs($user)
+        ->get(route('settings.index'))
+        ->assertSuccessful()
+        ->assertSee('Sale types', false);
+
+    $this->actingAs($user)
+        ->get(route('settings.sale-types.index'))
+        ->assertSuccessful()
+        ->assertSee('Sale types', false);
 });

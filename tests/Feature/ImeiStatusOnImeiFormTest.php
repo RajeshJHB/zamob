@@ -13,7 +13,7 @@ beforeEach(function () {
     Schema::create('imei', function (Blueprint $table) {
         $table->id();
         $table->dateTime('date_in')->nullable();
-        $table->string('stock_take_date')->default('');
+        $table->string('cash_stock_type')->default('');
         $table->dateTime('date_updated')->nullable();
         $table->string('make')->default('');
         $table->string('model')->default('');
@@ -74,7 +74,7 @@ test('update allows unchanged legacy status when it is not in imei_statuses', fu
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'upd-legacy-st',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',
@@ -110,7 +110,7 @@ test('update rejects changing status to a value not in imei_statuses', function 
         'date_in' => now(),
         'date_updated' => now(),
         'imei' => 'upd-bad-st',
-        'stock_take_date' => '',
+        'cash_stock_type' => '',
         'make' => '',
         'model' => '',
         'sn' => '',

@@ -96,7 +96,7 @@
             <thead>
                 <tr class="bg-gray-100">
                     <th class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">Print</th>
-                    <th class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">View</th>
+                    <th class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700">Edit</th>
                     @foreach($columns as $col)
                         <th class="whitespace-nowrap border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">{{ $columnLabels[$col] ?? $col }}</th>
                     @endforeach
@@ -109,7 +109,7 @@
                             <a href="{{ route('imeis.receipt', $row) }}" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:text-blue-900 font-medium underline">Print</a>
                         </td>
                         <td class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
-                            <a href="{{ route('imeis.edit', $row).($listReturnQuery !== '' ? '?return_query='.rawurlencode($listReturnQuery) : '') }}" class="text-blue-700 hover:text-blue-900 font-medium underline">View</a>
+                            <a href="{{ route('imeis.edit', $row).($listReturnQuery !== '' ? '?return_query='.rawurlencode($listReturnQuery) : '') }}" class="text-blue-700 hover:text-blue-900 font-medium underline">Edit</a>
                         </td>
                         @foreach($columns as $col)
                             <td @class([

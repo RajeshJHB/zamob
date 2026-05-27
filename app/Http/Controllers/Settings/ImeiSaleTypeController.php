@@ -12,8 +12,10 @@ use Illuminate\View\View;
 
 class ImeiSaleTypeController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        abort_unless($request->user()?->canDeleteImeiReferenceData() === true, 403);
+
         $saleTypes = ImeiSaleType::query()->orderBy('sale_type')->get();
 
         return view('settings.sale-types.index', [
@@ -23,6 +25,8 @@ class ImeiSaleTypeController extends Controller
 
     public function store(StoreImeiSaleTypeRequest $request): RedirectResponse
     {
+        abort_unless($request->user()?->canDeleteImeiReferenceData() === true, 403);
+
         ImeiSaleType::query()->create([
             'sale_type' => trim($request->validated('sale_type')),
         ]);
@@ -34,6 +38,8 @@ class ImeiSaleTypeController extends Controller
 
     public function update(UpdateImeiSaleTypeRequest $request, ImeiSaleType $imeiSaleType): RedirectResponse
     {
+        abort_unless($request->user()?->canDeleteImeiReferenceData() === true, 403);
+
         $imeiSaleType->update([
             'sale_type' => trim($request->validated('sale_type')),
         ]);
@@ -45,7 +51,7 @@ class ImeiSaleTypeController extends Controller
 
     public function destroy(Request $request, ImeiSaleType $imeiSaleType): RedirectResponse
     {
-        abort_unless($request->user()->canDeleteImeiReferenceData(), 403);
+        abort_unless($request->user()?->canDeleteImeiReferenceData() === true, 403);
 
         $imeiSaleType->delete();
 

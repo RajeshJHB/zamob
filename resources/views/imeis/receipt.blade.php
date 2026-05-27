@@ -33,28 +33,28 @@
             word-break: break-word;
         }
         .receipt-line-model .receipt-label {
-            font-size: 2em;
+            font-size: 1.25rem;
             line-height: 1.35;
-            font-weight: 400;
+            font-weight: 700;
             display: inline-block;
             vertical-align: middle;
         }
         .receipt-model-value {
-            font-size: 2em;
+            font-size: 1.25rem;
             line-height: 1.35;
-            font-weight: 400;
+            font-weight: 700;
             display: inline-block;
             vertical-align: middle;
         }
         .receipt-line-imei .receipt-label {
-            font-size: 2em;
+            font-size: 1.25rem;
             line-height: 1.35;
             font-weight: 700;
             display: inline-block;
             vertical-align: middle;
         }
         .receipt-imei-value {
-            font-size: 2em;
+            font-size: 1.25rem;
             font-weight: 700;
             line-height: 1.35;
             display: inline-block;
