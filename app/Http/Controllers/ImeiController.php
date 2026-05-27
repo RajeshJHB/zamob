@@ -984,7 +984,7 @@ class ImeiController extends Controller
      */
     private function imeiTypesForForm(): Collection
     {
-        return ImeiType::query()->orderBy('type')->get();
+        return ImeiType::query()->orderByDesc('type')->get();
     }
 
     /**

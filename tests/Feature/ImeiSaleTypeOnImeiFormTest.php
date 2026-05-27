@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Imei;
+use App\Models\ImeiSaleType;
 use App\Models\User;
+use App\Support\ImeiNewRecordDefaults;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -75,4 +77,35 @@ test('add imei form lists sale types from imei_sale_types as options', function 
         ->assertSee('name="cash_stock_type"', false)
         ->assertSee('Voda_Sale', false)
         ->assertSee('Easy20wn', false);
+});
+
+test('add imei form defaults sale type to none', function () {
+    $user = User::factory()->create();
+    ImeiSaleType::query()->firstOrCreate(['sale_type' => 'None']);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.create'))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('value="'.ImeiNewRecordDefaults::SALE_TYPE.'" selected');
+});
+
+test('store defaults cash_stock_type to none when omitted', function () {
+    $user = User::factory()->create();
+    ImeiSaleType::query()->firstOrCreate(['sale_type' => 'None']);
+
+    $this->actingAs($user)
+        ->post(route('imeis.store'), [
+            '_token' => csrf_token(),
+            'imei_non_standard' => '1',
+            'imei' => 'defaultsaletype',
+            'date_in' => '',
+        ])
+        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'defaultsaletype')->firstOrFail()));
+
+    $this->assertDatabaseHas('imei', [
+        'imei' => 'defaultsaletype',
+        'cash_stock_type' => 'None',
+    ]);
 });

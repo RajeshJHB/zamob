@@ -7,6 +7,7 @@ use App\Rules\UniqueNormalizedImei;
 use App\Rules\UniqueNormalizedNonStandardImei;
 use App\Rules\ValidImei;
 use App\Support\ImeiDeletedStatus;
+use App\Support\ImeiNewRecordDefaults;
 use App\Support\ImeiOptionalStringFields;
 use App\Support\ImeiValidator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -38,6 +39,10 @@ class StoreImeiRequest extends FormRequest
 
         if ($this->input('selling_price') === '' || $this->input('selling_price') === null) {
             $this->merge(['selling_price' => null]);
+        }
+
+        if (! filled($this->input('cash_stock_type'))) {
+            $this->merge(['cash_stock_type' => ImeiNewRecordDefaults::SALE_TYPE]);
         }
 
         foreach (ImeiOptionalStringFields::KEYS as $key) {

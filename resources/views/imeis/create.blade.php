@@ -51,6 +51,7 @@
             'location' => ImeiNewRecordDefaults::LOCATION,
             'type' => ImeiNewRecordDefaults::TYPE,
             'status' => ImeiNewRecordDefaults::STATUS,
+            'cash_stock_type' => ImeiNewRecordDefaults::SALE_TYPE,
             default => '',
         };
 
@@ -998,7 +999,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 return;
             }
-            if (el.id === 'location' || el.id === 'type' || el.id === 'status') {
+            if (el.id === 'location' || el.id === 'type' || el.id === 'status' || el.id === 'cash_stock_type') {
                 setSelectValueIfPresent(el, newRecordSelectDefaults[el.id]);
 
                 return;

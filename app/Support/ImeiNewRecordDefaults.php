@@ -10,6 +10,8 @@ final class ImeiNewRecordDefaults
 
     public const STATUS = 'In Shop';
 
+    public const SALE_TYPE = 'None';
+
     /**
      * @return array<string, string>
      */
@@ -19,6 +21,7 @@ final class ImeiNewRecordDefaults
             'location' => self::LOCATION,
             'type' => self::TYPE,
             'status' => self::STATUS,
+            'cash_stock_type' => self::SALE_TYPE,
         ];
     }
 }

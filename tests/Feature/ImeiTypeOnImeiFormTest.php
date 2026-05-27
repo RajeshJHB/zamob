@@ -147,3 +147,16 @@ test('add imei form lists types from imei_types as options', function () {
         ->assertSee('name="type"', false)
         ->assertSee('Handset', false);
 });
+
+test('add imei form lists types in reverse alphabetical order', function () {
+    $user = User::factory()->create();
+    ImeiType::factory()->create(['type' => 'Alpha']);
+    ImeiType::factory()->create(['type' => 'Zulu']);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.create'))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect(mb_strpos($html, 'Zulu'))->toBeLessThan(mb_strpos($html, 'Alpha'));
+});
