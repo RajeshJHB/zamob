@@ -3,12 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @include('partials.favicon')
     <title>@yield('title', 'ZAMOBILE')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
     @php
-        $navPill = 'inline-flex items-center justify-center h-9 px-4 rounded-md text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1';
+        $navPill = 'inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1';
         $navPillIdle = $navPill.' border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900';
         $navPillOn = $navPill.' border-blue-600 bg-blue-600 text-white hover:bg-blue-700';
     @endphp
@@ -22,7 +23,8 @@
                                 href="{{ route('dashboard') }}"
                                 @class([$navPillIdle => ! request()->routeIs('dashboard'), $navPillOn => request()->routeIs('dashboard')])
                             >
-                                Home
+                                <x-zamobile-icon class="h-5 w-5" />
+                                <span class="text-base font-semibold">Home</span>
                             </a>
                             <a
                                 href="{{ route('imeis.index') }}"
