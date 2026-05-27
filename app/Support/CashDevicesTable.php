@@ -50,23 +50,25 @@ final class CashDevicesTable
         }
     }
 
-    public static function returnQuery(string $sort, string $dir): string
+    public static function returnQuery(string $sort, string $dir, string $saleType = CashDevicesSaleTypeFilter::ALL): string
     {
-        return http_build_query([
+        return http_build_query(array_filter([
             'return_to' => self::RETURN_TO,
             'sort' => $sort,
             'dir' => $dir,
-        ]);
+            'sale_type' => $saleType !== CashDevicesSaleTypeFilter::ALL ? $saleType : null,
+        ]));
     }
 
-    public static function sortUrl(string $column, string $currentSort, string $currentDir): string
+    public static function sortUrl(string $column, string $currentSort, string $currentDir, string $saleType = CashDevicesSaleTypeFilter::ALL): string
     {
         $nextDir = ($currentSort === $column && $currentDir === 'asc') ? 'desc' : 'asc';
 
-        return route('dashboard', [
+        return route('dashboard', array_filter([
             'sort' => $column,
             'dir' => $nextDir,
-        ]);
+            'sale_type' => $saleType !== CashDevicesSaleTypeFilter::ALL ? $saleType : null,
+        ]));
     }
 
     public static function sortIndicator(string $column, string $currentSort, string $currentDir): string

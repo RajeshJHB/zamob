@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Imei;
+use App\Support\CashDevicesSaleTypeFilter;
 use App\Support\CashDevicesTable;
-use App\Support\ImeiCashDeviceType;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -14,21 +14,24 @@ class DashboardController extends Controller
     {
         $sort = CashDevicesTable::sortColumn($request->input('sort'));
         $dir = CashDevicesTable::sortDir($request->input('dir'));
+        $saleType = CashDevicesSaleTypeFilter::selected($request);
 
         $cashDevices = Imei::query()
             ->visibleTo($request->user())
-            ->where('type', ImeiCashDeviceType::TYPE)
-            ->where('status', ImeiCashDeviceType::STATUS)
+            ->tap(fn ($query) => CashDevicesSaleTypeFilter::applySoldExclusion($query))
+            ->tap(fn ($query) => CashDevicesSaleTypeFilter::applyToQuery($query, $saleType))
             ->tap(fn ($query) => CashDevicesTable::applySort($query, $sort, $dir))
             ->get();
 
-        $cashDevicesReturnQuery = CashDevicesTable::returnQuery($sort, $dir);
+        $cashDevicesReturnQuery = CashDevicesTable::returnQuery($sort, $dir, $saleType);
 
         return view('dashboard', [
             'cashDevices' => $cashDevices,
             'cashDevicesSort' => $sort,
             'cashDevicesSortDir' => $dir,
             'cashDevicesReturnQuery' => $cashDevicesReturnQuery,
+            'saleTypes' => CashDevicesSaleTypeFilter::selectableSaleTypes(),
+            'selectedSaleType' => $saleType,
         ]);
     }
 }

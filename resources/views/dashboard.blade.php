@@ -16,7 +16,31 @@
     ];
 @endphp
 <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-    <h2 class="text-3xl font-bold mb-4 text-center">Cash Devices</h2>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <h2 class="text-3xl font-bold text-center sm:text-left">Cash Devices</h2>
+        <form method="GET" action="{{ route('dashboard') }}" class="flex items-center gap-2 justify-center sm:justify-end">
+            @if(request('sort'))
+                <input type="hidden" name="sort" value="{{ request('sort') }}">
+            @endif
+            @if(request('dir'))
+                <input type="hidden" name="dir" value="{{ request('dir') }}">
+            @endif
+            <label for="sale_type" class="text-sm font-medium text-gray-700 whitespace-nowrap">Sale type</label>
+            <select
+                name="sale_type"
+                id="sale_type"
+                onchange="this.form.submit()"
+                class="border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm bg-white min-w-[10rem]"
+            >
+                <option value="ALL" @selected($selectedSaleType === 'ALL')>ALL</option>
+                @foreach($saleTypes as $saleType)
+                    <option value="{{ $saleType->sale_type }}" @selected($selectedSaleType === $saleType->sale_type)>
+                        {{ $saleType->sale_type }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+    </div>
 
     <div class="overflow-x-auto">
         <table class="min-w-full border border-gray-300 text-sm">
@@ -25,7 +49,7 @@
                     <th class="px-3 py-2 text-left font-semibold border-b border-gray-300">View</th>
                     @foreach($sortableHeaders as $column => $label)
                         <th class="px-3 py-2 text-left font-semibold border-b border-gray-300">
-                            <a href="{{ CashDevicesTable::sortUrl($column, $cashDevicesSort, $cashDevicesSortDir) }}" class="text-gray-900 hover:text-blue-700 underline-offset-2 hover:underline">
+                            <a href="{{ CashDevicesTable::sortUrl($column, $cashDevicesSort, $cashDevicesSortDir, $selectedSaleType) }}" class="text-gray-900 hover:text-blue-700 underline-offset-2 hover:underline">
                                 {{ $label }}{{ CashDevicesTable::sortIndicator($column, $cashDevicesSort, $cashDevicesSortDir) }}
                             </a>
                         </th>

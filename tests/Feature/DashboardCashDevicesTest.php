@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Imei;
+use App\Models\ImeiSaleType;
 use App\Models\User;
 use App\Support\CashDevicesTable;
-use App\Support\ImeiCashDeviceType;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -33,48 +33,32 @@ beforeEach(function () {
         $table->string('cost_excl')->default('');
         $table->integer('selling_price')->nullable();
     });
+
+    if (! Schema::hasTable('imei_sale_types')) {
+        Schema::create('imei_sale_types', function (Blueprint $table) {
+            $table->id();
+            $table->string('sale_type')->unique();
+        });
+    }
+
+    foreach (['None', 'Cash', 'Voda_Sale', 'Easy20wn'] as $saleType) {
+        ImeiSaleType::query()->firstOrCreate(['sale_type' => $saleType]);
+    }
 });
 
-test('guests are redirected from dashboard', function () {
-    $this->get(route('dashboard'))->assertRedirect(route('login'));
-});
-
-test('dashboard lists cash devices with view link to imei record', function () {
-    $user = User::factory()->create();
-
-    $cashDevice = Imei::query()->create([
+function createDashboardImei(array $overrides = []): Imei
+{
+    return Imei::query()->create(array_merge([
         'date_in' => now(),
         'date_updated' => now(),
-        'imei' => '358918502270111',
-        'stock_take_date' => '',
-        'make' => 'Apple',
-        'model' => 'iPhone 14',
+        'imei' => '358918502270'.fake()->unique()->numerify('###'),
+        'stock_take_date' => 'Cash',
+        'make' => 'Make',
+        'model' => 'Model',
         'sn' => '',
         'location' => '',
-        'type' => ImeiCashDeviceType::TYPE,
-        'status' => ImeiCashDeviceType::STATUS,
-        'notes' => '',
-        'phonenumber' => '',
-        'ref' => '128GB Black, excellent condition',
-        'staff' => '',
-        'item_code' => '',
-        'ourON' => '',
-        'salesON' => '',
-        'cost_excl' => '',
-        'selling_price' => 9999,
-    ]);
-
-    Imei::query()->create([
-        'date_in' => now(),
-        'date_updated' => now(),
-        'imei' => '358918502270222',
-        'stock_take_date' => '',
-        'make' => 'Samsung',
-        'model' => 'Galaxy',
-        'sn' => '',
-        'location' => '',
-        'type' => ImeiCashDeviceType::TYPE,
-        'status' => 'Sold',
+        'type' => 'Any type',
+        'status' => 'In Shop',
         'notes' => '',
         'phonenumber' => '',
         'ref' => '',
@@ -84,6 +68,33 @@ test('dashboard lists cash devices with view link to imei record', function () {
         'salesON' => '',
         'cost_excl' => '',
         'selling_price' => null,
+    ], $overrides));
+}
+
+test('guests are redirected from dashboard', function () {
+    $this->get(route('dashboard'))->assertRedirect(route('login'));
+});
+
+test('dashboard lists matching sale type records and excludes sold', function () {
+    $user = User::factory()->create();
+
+    $visible = createDashboardImei([
+        'imei' => '358918502270111',
+        'stock_take_date' => 'Cash',
+        'make' => 'Apple',
+        'model' => 'iPhone 14',
+        'type' => 'Trade-in',
+        'status' => 'In Shop',
+        'ref' => '128GB Black, excellent condition',
+        'selling_price' => 9999,
+    ]);
+
+    createDashboardImei([
+        'imei' => '358918502270222',
+        'stock_take_date' => 'Cash',
+        'make' => 'Samsung',
+        'model' => 'Galaxy',
+        'status' => 'Sold',
     ]);
 
     $returnQuery = CashDevicesTable::returnQuery(
@@ -95,61 +106,107 @@ test('dashboard lists cash devices with view link to imei record', function () {
         ->get(route('dashboard'))
         ->assertSuccessful()
         ->assertSee('Cash Devices', false)
-        ->assertSee('Phone Spec', false)
+        ->assertSee('Sale type', false)
+        ->assertSee('>ALL</option>', false)
         ->assertSee('Apple', false)
         ->assertSee('iPhone 14', false)
-        ->assertSee('128GB Black, excellent condition', false)
         ->assertSee('9,999', false)
-        ->assertSee(route('imeis.edit', $cashDevice).'?return_query='.rawurlencode($returnQuery), false)
+        ->assertSee(route('imeis.edit', $visible).'?return_query='.rawurlencode($returnQuery), false)
         ->assertDontSee('358918502270222', false)
         ->assertDontSee('Samsung', false);
+});
+
+test('dashboard all sale type shows records for any configured sale type except none', function () {
+    $user = User::factory()->create();
+
+    createDashboardImei([
+        'stock_take_date' => 'Cash',
+        'make' => 'CashMake',
+        'type' => 'New Cash device',
+    ]);
+
+    createDashboardImei([
+        'stock_take_date' => 'Voda_Sale',
+        'make' => 'VodaMake',
+        'type' => 'Contract',
+    ]);
+
+    createDashboardImei([
+        'stock_take_date' => 'None',
+        'make' => 'NoneMake',
+    ]);
+
+    createDashboardImei([
+        'stock_take_date' => '',
+        'make' => 'BlankMake',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertSuccessful()
+        ->assertSee('CashMake', false)
+        ->assertSee('VodaMake', false)
+        ->assertDontSee('NoneMake', false)
+        ->assertDontSee('BlankMake', false);
+});
+
+test('dashboard can filter by a specific sale type regardless of device type', function () {
+    $user = User::factory()->create();
+
+    createDashboardImei([
+        'stock_take_date' => 'Cash',
+        'make' => 'CashOnly',
+        'type' => 'New Cash device',
+    ]);
+
+    createDashboardImei([
+        'stock_take_date' => 'Voda_Sale',
+        'make' => 'VodaOnly',
+        'type' => 'Other',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['sale_type' => 'Cash']))
+        ->assertSuccessful()
+        ->assertSee('CashOnly', false)
+        ->assertDontSee('VodaOnly', false);
+});
+
+test('dashboard never shows sold records for matching sale type', function () {
+    $user = User::factory()->create();
+
+    createDashboardImei([
+        'stock_take_date' => 'Cash',
+        'make' => 'AvailableCash',
+        'status' => 'In Shop',
+    ]);
+
+    createDashboardImei([
+        'stock_take_date' => 'Cash',
+        'make' => 'SoldCash',
+        'status' => 'Sold',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['sale_type' => 'Cash']))
+        ->assertSuccessful()
+        ->assertSee('AvailableCash', false)
+        ->assertDontSee('SoldCash', false);
 });
 
 test('dashboard cash devices table can be sorted by column', function () {
     $user = User::factory()->create();
 
-    Imei::query()->create([
-        'date_in' => now(),
-        'date_updated' => now(),
-        'imei' => '358918502270111',
-        'stock_take_date' => '',
+    createDashboardImei([
+        'stock_take_date' => 'Cash',
         'make' => 'Zebra',
         'model' => 'Z1',
-        'sn' => '',
-        'location' => '',
-        'type' => ImeiCashDeviceType::TYPE,
-        'status' => ImeiCashDeviceType::STATUS,
-        'notes' => '',
-        'phonenumber' => '',
-        'ref' => '',
-        'staff' => '',
-        'item_code' => '',
-        'ourON' => '',
-        'salesON' => '',
-        'cost_excl' => '',
-        'selling_price' => null,
     ]);
 
-    Imei::query()->create([
-        'date_in' => now(),
-        'date_updated' => now(),
-        'imei' => '358918502270222',
-        'stock_take_date' => '',
+    createDashboardImei([
+        'stock_take_date' => 'Cash',
         'make' => 'Apple',
         'model' => 'A1',
-        'sn' => '',
-        'location' => '',
-        'type' => ImeiCashDeviceType::TYPE,
-        'status' => ImeiCashDeviceType::STATUS,
-        'notes' => '',
-        'phonenumber' => '',
-        'ref' => '',
-        'staff' => '',
-        'item_code' => '',
-        'ourON' => '',
-        'salesON' => '',
-        'cost_excl' => '',
-        'selling_price' => null,
     ]);
 
     $this->actingAs($user)
@@ -161,26 +218,10 @@ test('dashboard cash devices table can be sorted by column', function () {
 test('view from cash devices returns to dashboard on exit', function () {
     $user = User::factory()->create();
 
-    $cashDevice = Imei::query()->create([
-        'date_in' => now(),
-        'date_updated' => now(),
-        'imei' => '358918502270111',
-        'stock_take_date' => '',
+    $cashDevice = createDashboardImei([
+        'stock_take_date' => 'Cash',
         'make' => 'Apple',
         'model' => 'iPhone 14',
-        'sn' => '',
-        'location' => '',
-        'type' => ImeiCashDeviceType::TYPE,
-        'status' => ImeiCashDeviceType::STATUS,
-        'notes' => '',
-        'phonenumber' => '',
-        'ref' => '',
-        'staff' => '',
-        'item_code' => '',
-        'ourON' => '',
-        'salesON' => '',
-        'cost_excl' => '',
-        'selling_price' => null,
     ]);
 
     $returnQuery = CashDevicesTable::returnQuery('make', 'asc');
