@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,6 +52,7 @@ class ProfileController extends Controller
         // Send verification email if email changed
         if ($emailChanged) {
             $user->sendEmailVerificationNotification();
+            EmailVerificationController::markVerificationEmailSent($request);
         }
 
         $message = 'Profile updated successfully.';

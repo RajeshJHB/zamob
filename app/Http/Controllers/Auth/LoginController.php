@@ -24,8 +24,14 @@ class LoginController extends Controller
 
         $user = $request->user();
 
+        if ($user !== null && ! $user->hasVerifiedEmail()) {
+            return redirect()->intended(route('verification.notice'));
+        }
+
         if ($user !== null && ! $user->hasAnyRole()) {
-            return redirect()->route('profile.show');
+            return redirect()
+                ->route('profile.show')
+                ->with('info', 'Please contact an administrator to be assigned roles before you can use the application.');
         }
 
         return redirect()->intended(route('dashboard'));

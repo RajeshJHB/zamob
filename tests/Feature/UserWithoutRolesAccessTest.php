@@ -59,5 +59,7 @@ test('login redirects user without roles to profile', function () {
     $this->post(route('login'), [
         'email' => $user->email,
         'password' => 'password',
-    ])->assertRedirect(route('profile.show'));
+    ])
+        ->assertRedirect(route('profile.show'))
+        ->assertSessionHas('info');
 });

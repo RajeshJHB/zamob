@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Notifications\VerifyEmail;
+use App\Support\EmailVerificationToken;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -45,6 +47,13 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $token = EmailVerificationToken::issue($this);
+
+        $this->notify(new VerifyEmail($token));
     }
 
     public function roles(): BelongsToMany

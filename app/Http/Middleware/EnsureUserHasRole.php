@@ -19,7 +19,7 @@ class EnsureUserHasRole
 
             return redirect()
                 ->route('profile.show')
-                ->with('error', 'You do not have any roles assigned. Contact a Role Manager for access.');
+                ->with('error', 'You do not have any roles assigned. Please contact an administrator to be assigned roles.');
         }
 
         return $next($request);

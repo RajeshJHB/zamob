@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -47,28 +48,14 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
+Route::get('/email/verify/{id}/{token}', [EmailVerificationController::class, 'verify'])
+    ->middleware(['throttle:6,1'])
+    ->name('verification.verify');
+
 // Email Verification Routes
 Route::middleware(['auth'])->group(function () {
-    Route::get('/email/verify', function () {
-        return view('auth.verify-email');
-    })->name('verification.notice');
-
-    Route::get('/email/verify/{id}/{hash}', function (\Illuminate\Foundation\Auth\EmailVerificationRequest $request) {
-        $request->fulfill();
-
-        // Ensure at least one role manager exists after email verification
-        \App\Models\User::ensureRoleManagerExists();
-
-        $user = $request->user();
-
-        return redirect($user->hasAnyRole() ? route('dashboard') : route('profile.show'));
-    })->middleware(['signed'])->name('verification.verify');
-
-    Route::post('/email/verification-notification', function (\Illuminate\Http\Request $request) {
-        $request->user()->sendEmailVerificationNotification();
-
-        return back()->with('message', 'Verification link sent!');
-    })->middleware(['throttle:6,1'])->name('verification.send');
+    Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])->name('verification.send');
 });
 
 // Authenticated Routes

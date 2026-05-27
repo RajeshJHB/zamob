@@ -6,6 +6,24 @@
 <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
     <h2 class="text-2xl font-bold mb-6 text-center">Profile</h2>
 
+    @if(session('error'))
+        <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="mb-4 bg-blue-100 border border-blue-400 text-blue-800 px-4 py-3 rounded">
+            {{ session('info') }}
+        </div>
+    @endif
+
+    @if($roles->count() === 0)
+        <div class="mb-4 bg-amber-100 border border-amber-400 text-amber-900 px-4 py-3 rounded">
+            Your account does not have any roles assigned yet. Please contact an administrator to be assigned roles before you can use the application.
+        </div>
+    @endif
+
     @if(session('success'))
         <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
             {{ session('success') }}
