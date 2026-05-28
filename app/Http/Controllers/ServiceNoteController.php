@@ -34,11 +34,12 @@ class ServiceNoteController extends Controller
 
         $note = ServiceNote::query()->create([
             'contact_id' => $contact->id,
+            'primary_service_note_id' => $request->validated('primary_service_note_id'),
             'note_number' => $noteNumber,
             'note_type_id' => (int) $request->validated('note_type_id'),
             'status' => $request->validated('status'),
             'heading' => trim($request->validated('heading')),
-            'body' => trim($request->validated('body')),
+            'body' => $this->normalizedNoteBody($request->validated('body')),
             'created_by' => $request->user()->id,
             'staff' => ImeiStaffAudit::appendEmail('', (string) $request->user()->email),
         ]);
@@ -56,7 +57,7 @@ class ServiceNoteController extends Controller
     {
         abort_unless(ContactPermissions::canEditServiceNote($request->user(), $serviceNote), 403);
 
-        $serviceNote->load(['contact.relatedContact', 'noteType']);
+        $serviceNote->load(['contact.relatedContact', 'noteType', 'notesLinkingHere']);
 
         return view('contacts.service-notes.form', $this->serviceNoteFormData($serviceNote->contact, $serviceNote));
     }
@@ -70,6 +71,7 @@ class ServiceNoteController extends Controller
             'status' => $request->validated('status'),
             'heading' => trim($request->validated('heading')),
             'body' => trim($request->validated('body')),
+            'primary_service_note_id' => $request->validated('primary_service_note_id'),
             'staff' => ImeiStaffAudit::appendEmail((string) $serviceNote->staff, (string) $request->user()->email),
         ]);
 
@@ -133,6 +135,26 @@ class ServiceNoteController extends Controller
             ->where('name', RepairServiceNoteTemplate::TYPE_NAME)
             ->value('id');
 
+        $selectedRelatedId = (int) old(
+            'primary_service_note_id',
+            request()->query('primary_service_note_id', $note?->primary_service_note_id ?? 0),
+        );
+
+        $selectedRelatedNote = $selectedRelatedId > 0
+            ? ServiceNote::query()
+                ->where('contact_id', $contact->id)
+                ->whereKey($selectedRelatedId)
+                ->first()
+            : null;
+
+        $relatedNotesForSelect = ServiceNote::query()
+            ->where('contact_id', $contact->id)
+            ->when($note, fn ($query) => $query->whereKeyNot($note->id))
+            ->with('noteType')
+            ->orderByDesc('noted_at')
+            ->orderByDesc('id')
+            ->get();
+
         return [
             'contact' => $contact,
             'note' => $note,
@@ -141,7 +163,16 @@ class ServiceNoteController extends Controller
             'repairNoteTypeId' => $repairNoteTypeId !== null ? (int) $repairNoteTypeId : null,
             'repairNoteHeadingTemplate' => RepairServiceNoteTemplate::HEADING,
             'repairNoteBodyTemplate' => RepairServiceNoteTemplate::BODY,
+            'selectedRelatedNote' => $selectedRelatedNote,
+            'relatedNotesForSelect' => $relatedNotesForSelect,
         ];
+    }
+
+    private function normalizedNoteBody(mixed $body): ?string
+    {
+        $normalized = trim((string) ($body ?? ''));
+
+        return $normalized === '' ? null : $normalized;
     }
 
     public function attachment(Request $request, ServiceNote $serviceNote): StreamedResponse

@@ -35,8 +35,21 @@
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 class="text-xl font-bold">Service notes</h2>
-            <a href="{{ route('contacts.service-notes.create', $contact) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">New service note</a>
+            <div class="flex flex-wrap items-center gap-2">
+                @if($contact->serviceNotes->isNotEmpty())
+                    <button
+                        type="button"
+                        id="related-note-open-btn"
+                        class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded text-sm"
+                    >
+                        Related note
+                    </button>
+                @endif
+                <a href="{{ route('contacts.service-notes.create', $contact) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">New service note</a>
+            </div>
         </div>
+
+        @include('contacts.service-notes.partials.related-notes-modal')
 
         @forelse($contact->serviceNotes as $note)
             @php
@@ -65,8 +78,18 @@
                     </div>
                     @include('contacts.service-notes.partials.times', ['note' => $note, 'class' => 'sm:justify-end'])
                 </div>
+                @if($note->hasRelatedNote() && $note->relatedNote)
+                    <p class="text-sm text-gray-600 mb-2">
+                        Related service note:
+                        <a href="#service-note-{{ $note->relatedNote->id }}" class="font-semibold text-blue-600 hover:text-blue-800">
+                            {{ $note->relatedNote->formattedNoteNumber() }} — {{ $note->relatedNote->heading }}
+                        </a>
+                    </p>
+                @endif
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ $note->heading }}</h3>
-                <p class="text-sm text-gray-700 whitespace-pre-wrap mb-3">{{ $note->body }}</p>
+                @if(trim((string) $note->body) !== '')
+                    <p class="text-sm text-gray-700 whitespace-pre-wrap mb-3">{{ $note->body }}</p>
+                @endif
                 @if($note->staff)
                     <p class="text-xs text-gray-500 mb-3">Staff: {{ $note->staff }}</p>
                 @endif
@@ -76,6 +99,22 @@
                             Download: {{ $note->attachment_original_name }}
                         </a>
                     </p>
+                @endif
+                @if($note->notesLinkingHere->isNotEmpty())
+                    <div class="mb-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                        <p class="text-xs font-semibold text-gray-700 mb-1">
+                            {{ $note->notesLinkingHere->count() }} {{ Str::plural('note', $note->notesLinkingHere->count()) }} link here
+                        </p>
+                        <ul class="space-y-1 text-sm">
+                            @foreach($note->notesLinkingHere as $linking)
+                                <li>
+                                    <a href="#service-note-{{ $linking->id }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                        {{ $linking->formattedNoteNumber() }} — {{ $linking->heading }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 @endif
                 <div class="flex flex-wrap gap-3 text-sm">
                     <a href="{{ route('service-notes.print', $note) }}" class="text-gray-700 hover:text-gray-900 font-medium" target="_blank" rel="noopener noreferrer">Print</a>
@@ -96,4 +135,43 @@
         @endforelse
     </div>
 </div>
+
+@if($contact->serviceNotes->isNotEmpty())
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('related-notes-modal');
+    const openBtn = document.getElementById('related-note-open-btn');
+    const closeBtn = document.getElementById('related-notes-modal-close');
+    const cancelBtn = document.getElementById('related-notes-modal-cancel');
+
+    if (!modal || !openBtn) {
+        return;
+    }
+
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+});
+</script>
+@endif
 @endsection

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServiceNote extends Model
 {
@@ -19,6 +20,7 @@ class ServiceNote extends Model
 
     protected $fillable = [
         'contact_id',
+        'primary_service_note_id',
         'note_number',
         'note_type_id',
         'status',
@@ -38,6 +40,7 @@ class ServiceNote extends Model
         return [
             'noted_at' => 'datetime',
             'contact_id' => 'integer',
+            'primary_service_note_id' => 'integer',
             'note_number' => 'integer',
             'note_type_id' => 'integer',
             'created_by' => 'integer',
@@ -63,6 +66,28 @@ class ServiceNote extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function relatedNote(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'primary_service_note_id');
+    }
+
+    /**
+     * Other service notes on this contact that link to this note.
+     *
+     * @return HasMany<ServiceNote, $this>
+     */
+    public function notesLinkingHere(): HasMany
+    {
+        return $this->hasMany(self::class, 'primary_service_note_id')
+            ->orderByDesc('noted_at')
+            ->orderByDesc('id');
+    }
+
+    public function hasRelatedNote(): bool
+    {
+        return $this->primary_service_note_id !== null;
     }
 
     public function noteType(): BelongsTo

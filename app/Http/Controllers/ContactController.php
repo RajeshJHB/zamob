@@ -92,7 +92,10 @@ class ContactController extends Controller
     {
         $contact->load([
             'relatedContact',
-            'serviceNotes' => fn ($q) => $q->with('noteType')->orderByDesc('noted_at')->orderByDesc('id'),
+            'serviceNotes' => fn ($q) => $q
+                ->with(['noteType', 'relatedNote', 'notesLinkingHere.noteType'])
+                ->orderByDesc('noted_at')
+                ->orderByDesc('id'),
         ]);
 
         $highlightNoteId = (int) $request->input('note', 0);

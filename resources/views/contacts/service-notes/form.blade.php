@@ -11,7 +11,15 @@
 
         @include('contacts.partials.fields-display-compact', ['contact' => $contact, 'wrapperClass' => 'mb-4'])
 
-        <h1 class="text-2xl font-bold {{ $note ? 'mb-2' : 'mb-6' }}">{{ $note ? 'Edit service note' : 'New service note' }}</h1>
+        <h1 class="text-2xl font-bold {{ $note ? 'mb-2' : 'mb-4' }}">
+            @if($note)
+                Edit service note
+            @elseif($selectedRelatedNote ?? null)
+                New related service note
+            @else
+                New service note
+            @endif
+        </h1>
         @if($note)
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-6 text-sm">
                 <span class="font-mono font-semibold text-gray-800">{{ $note->formattedNoteNumber() }}</span>
@@ -23,6 +31,10 @@
             @csrf
             @if($note)
                 @method('PUT')
+            @endif
+
+            @if(($relatedNotesForSelect ?? collect())->isNotEmpty())
+                @include('contacts.service-notes.partials.related-note-form')
             @endif
 
             <div>
@@ -62,8 +74,8 @@
 
             <div>
                 <label for="body" class="block text-sm font-medium text-gray-700 mb-1">Note</label>
-                <textarea name="body" id="body" rows="8" maxlength="2000" required class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full">{{ old('body', $note->body ?? '') }}</textarea>
-                <p class="mt-1 text-xs text-gray-500">Maximum 2000 characters.</p>
+                <textarea name="body" id="body" rows="8" maxlength="2000" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full">{{ old('body', $note->body ?? '') }}</textarea>
+                <p class="mt-1 text-xs text-gray-500">Optional when a heading is provided. Maximum 2000 characters.</p>
             </div>
 
             <div>

@@ -194,6 +194,23 @@ test('new service note form includes repair body template', function () {
         ->assertSee('Make:', false);
 });
 
+test('service note body is optional when heading is provided', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('contacts.service-notes.store', $contact), serviceNotePayload([
+            'heading' => 'Heading only visit',
+            'body' => '',
+        ]))
+        ->assertRedirect();
+
+    $note = ServiceNote::query()->where('heading', 'Heading only visit')->first();
+
+    expect($note)->not->toBeNull();
+    expect($note->body)->toBeNull();
+});
+
 test('service note requires note type', function () {
     $user = User::factory()->create();
     $contact = Contact::factory()->create();
