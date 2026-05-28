@@ -130,7 +130,10 @@ class ServiceNote extends Model
         return $query->where(function (Builder $q) use ($like, $term) {
             $q->where('heading', 'like', $like)
                 ->orWhere('body', 'like', $like)
-                ->orWhere('staff', 'like', $like);
+                ->orWhere('staff', 'like', $like)
+                ->orWhereHas('contact', function (Builder $contactQuery) use ($term) {
+                    $contactQuery->searchTerm($term);
+                });
 
             if (preg_match('/^SN-?(\d+)$/i', $term, $matches)) {
                 $q->orWhere('note_number', (int) $matches[1]);

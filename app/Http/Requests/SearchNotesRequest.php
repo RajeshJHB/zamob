@@ -39,6 +39,7 @@ class SearchNotesRequest extends FormRequest
         return [
             'note_q' => ['nullable', 'string', 'max:255'],
             'note_status' => ['nullable', 'string', 'max:32'],
+            'only_mine' => ['nullable', 'boolean'],
             'note_type_scope' => ['nullable', 'string', Rule::in(['all', 'selected'])],
             'note_type_id' => ['nullable', 'array'],
             'note_type_id.*' => ['integer', Rule::exists('note_types', 'id')],
@@ -74,6 +75,11 @@ class SearchNotesRequest extends FormRequest
     public function hasDateFilter(): bool
     {
         return $this->startDate() !== null || $this->endDate() !== null;
+    }
+
+    public function onlyMine(): bool
+    {
+        return $this->boolean('only_mine');
     }
 
     public function noteTypeScope(): string

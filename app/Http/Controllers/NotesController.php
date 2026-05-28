@@ -18,15 +18,16 @@ class NotesController extends Controller
         $term = trim((string) $request->input('note_q', ''));
         $noteTypeScope = $request->noteTypeScope();
         $noteTypeIds = $request->resolvedNoteTypeIds();
-        $noteStatus = $this->resolvedNoteStatus($request);
+        $noteStatusFilter = $this->resolvedNoteStatus($request);
         $noteStatusInput = $request->has('note_status')
             ? (string) $request->input('note_status', '')
             : ServiceNote::STATUS_OPEN;
+        $onlyMine = $request->onlyMine();
         $startDate = $request->startDate();
         $endDate = $request->endDate();
         $hasDateFilter = $request->hasDateFilter();
-        $listingAll = $term === '' && $noteTypeIds === [] && $noteStatus === null && ! $hasDateFilter;
-        $listingOpenDefault = $term === '' && $noteTypeIds === [] && $noteStatus === ServiceNote::STATUS_OPEN && ! $hasDateFilter;
+        $listingAll = $term === '' && $noteTypeIds === [] && $noteStatusFilter === null && ! $onlyMine && ! $hasDateFilter;
+        $listingOpenDefault = $term === '' && $noteTypeIds === [] && $noteStatusFilter === ServiceNote::STATUS_OPEN && ! $onlyMine && ! $hasDateFilter;
         $noteTypes = $this->noteTypesForSelect();
         $selectedNoteTypes = $noteTypes->whereIn('id', $noteTypeIds)->values();
 
@@ -39,7 +40,8 @@ class NotesController extends Controller
             'noteTypeScope' => $noteTypeScope,
             'noteTypeIds' => $noteTypeIds,
             'noteStatus' => $noteStatusInput,
-            'noteStatusFilter' => $noteStatus,
+            'noteStatusFilter' => $noteStatusFilter,
+            'onlyMine' => $onlyMine,
             'startDate' => $startDate,
             'endDate' => $endDate,
             'noteTypes' => $noteTypes,
@@ -91,6 +93,13 @@ class NotesController extends Controller
 
         if ($noteStatus !== null) {
             $query->where('status', $noteStatus);
+        }
+
+        if ($request->onlyMine()) {
+            $userId = $request->user()?->id;
+            if ($userId !== null) {
+                $query->where('created_by', $userId);
+            }
         }
 
         if ($startDate !== null) {

@@ -223,6 +223,73 @@ test('notes page defaults to open notes only', function () {
         ->assertSee('Closed note', false);
 });
 
+test('only my notes checkbox limits results to the logged in user', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'My open note',
+        'status' => ServiceNote::STATUS_OPEN,
+        'created_by' => $user->id,
+    ]);
+    ServiceNote::factory()->closed()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'My closed note',
+        'created_by' => $user->id,
+    ]);
+    ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Someone else open',
+        'status' => ServiceNote::STATUS_OPEN,
+        'created_by' => $otherUser->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('notes.index', [
+            'note_status' => ServiceNote::STATUS_OPEN,
+            'only_mine' => '1',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('My open note', false)
+        ->assertDontSee('My closed note', false)
+        ->assertDontSee('Someone else open', false);
+});
+
+test('only my notes checkbox can be combined with all statuses', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'My open note',
+        'status' => ServiceNote::STATUS_OPEN,
+        'created_by' => $user->id,
+    ]);
+    ServiceNote::factory()->closed()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'My closed note',
+        'created_by' => $user->id,
+    ]);
+    ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Someone else note',
+        'created_by' => $otherUser->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('notes.index', [
+            'note_status' => '',
+            'only_mine' => '1',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('My open note', false)
+        ->assertSee('My closed note', false)
+        ->assertDontSee('Someone else note', false);
+});
+
 test('notes search filters by start and end date', function () {
     $user = User::factory()->create();
     $contact = Contact::factory()->create();
@@ -367,4 +434,37 @@ test('notes search lists and filters service notes', function () {
         ->assertSuccessful()
         ->assertSee('Router install', false)
         ->assertSee('Pat', false);
+});
+
+test('notes search matches contact name when note text does not contain the term', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create([
+        'first_name' => 'Zandile',
+        'surname' => 'Nkosi',
+        'company_name' => '',
+    ]);
+    $other = Contact::factory()->create(['first_name' => 'Other', 'surname' => 'Person']);
+
+    ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Battery check',
+        'body' => 'Checked voltage only',
+        'created_by' => $user->id,
+    ]);
+    ServiceNote::factory()->create([
+        'contact_id' => $other->id,
+        'heading' => 'Unrelated visit',
+        'body' => 'Routine',
+        'created_by' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('notes.index', [
+            'note_q' => 'Nkosi',
+            'note_status' => '',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('Battery check', false)
+        ->assertSee('Zandile', false)
+        ->assertDontSee('Unrelated visit', false);
 });

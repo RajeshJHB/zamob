@@ -28,6 +28,16 @@
                     <option value="{{ \App\Models\ServiceNote::STATUS_CLOSED }}" @selected(($noteStatus ?? '') === \App\Models\ServiceNote::STATUS_CLOSED)>Closed</option>
                     <option value="" @selected(($noteStatus ?? \App\Models\ServiceNote::STATUS_OPEN) === '')>All statuses</option>
                 </select>
+                <label class="mt-2 flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        name="only_mine"
+                        value="1"
+                        class="rounded border-gray-300"
+                        @checked($onlyMine ?? false)
+                    >
+                    <span class="text-sm text-gray-800">Only my notes</span>
+                </label>
             </div>
             <div class="min-w-[14rem]">
                 <span class="block text-sm font-medium text-gray-700 mb-1">Note type</span>
@@ -104,7 +114,7 @@
             </div>
             <div class="flex-1 min-w-[12rem]">
                 <label for="note_q" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input type="text" name="note_q" id="note_q" value="{{ $term }}" placeholder="Text in service notes…" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md">
+                <input type="text" name="note_q" id="note_q" value="{{ $term }}" placeholder="Contact name, note text, SN-…" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md">
             </div>
             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Search notes</button>
         </form>
@@ -119,15 +129,23 @@
                     Note status: <strong>Closed</strong>
                 @elseif(($noteStatusFilter ?? null) === \App\Models\ServiceNote::STATUS_OPEN)
                     Note status: <strong>Open</strong>
+                @elseif(($noteStatusFilter ?? null) === null && ! ($onlyMine ?? false))
+                    Note status: <strong>All statuses</strong>
                 @endif
-                @if(($noteStatusFilter ?? null) !== null && ($selectedNoteTypes ?? collect())->isNotEmpty())
+                @if(($noteStatusFilter ?? null) !== null && ($onlyMine ?? false))
+                    <span class="text-gray-400">&middot;</span>
+                @endif
+                @if($onlyMine ?? false)
+                    <strong>Only my notes</strong>
+                @endif
+                @if((($noteStatusFilter ?? null) !== null || ($onlyMine ?? false)) && ($selectedNoteTypes ?? collect())->isNotEmpty())
                     <span class="text-gray-400">&middot;</span>
                 @endif
                 @if(($selectedNoteTypes ?? collect())->isNotEmpty())
                     Note {{ ($selectedNoteTypes ?? collect())->count() === 1 ? 'type' : 'types' }}:
                     <strong>{{ ($selectedNoteTypes ?? collect())->pluck('name')->join(', ') }}</strong>
                 @endif
-                @if(($selectedNoteTypes ?? collect())->isNotEmpty() || ($noteStatusFilter ?? null) !== null)
+                @if(($selectedNoteTypes ?? collect())->isNotEmpty() || ($noteStatusFilter ?? null) !== null || ($onlyMine ?? false))
                     @if(($startDate ?? null) || ($endDate ?? null))
                         <span class="text-gray-400">&middot;</span>
                     @endif
