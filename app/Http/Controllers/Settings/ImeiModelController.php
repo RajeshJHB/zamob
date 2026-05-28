@@ -55,6 +55,7 @@ class ImeiModelController extends Controller
             'make' => $validated['make'],
             'model' => trim($validated['model']),
             'serial' => isset($validated['serial']) ? trim((string) $validated['serial']) : '',
+            'item_code' => isset($validated['item_code']) ? trim((string) $validated['item_code']) : '',
         ]);
 
         return redirect()

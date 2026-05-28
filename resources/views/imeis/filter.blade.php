@@ -34,6 +34,9 @@
                             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                                 Search
                             </button>
+                            <button type="button" class="imei-filter-clear-button bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
+                                Clear
+                            </button>
                             <a href="{{ route('dashboard') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-block text-center">
                                 Cancel
                             </a>
@@ -248,6 +251,12 @@
                             {{ session('message') }}
                         </div>
                     @endif
+                    @php
+                        $selectedProfileId = (string) request('profile_id', $activeProfileId ?? '');
+                        $selectedProfile = $selectedProfileId !== ''
+                            ? $savedFilters->firstWhere('id', (int) $selectedProfileId)
+                            : null;
+                    @endphp
 
                     <div class="space-y-3">
                         <div>
@@ -264,10 +273,10 @@
                             >
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                        <div class="space-y-3">
                             <div>
                                 <label for="profile_select" class="block text-xs font-medium text-gray-700 mb-1">
-                                    Existing profiles
+                                    Profile
                                 </label>
                                 <select
                                     id="profile_select"
@@ -276,14 +285,29 @@
                                 >
                                     <option value="">(none)</option>
                                     @foreach($savedFilters as $filter)
-                                        <option value="{{ $filter->id }}"
-                                            @if((string) request('profile_id', $activeProfileId ?? '') === (string) $filter->id) selected @endif
-                                        >
-                                            {{ $filter->name }}
-                                        </option>
+                                        <option
+                                            value="{{ $filter->id }}"
+                                            data-is-default="{{ $filter->is_default ? '1' : '0' }}"
+                                            @selected($selectedProfileId === (string) $filter->id)
+                                        >{{ $filter->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
+
+                            <label class="flex items-center gap-2 cursor-pointer @if($selectedProfile === null) opacity-60 @endif">
+                                <input
+                                    type="checkbox"
+                                    id="profile_is_default"
+                                    value="1"
+                                    @checked($selectedProfile?->is_default ?? false)
+                                    @disabled($selectedProfile === null)
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
+                                >
+                                <span class="text-sm text-gray-800">Default profile</span>
+                            </label>
+                            <p class="text-xs text-gray-500">
+                                Only profiles with <strong>selected columns only</strong> (no search, dates, sorts, or field filters) can be default.
+                            </p>
 
                             <div class="flex flex-wrap gap-2">
                                 <button type="button"
@@ -314,6 +338,9 @@
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     Search
                 </button>
+                <button type="button" class="imei-filter-clear-button bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
+                    Clear
+                </button>
                 <a href="{{ route('dashboard') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-block text-center">
                     Cancel
                 </a>
@@ -339,6 +366,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadProfileButton = document.getElementById('load-profile-button');
     const deleteProfileButton = document.getElementById('delete-profile-button');
     const profileSelect = document.getElementById('profile_select');
+    const profileIsDefault = document.getElementById('profile_is_default');
+    const defaultProfilePostUrl = @json(route('imeis.filter.default'));
+    const defaultProfileCsrf = @json(csrf_token());
     const profileNameInput = document.getElementById('profile_name');
     const existingProfileNames = @json($savedFilters->pluck('name')->values());
     const fieldFilterPicklists = @json($fieldFilterPicklists);
@@ -532,12 +562,74 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function syncDefaultCheckboxFromSelect() {
+        if (!profileSelect || !profileIsDefault) {
+            return;
+        }
+
+        const selected = profileSelect.options[profileSelect.selectedIndex];
+        const hasProfile = Boolean(selected && selected.value);
+
+        profileIsDefault.disabled = !hasProfile;
+        profileIsDefault.checked = hasProfile && selected.getAttribute('data-is-default') === '1';
+        profileIsDefault.closest('label')?.classList.toggle('opacity-60', !hasProfile);
+    }
+
+    function submitDefaultProfileForm(isDefault) {
+        if (!profileSelect) {
+            return;
+        }
+
+        const profileId = profileSelect.value;
+        if (!profileId && isDefault) {
+            return;
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = defaultProfilePostUrl;
+
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = '_token';
+        tokenInput.value = defaultProfileCsrf;
+        form.appendChild(tokenInput);
+
+        const profileInput = document.createElement('input');
+        profileInput.type = 'hidden';
+        profileInput.name = 'profile_id';
+        profileInput.value = profileId;
+        form.appendChild(profileInput);
+
+        const flagInput = document.createElement('input');
+        flagInput.type = 'hidden';
+        flagInput.name = 'is_default';
+        flagInput.value = isDefault ? '1' : '0';
+        form.appendChild(flagInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     if (profileSelect && profileNameInput) {
         profileSelect.addEventListener('change', function () {
             const selected = profileSelect.options[profileSelect.selectedIndex];
             if (selected && selected.value) {
                 profileNameInput.value = selected.textContent.trim();
             }
+            syncDefaultCheckboxFromSelect();
+        });
+        syncDefaultCheckboxFromSelect();
+    }
+
+    if (profileIsDefault) {
+        profileIsDefault.addEventListener('change', function () {
+            if (!profileSelect || !profileSelect.value) {
+                profileIsDefault.checked = false;
+
+                return;
+            }
+            submitDefaultProfileForm(profileIsDefault.checked);
         });
     }
 
@@ -572,6 +664,62 @@ document.addEventListener('DOMContentLoaded', function() {
             form.submit();
         });
     }
+
+    document.querySelectorAll('.imei-filter-clear-button').forEach(function (clearButton) {
+        clearButton.addEventListener('click', function () {
+            const search1 = document.getElementById('search');
+            const search2 = document.getElementById('search2');
+            if (search1) search1.value = '';
+            if (search2) search2.value = '';
+
+            if (dateScopeAll) {
+                dateScopeAll.checked = true;
+                dateScopeAll.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            const dateColumn = document.getElementById('date_column');
+            if (dateColumn) {
+                dateColumn.value = 'date_in';
+            }
+
+            const startDate = document.getElementById('start_date');
+            const endDate = document.getElementById('end_date');
+            if (startDate) startDate.value = '';
+            if (endDate) endDate.value = '';
+            syncImeiDateRange();
+
+            ['sort1_column', 'sort2_column'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            ['sort1_dir', 'sort2_dir'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.value = 'asc';
+            });
+
+            [1, 2].forEach(function (index) {
+                const fieldSelect = document.getElementById('field_filter_' + index);
+                const valueSelect = document.getElementById('field_value_' + index);
+
+                if (fieldSelect) {
+                    fieldSelect.value = '';
+                    fieldSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                if (valueSelect) {
+                    valueSelect.value = '';
+                }
+            });
+
+            if (profileSelect) {
+                profileSelect.value = '';
+                syncDefaultCheckboxFromSelect();
+            }
+            if (profileNameInput) {
+                profileNameInput.value = '';
+            }
+        });
+    });
 });
 </script>
 @endsection

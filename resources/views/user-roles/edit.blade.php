@@ -27,10 +27,6 @@
             </div>
         @endif
 
-        <p class="text-sm text-gray-600 mb-4">
-            Role 4 cannot be removed from a user who already has it.
-        </p>
-
         <form method="POST" action="{{ route('user-roles.update', $user) }}" class="space-y-4">
             @csrf
             @method('PUT')
@@ -43,30 +39,18 @@
                 @foreach($roles as $role)
                     @php
                         $isChecked = in_array($role->id, $userRoleIds, true);
-                        $isLocked = \App\Support\Role4Protection::isLockedForUser($user, $role);
                     @endphp
-                    <label @class([
-                        'flex items-center gap-3 rounded border px-4 py-3',
-                        'border-gray-200' => ! $isLocked,
-                        'border-gray-300 bg-gray-50 opacity-80' => $isLocked,
-                    ])>
+                    <label class="flex items-center gap-3 rounded border border-gray-200 px-4 py-3">
                         <input
                             type="checkbox"
                             name="roles[]"
                             value="{{ $role->id }}"
                             @checked($isChecked)
-                            @disabled($isLocked)
-                            @class([
-                                'rounded border-gray-300 text-blue-600 focus:ring-blue-500',
-                                'cursor-not-allowed' => $isLocked,
-                            ])
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         >
                         <span class="text-sm text-gray-800">
                             <span class="font-medium">{{ $role->name }}</span>
                             <span class="text-gray-500">(Role {{ $role->number }})</span>
-                            @if($isLocked)
-                                <span class="block text-xs text-gray-500 mt-0.5">Locked — cannot be removed.</span>
-                            @endif
                         </span>
                     </label>
                 @endforeach

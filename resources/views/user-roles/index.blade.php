@@ -30,7 +30,6 @@
 
         <p class="text-sm text-gray-600 mb-4">
             Use <strong>Edit</strong> to change one user, or tick roles in the table and choose <strong>Save all changes</strong>.
-            Role 4 cannot be removed from a user who already has it.
         </p>
 
         <form id="user-roles-bulk-form" method="POST" action="{{ route('user-roles.bulk-update') }}">
@@ -65,7 +64,6 @@
                                 @foreach($roles as $role)
                                     @php
                                         $isChecked = in_array($role->id, $userRoleIds, true);
-                                        $isLocked = \App\Support\Role4Protection::isLockedForUser($user, $role);
                                     @endphp
                                     <td class="px-4 py-3 border-t border-gray-200 text-center">
                                         <input type="hidden" name="user_roles[{{ $index }}][user_id]" value="{{ $user->id }}">
@@ -74,12 +72,7 @@
                                             name="user_roles[{{ $index }}][roles][]"
                                             value="{{ $role->id }}"
                                             @checked($isChecked)
-                                            @disabled($isLocked)
-                                            @class([
-                                                'rounded border-gray-300 text-blue-600 focus:ring-blue-500',
-                                                'opacity-60 cursor-not-allowed' => $isLocked,
-                                            ])
-                                            title="{{ $isLocked ? 'Role 4 cannot be removed from this user.' : '' }}"
+                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         >
                                     </td>
                                 @endforeach

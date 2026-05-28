@@ -203,6 +203,81 @@ test('search from filter with none clears column restrictions from previous prof
         ->assertSee('Staff', false);
 });
 
+test('quick search keeps the session profile even when a stale profile_id is submitted', function () {
+    $user = User::factory()->create();
+
+    $active = ImeiFilter::query()->create([
+        'user_id' => $user->id,
+        'name' => 'Active Profile',
+        'params' => [
+            'scope' => 'all',
+            'date_scope' => 'all',
+            'search' => 'ACTIVE_SEARCH',
+        ],
+    ]);
+
+    $other = ImeiFilter::query()->create([
+        'user_id' => $user->id,
+        'name' => 'Other Profile',
+        'params' => [
+            'scope' => 'all',
+            'date_scope' => 'all',
+            'search' => 'OTHER_SEARCH',
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.filter.apply', $active))
+        ->assertRedirect();
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'quick_search' => '1',
+            'search' => 'QUICK_TERM',
+            'scope' => 'all',
+            'date_scope' => 'all',
+            'profile_id' => $other->id,
+        ]))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('Searched Profile: "Active Profile"', false);
+    expect($html)->toContain('value="'.$active->id.'" selected', false);
+    expect($html)->toContain('value="QUICK_TERM"', false);
+    expect($html)->not->toContain('Searched Profile: "Other Profile"', false);
+});
+
+test('quick search does not auto apply default profile after user chose none', function () {
+    $user = User::factory()->create();
+
+    ImeiFilter::query()->create([
+        'user_id' => $user->id,
+        'name' => 'Default Columns',
+        'params' => [
+            'scope' => 'selected',
+            'columns' => ['make', 'model'],
+        ],
+        'is_default' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.profile.clear'))
+        ->assertRedirect();
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'quick_search' => '1',
+            'search' => 'FREE_SEARCH',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->not->toContain('Searched Profile:', false);
+    expect($html)->toContain('value="" selected', false);
+});
+
 test('search from filter does not redirect loop when profile params contain from_filter', function () {
     $user = User::factory()->create();
 

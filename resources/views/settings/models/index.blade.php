@@ -54,6 +54,12 @@
                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                            placeholder="Optional">
                 </div>
+                <div class="flex-1 min-w-0">
+                    <label for="new-model-item-code" class="block text-gray-700 text-sm font-bold mb-2">Item code</label>
+                    <input type="text" name="item_code" id="new-model-item-code" value="{{ old('make') === $selectedMake ? old('item_code') : '' }}"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Optional">
+                </div>
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shrink-0">
                     Add model
                 </button>

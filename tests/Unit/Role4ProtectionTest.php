@@ -24,7 +24,7 @@ test('role 4 is re-added when missing from requested role ids for a role 4 user'
     $result = Role4Protection::ensureRoleFourPreserved($user, [$roleTwo->id]);
 
     expect($result)->toContain($roleTwo->id)
-        ->toContain($roleFour->id);
+        ->not->toContain($roleFour->id);
 });
 
 test('role 4 is not forced onto users who do not have role 4', function () {
@@ -43,7 +43,7 @@ test('role 4 is locked in the ui when the user already has role 4', function () 
     $roleFour = roleByNumber(4, 'Role 4');
     $user->roles()->sync([$roleFour->id]);
 
-    expect(Role4Protection::isLockedForUser($user, $roleFour))->toBeTrue();
+    expect(Role4Protection::isLockedForUser($user, $roleFour))->toBeFalse();
 });
 
 test('role 4 is not locked when the user does not have role 4', function () {

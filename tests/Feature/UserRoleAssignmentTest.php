@@ -60,7 +60,7 @@ test('role manager can assign role 2 to a user without role 4', function () {
     expect($target->fresh()->hasRole(4))->toBeFalse();
 });
 
-test('role manager cannot remove role 4 from a user who has it via single user update', function () {
+test('role manager can remove role 4 from a user who has it via single user update', function () {
     $manager = assignRolesManager();
     $target = User::factory()->create();
     $roleTwo = assignRolesRole(2, 'Role 2');
@@ -75,10 +75,10 @@ test('role manager cannot remove role 4 from a user who has it via single user u
 
     $fresh = $target->fresh();
     expect($fresh->hasRole(2))->toBeTrue();
-    expect($fresh->hasRole(4))->toBeTrue();
+    expect($fresh->hasRole(4))->toBeFalse();
 });
 
-test('role manager cannot remove role 4 from a user who has it via bulk update', function () {
+test('role manager can remove role 4 from a user who has it via bulk update', function () {
     $manager = assignRolesManager();
     $target = User::factory()->create();
     $roleTwo = assignRolesRole(2, 'Role 2');
@@ -98,10 +98,10 @@ test('role manager cannot remove role 4 from a user who has it via bulk update',
 
     $fresh = $target->fresh();
     expect($fresh->hasRole(2))->toBeTrue();
-    expect($fresh->hasRole(4))->toBeTrue();
+    expect($fresh->hasRole(4))->toBeFalse();
 });
 
-test('edit page shows role 4 checkbox as locked for a role 4 user', function () {
+test('edit page does not lock role 4 checkbox for a role 4 user', function () {
     $manager = assignRolesManager();
     $target = User::factory()->create();
     $roleFour = assignRolesRole(4, 'Role 4');
@@ -112,8 +112,7 @@ test('edit page shows role 4 checkbox as locked for a role 4 user', function () 
         ->assertSuccessful()
         ->getContent();
 
-    expect($html)->toContain('Locked — cannot be removed.');
-    expect($html)->toContain('disabled');
+    expect($html)->not->toContain('Locked — cannot be removed.');
 });
 
 test('non role manager cannot access assign roles pages', function () {
@@ -128,4 +127,39 @@ test('non role manager cannot access assign roles pages', function () {
     $this->actingAs($user)
         ->get(route('user-roles.edit', $target))
         ->assertForbidden();
+});
+
+test('cannot remove the last role manager via single user update', function () {
+    $manager = assignRolesManager();
+    $roleManager = assignRolesRole(1, 'Role Manager');
+    $roleTwo = assignRolesRole(2, 'Role 2');
+
+    $this->actingAs($manager)
+        ->put(route('user-roles.update', $manager), [
+            'roles' => [$roleTwo->id],
+        ])
+        ->assertRedirect(route('user-roles.edit', $manager))
+        ->assertSessionHas('error');
+
+    expect($manager->fresh()->roles->pluck('id')->all())->toContain($roleManager->id);
+});
+
+test('cannot remove the last role manager via bulk update', function () {
+    $manager = assignRolesManager();
+    $roleManager = assignRolesRole(1, 'Role Manager');
+    $roleTwo = assignRolesRole(2, 'Role 2');
+
+    $this->actingAs($manager)
+        ->post(route('user-roles.bulk-update'), [
+            'user_roles' => [
+                [
+                    'user_id' => $manager->id,
+                    'roles' => [$roleTwo->id],
+                ],
+            ],
+        ])
+        ->assertRedirect(route('user-roles.index'))
+        ->assertSessionHas('error');
+
+    expect($manager->fresh()->roles->pluck('id')->all())->toContain($roleManager->id);
 });

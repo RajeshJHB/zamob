@@ -21,6 +21,7 @@ class StoreImeiModelRequest extends FormRequest
             'make' => ['required', 'string', 'max:65535', Rule::exists('imei_make', 'make')],
             'model' => ['required', 'string', 'max:65535'],
             'serial' => ['nullable', 'string', 'max:65535'],
+            'item_code' => ['nullable', 'string', 'max:65535'],
         ];
     }
 }

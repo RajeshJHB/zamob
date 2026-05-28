@@ -16,11 +16,13 @@ class ImeiFilter extends Model
         'user_id',
         'name',
         'params',
+        'is_default',
     ];
 
     protected $casts = [
         'params' => 'array',
         'user_id' => 'integer',
+        'is_default' => 'boolean',
     ];
 
     public function user(): BelongsTo

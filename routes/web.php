@@ -127,6 +127,10 @@ Route::middleware(['auth', 'verified', 'role.assigned'])->group(function () {
     Route::get('/imeis/filter/apply/{filter}', [ImeiController::class, 'applyFilter'])->name('imeis.filter.apply');
     Route::delete('/imeis/filter/{filter}', [ImeiController::class, 'deleteFilter'])->name('imeis.filter.delete');
     Route::get('/imeis/filter/clear', [ImeiController::class, 'clearFilterProfile'])->name('imeis.filter.clear');
+    Route::post('/imeis/filter/default', [ImeiController::class, 'updateDefaultFilterProfile'])->name('imeis.filter.default');
+    Route::get('/imeis/profile/apply/{filter}', [ImeiController::class, 'applyProfileFromIndex'])->name('imeis.profile.apply');
+    Route::get('/imeis/profile/clear', [ImeiController::class, 'clearProfileFromIndex'])->name('imeis.profile.clear');
+    Route::get('/imeis/search/reset', [ImeiController::class, 'resetSearch'])->name('imeis.search.reset');
     Route::get('/imeis/receipt/logo', [ImeiController::class, 'receiptLogo'])->name('imeis.receipt.logo');
     Route::get('/imeis/{imei}/receipt', [ImeiController::class, 'receipt'])->name('imeis.receipt');
     Route::get('/imeis/{imei}/edit', [ImeiController::class, 'edit'])->name('imeis.edit');

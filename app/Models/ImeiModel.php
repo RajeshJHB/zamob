@@ -18,6 +18,7 @@ class ImeiModel extends Model
         'model',
         'serial',
         'make',
+        'item_code',
     ];
 
     /**

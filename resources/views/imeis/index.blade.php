@@ -13,14 +13,25 @@
         request()->only(['page']),
     ), fn (mixed $value): bool => $value !== null && $value !== ''));
     $imeiBrowseTextDisplayLimit = 150;
-    $resetSearchParams = collect($filterParams ?? [])
-        ->except(['search', 'search2', 'page'])
-        ->all();
 @endphp
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
         <div class="sm:justify-self-start">
-            <h1 class="text-3xl font-bold">IMEI's</h1>
+            <div class="flex flex-wrap items-center gap-3">
+                <h1 class="text-3xl font-bold">IMEI's</h1>
+                <div class="flex items-center gap-2">
+                    <label for="imei-profile-select" class="text-xs font-semibold text-gray-600">Profile</label>
+                    <select
+                        id="imei-profile-select"
+                        class="border border-gray-300 rounded-md py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                        <option value="" @selected(empty($activeProfileId))>(none)</option>
+                        @foreach(($savedFilters ?? collect()) as $profile)
+                            <option value="{{ $profile->id }}" @selected((int) $activeProfileId === (int) $profile->id)>{{ $profile->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
             @if(! empty($currentProfileName))
                 <div class="mt-1 text-sm font-semibold text-gray-700">
                     Searched Profile: "{{ $currentProfileName }}"
@@ -32,12 +43,16 @@
                 Add IMEI
             </button>
             <form method="GET" action="{{ route('imeis.index') }}" class="flex items-center gap-2 min-w-0">
+                <input type="hidden" name="quick_search" value="1">
+                @if(! empty($activeProfileId))
+                    <input type="hidden" name="profile_id" value="{{ $activeProfileId }}">
+                @endif
                 @foreach($filterParams ?? [] as $key => $value)
                     @if(is_array($value))
                         @foreach($value as $item)
                             <input type="hidden" name="{{ $key }}[]" value="{{ $item }}">
                         @endforeach
-                    @elseif(! in_array($key, ['search', 'page'], true))
+                    @elseif(! in_array($key, ['search', 'page', 'profile_id'], true))
                         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                     @endif
                 @endforeach
@@ -52,7 +67,7 @@
                     Quick search
                 </button>
                 <a
-                    href="{{ route('imeis.index', $resetSearchParams) }}"
+                    href="{{ route('imeis.search.reset') }}"
                     class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md text-sm shadow-sm shrink-0 inline-block text-center"
                 >
                     Reset search
@@ -376,6 +391,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (event.data && event.data.type === 'imei-form-close') {
             closeAddModal(!! event.data.reload);
         }
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const profileSelect = document.getElementById('imei-profile-select');
+
+    if (! profileSelect) {
+        return;
+    }
+
+    profileSelect.addEventListener('change', function () {
+        const id = profileSelect.value;
+
+        if (! id) {
+            window.location.href = '{{ route('imeis.profile.clear') }}';
+            return;
+        }
+
+        window.location.href = '{{ url('/imeis/profile/apply') }}' + '/' + encodeURIComponent(id);
     });
 });
 </script>
