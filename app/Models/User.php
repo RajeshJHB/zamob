@@ -81,6 +81,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole(4);
     }
 
+    public function canBulkEditImei(): bool
+    {
+        return $this->hasRole(5);
+    }
+
     public function syncRoles(array $roleIds): void
     {
         $this->roles()->sync($roleIds);

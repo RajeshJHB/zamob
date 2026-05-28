@@ -78,6 +78,15 @@
             <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block">
                 Filter
             </a>
+            @if($canBulkEditImei ?? false)
+                <button
+                    type="button"
+                    id="imei-bulk-edit-open"
+                    class="bg-teal-600 hover:bg-teal-800 text-white font-bold py-1 px-3 rounded text-sm"
+                >
+                    Bulk Edit
+                </button>
+            @endif
             @if($canBulkChangeStatus ?? false)
                 <div class="relative" id="imei-advanced-menu-container">
                     <button id="imei-advanced-menu-button" type="button" class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-1">
@@ -329,6 +338,10 @@ document.addEventListener('DOMContentLoaded', function () {
     @endif
 });
 </script>
+@endif
+
+@if($canBulkEditImei ?? false)
+    @include('imeis.partials.bulk-edit-modal')
 @endif
 
 <script>

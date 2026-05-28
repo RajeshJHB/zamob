@@ -177,18 +177,32 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                @php
+                                    $oldFieldFilter = $filterIndex === 1 ? ($oldFieldFilter1 ?? '') : ($oldFieldFilter2 ?? '');
+                                    $oldFieldValue = $filterIndex === 1 ? ($oldFieldValue1 ?? '') : ($oldFieldValue2 ?? '');
+                                    $fieldValueOptions = $oldFieldFilter !== ''
+                                        ? ($fieldFilterPicklists[$oldFieldFilter] ?? [])
+                                        : [];
+                                @endphp
                                 <div>
                                     <label for="field_value_{{ $filterIndex }}" class="block text-xs font-medium text-gray-700 mb-1">
                                         Filter {{ $filterIndex }} — value
                                     </label>
                                     <select
-                                        name="field_value_{{ $filterIndex }}"
+                                        name="{{ $oldFieldFilter !== '' ? 'field_value_'.$filterIndex : '' }}"
                                         id="field_value_{{ $filterIndex }}"
                                         class="imei-field-filter-value border border-gray-300 rounded px-2 py-1 shadow-sm w-full"
                                         data-filter-index="{{ $filterIndex }}"
-                                        data-initial-value="{{ $filterIndex === 1 ? e($oldFieldValue1 ?? '') : e($oldFieldValue2 ?? '') }}"
+                                        data-initial-value="{{ e($oldFieldValue) }}"
+                                        @disabled($oldFieldFilter === '')
                                     >
-                                        <option value="">(choose value)</option>
+                                        <option value="">{{ $oldFieldFilter !== '' ? '(choose value)' : '(select a field first)' }}</option>
+                                        @if($oldFieldValue !== '' && ! in_array($oldFieldValue, $fieldValueOptions, true))
+                                            <option value="{{ $oldFieldValue }}" selected>{{ $oldFieldValue }}</option>
+                                        @endif
+                                        @foreach($fieldValueOptions as $fieldValueOption)
+                                            <option value="{{ $fieldValueOption }}" @selected($oldFieldValue === $fieldValueOption)>{{ $fieldValueOption }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -372,8 +386,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const profileNameInput = document.getElementById('profile_name');
     const existingProfileNames = @json($savedFilters->pluck('name')->values());
     const fieldFilterPicklists = @json($fieldFilterPicklists);
+    const fieldFilterInitialValues = {
+        1: @json($oldFieldValue1 ?? ''),
+        2: @json($oldFieldValue2 ?? ''),
+    };
 
-    function populateFieldFilterValueSelect(index) {
+    function populateFieldFilterValueSelect(index, preserveValue) {
         const fieldSelect = document.getElementById('field_filter_' + index);
         const valueSelect = document.getElementById('field_value_' + index);
         if (!fieldSelect || !valueSelect) {
@@ -381,8 +399,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const field = fieldSelect.value;
-        const initialValue = valueSelect.getAttribute('data-initial-value') || '';
-        const currentValue = valueSelect.value || initialValue;
+        const initialValue = preserveValue !== undefined
+            ? preserveValue
+            : (valueSelect.value
+                || valueSelect.getAttribute('data-initial-value')
+                || fieldFilterInitialValues[index]
+                || '');
 
         valueSelect.innerHTML = '';
         const placeholder = document.createElement('option');
@@ -401,26 +423,47 @@ document.addEventListener('DOMContentLoaded', function() {
         valueSelect.setAttribute('name', 'field_value_' + index);
 
         const options = fieldFilterPicklists[field] || [];
+        let matchedInitial = false;
+
+        if (initialValue !== '' && !options.includes(initialValue)) {
+            const orphan = document.createElement('option');
+            orphan.value = initialValue;
+            orphan.textContent = initialValue;
+            orphan.selected = true;
+            valueSelect.appendChild(orphan);
+            matchedInitial = true;
+        }
+
         options.forEach(function (label) {
             const option = document.createElement('option');
             option.value = label;
             option.textContent = label;
-            if (label === currentValue) {
+            if (!matchedInitial && label === initialValue) {
                 option.selected = true;
+                matchedInitial = true;
             }
             valueSelect.appendChild(option);
         });
-
-        valueSelect.removeAttribute('data-initial-value');
     }
 
     function initFieldFilters() {
         document.querySelectorAll('.imei-field-filter-field').forEach(function (fieldSelect) {
             const index = fieldSelect.getAttribute('data-filter-index');
+            const valueSelect = document.getElementById('field_value_' + index);
+
             fieldSelect.addEventListener('change', function () {
-                populateFieldFilterValueSelect(index);
+                populateFieldFilterValueSelect(index, '');
             });
-            populateFieldFilterValueSelect(index);
+
+            if (!valueSelect || valueSelect.options.length <= 1) {
+                populateFieldFilterValueSelect(index);
+            } else if (fieldSelect.value === '') {
+                valueSelect.disabled = true;
+                valueSelect.removeAttribute('name');
+            } else {
+                valueSelect.disabled = false;
+                valueSelect.setAttribute('name', 'field_value_' + index);
+            }
         });
     }
 

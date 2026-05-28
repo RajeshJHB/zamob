@@ -65,3 +65,12 @@ function grantRoleFourForImeiReferenceDeletes(User $user): void
     );
     $user->roles()->syncWithoutDetaching([$role->id]);
 }
+
+function grantRoleFiveForImeiBulkEdit(User $user): void
+{
+    $role = Role::query()->firstOrCreate(
+        ['number' => 5],
+        ['name' => 'IMEI bulk edit']
+    );
+    $user->roles()->syncWithoutDetaching([$role->id]);
+}

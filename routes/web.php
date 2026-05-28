@@ -136,6 +136,7 @@ Route::middleware(['auth', 'verified', 'role.assigned'])->group(function () {
     Route::get('/imeis/{imei}/edit', [ImeiController::class, 'edit'])->name('imeis.edit');
     Route::get('/imeis/print', [ImeiController::class, 'print'])->name('imeis.print');
     Route::post('/imeis/bulk-status', [ImeiController::class, 'bulkChangeStatus'])->name('imeis.bulk-status');
+    Route::post('/imeis/bulk-edit', [ImeiController::class, 'bulkEdit'])->name('imeis.bulk-edit');
     Route::get('/imeis', [ImeiController::class, 'index'])->name('imeis.index');
 });
 

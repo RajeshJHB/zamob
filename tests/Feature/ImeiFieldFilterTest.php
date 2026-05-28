@@ -35,6 +35,45 @@ beforeEach(function () {
     });
 });
 
+test('filter page retains field filter values when opened from query string', function () {
+    $user = User::factory()->create();
+    ImeiStatus::factory()->create(['status' => 'In Shop']);
+    ImeiLocation::factory()->create(['location' => 'Shop A']);
+
+    $this->actingAs($user)
+        ->get(route('imeis.filter', [
+            'field_filter_1' => 'status',
+            'field_value_1' => 'In Shop',
+            'field_filter_2' => 'location',
+            'field_value_2' => 'Shop A',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('<option value="In Shop" selected>', false)
+        ->assertSee('<option value="Shop A" selected>', false);
+});
+
+test('filter link from index retains field filter values', function () {
+    $user = User::factory()->create();
+    ImeiStatus::factory()->create(['status' => 'In Shop']);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'field_filter_1' => 'status',
+            'field_value_1' => 'In Shop',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('imeis/filter?field_filter_1=status', false)
+        ->assertSee('field_value_1=In%20Shop', false);
+
+    $this->actingAs($user)
+        ->get(route('imeis.filter', [
+            'field_filter_1' => 'status',
+            'field_value_1' => 'In Shop',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('<option value="In Shop" selected>', false);
+});
+
 test('filter page includes field filter controls with no filter default', function () {
     $user = User::factory()->create();
     ImeiStatus::factory()->create(['status' => 'In Shop']);

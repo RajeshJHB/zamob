@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BulkChangeImeiStatusRequest;
+use App\Http\Requests\BulkEditImeiRequest;
 use App\Http\Requests\StoreImeiRequest;
 use App\Http\Requests\UpdateImeiRequest;
 use App\Models\Contact;
@@ -18,6 +19,7 @@ use App\Models\ServiceNote;
 use App\Support\BrowseListLimit;
 use App\Support\CashDevicesTable;
 use App\Support\ContactImeiCustomerDetails;
+use App\Support\ImeiBulkEdit;
 use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiFieldFilter;
 use App\Support\ImeiNormalizedLookup;
@@ -490,6 +492,9 @@ class ImeiController extends Controller
         $bulkStatusCount = $roleFourWithStatusFilter ? (clone $query)->count() : 0;
         $canBulkChangeStatus = $roleFourWithStatusFilter && $bulkStatusCount > 1;
 
+        $canBulkEditImei = $request->user()?->canBulkEditImei() === true;
+        $bulkEditCount = $canBulkEditImei ? (clone $query)->count() : 0;
+
         $imeis = $query->paginate(25)->withQueryString();
 
         $selectedColumns = $request->input('columns');
@@ -511,9 +516,12 @@ class ImeiController extends Controller
             'columnLabels' => self::COLUMNS,
             'filterParams' => $this->imeiFilterParams($request),
             'canBulkChangeStatus' => $canBulkChangeStatus,
+            'canBulkEditImei' => $canBulkEditImei,
             'statusFilterValue' => $statusFilterValue,
             'bulkStatusCount' => $bulkStatusCount,
+            'bulkEditCount' => $bulkEditCount,
             'statusOptions' => ImeiStatus::query()->orderBy('status')->pluck('status')->all(),
+            'saleTypeOptions' => ImeiSaleType::query()->orderBy('sale_type')->pluck('sale_type')->all(),
             'currentProfileName' => $this->activeProfileName($request),
             'savedFilters' => $savedFilters,
             'activeProfileId' => $activeProfileId,
@@ -569,6 +577,32 @@ class ImeiController extends Controller
         return redirect()
             ->route('imeis.index', $this->imeiFilterParams($request))
             ->with('message', "Updated {$updated} record(s) from {$fromStatus} to {$toStatus}.");
+    }
+
+    public function bulkEdit(BulkEditImeiRequest $request): RedirectResponse
+    {
+        $userEmail = (string) $request->user()->email;
+        $now = now();
+
+        $query = $this->buildImeiQuery($request);
+        ImeiBulkEdit::applySearchCriteria($query, $request->searchCriteria());
+
+        $updateAttributes = ImeiBulkEdit::buildUpdateAttributes($request->replaceValues(), $now);
+        $updated = 0;
+
+        $query->chunkById(100, function ($imeis) use ($updateAttributes, $userEmail, &$updated): void {
+            foreach ($imeis as $imei) {
+                $imei->update([
+                    ...$updateAttributes,
+                    'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
+                ]);
+                $updated++;
+            }
+        });
+
+        return redirect()
+            ->route('imeis.index', $this->imeiFilterParams($request))
+            ->with('message', "Bulk edit updated {$updated} record(s).");
     }
 
     private function buildImeiQuery(Request $request): \Illuminate\Database\Eloquent\Builder
