@@ -203,6 +203,65 @@ test('bulk edit uses contains matching for customer and deal details search', fu
     expect($dealMatch->cash_stock_type)->toBe('Online_Only');
 });
 
+test('bulk edit can replace search text in customer details while keeping the rest', function () {
+    $user = User::factory()->create(['email' => 'editor@example.com']);
+    grantRoleFiveForImeiBulkEdit($user);
+
+    $match = createBulkEditImei('111111111111111', [
+        'notes' => 'Contact tracy - iPhone 15',
+    ]);
+    $noMatch = createBulkEditImei('222222222222222', [
+        'notes' => 'John Smith',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_customer_details' => 'tracy',
+            'replace_customer_details' => 'Tracy Chapman',
+            'replace_search_text_customer_details' => '1',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    expect($match->fresh()->notes)->toBe('Contact Tracy Chapman - iPhone 15');
+    expect($noMatch->fresh()->notes)->toBe('John Smith');
+});
+
+test('bulk edit can remove search text from customer details while keeping the rest', function () {
+    $user = User::factory()->create(['email' => 'editor@example.com']);
+    grantRoleFiveForImeiBulkEdit($user);
+
+    $match = createBulkEditImei('111111111111111', [
+        'notes' => 'Contact Tracy - iPhone 15',
+    ]);
+    $noMatch = createBulkEditImei('222222222222222', [
+        'notes' => 'John Smith',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_customer_details' => 'Tracy',
+            'remove_search_customer_details' => '1',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    expect($match->fresh()->notes)->toBe('Contact - iPhone 15');
+    expect($noMatch->fresh()->notes)->toBe('John Smith');
+});
+
+test('bulk edit remove search text requires matching search value', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    $this->actingAs($user)
+        ->from(route('imeis.index'))
+        ->post(route('imeis.bulk-edit'), [
+            'remove_search_customer_details' => '1',
+        ])
+        ->assertSessionHasErrors('search_customer_details');
+});
+
 test('bulk edit requires at least one search and one replace value', function () {
     $user = User::factory()->create();
     grantRoleFiveForImeiBulkEdit($user);

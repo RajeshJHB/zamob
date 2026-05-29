@@ -17,7 +17,7 @@ class UpdateUserRolesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'roles' => ['present', 'array'],
+            'roles' => ['nullable', 'array'],
             'roles.*' => ['integer', 'exists:roles,id'],
         ];
     }

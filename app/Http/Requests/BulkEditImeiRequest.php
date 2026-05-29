@@ -49,6 +49,11 @@ class BulkEditImeiRequest extends FormRequest
         $rules['replace_'.ImeiBulkEdit::FIELD_DEAL_DETAILS] = ['nullable', 'string', 'max:'.ImeiTextLimits::DEAL_DETAILS_MAX];
         $rules['replace_'.ImeiBulkEdit::FIELD_CUSTOMER_DETAILS] = ['nullable', 'string', 'max:'.ImeiTextLimits::CUSTOMER_DETAILS_MAX];
 
+        foreach (ImeiBulkEdit::TEXT_PARTIAL_EDIT_FIELD_KEYS as $fieldKey) {
+            $rules[ImeiBulkEdit::removeSearchTextRequestKey($fieldKey)] = ['nullable', 'boolean'];
+            $rules[ImeiBulkEdit::replaceSearchTextRequestKey($fieldKey)] = ['nullable', 'boolean'];
+        }
+
         return $rules;
     }
 
@@ -59,8 +64,40 @@ class BulkEditImeiRequest extends FormRequest
                 $validator->errors()->add('search_sale_type', 'Provide at least one search value to match records.');
             }
 
-            if (! ImeiBulkEdit::hasAnyReplaceValue($this->all())) {
-                $validator->errors()->add('replace_sale_type', 'Provide at least one replace value to apply.');
+            if (! ImeiBulkEdit::hasAnyReplaceAction($this->all())) {
+                $validator->errors()->add('replace_sale_type', 'Provide at least one replace value or remove-search option to apply.');
+            }
+
+            foreach (ImeiBulkEdit::TEXT_PARTIAL_EDIT_FIELD_KEYS as $fieldKey) {
+                $removeKey = ImeiBulkEdit::removeSearchTextRequestKey($fieldKey);
+                $replaceSearchKey = ImeiBulkEdit::replaceSearchTextRequestKey($fieldKey);
+                $searchKey = 'search_'.$fieldKey;
+                $replaceKey = 'replace_'.$fieldKey;
+                $label = ImeiBulkEdit::labels()[$fieldKey];
+
+                if ($this->boolean($removeKey) && $this->boolean($replaceSearchKey)) {
+                    $validator->errors()->add($replaceKey, "Choose either remove or replace-search-text for {$label}, not both.");
+                }
+
+                if ($this->boolean($removeKey)) {
+                    if (trim((string) $this->input($searchKey, '')) === '') {
+                        $validator->errors()->add($searchKey, "Provide a search value for {$label} when removing search text.");
+                    }
+
+                    if (trim((string) $this->input($replaceKey, '')) !== '') {
+                        $validator->errors()->add($replaceKey, "Clear the replace value for {$label} when using remove search text.");
+                    }
+                }
+
+                if ($this->boolean($replaceSearchKey)) {
+                    if (trim((string) $this->input($searchKey, '')) === '') {
+                        $validator->errors()->add($searchKey, "Provide a search value for {$label} when replacing search text.");
+                    }
+
+                    if (trim((string) $this->input($replaceKey, '')) === '') {
+                        $validator->errors()->add($replaceKey, "Provide the replacement text for {$label} when using replace search text.");
+                    }
+                }
             }
         });
     }

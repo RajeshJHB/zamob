@@ -144,6 +144,32 @@ test('cannot remove the last role manager via single user update', function () {
     expect($manager->fresh()->roles->pluck('id')->all())->toContain($roleManager->id);
 });
 
+test('bulk update accepts users with no roles selected', function () {
+    $manager = assignRolesManager();
+    $withRole = User::factory()->create();
+    $withoutRole = User::factory()->create();
+    $roleTwo = assignRolesRole(2, 'Role 2');
+    $withRole->roles()->sync([$roleTwo->id]);
+
+    $this->actingAs($manager)
+        ->post(route('user-roles.bulk-update'), [
+            'user_roles' => [
+                [
+                    'user_id' => $withRole->id,
+                    'roles' => [$roleTwo->id],
+                ],
+                [
+                    'user_id' => $withoutRole->id,
+                ],
+            ],
+        ])
+        ->assertRedirect(route('user-roles.index'))
+        ->assertSessionHas('success');
+
+    expect($withRole->fresh()->hasRole(2))->toBeTrue();
+    expect($withoutRole->fresh()->roles)->toBeEmpty();
+});
+
 test('cannot remove the last role manager via bulk update', function () {
     $manager = assignRolesManager();
     $roleManager = assignRolesRole(1, 'Role Manager');

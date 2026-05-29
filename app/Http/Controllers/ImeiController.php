@@ -583,17 +583,55 @@ class ImeiController extends Controller
     {
         $userEmail = (string) $request->user()->email;
         $now = now();
+        $formValues = $request->all();
 
         $query = $this->buildImeiQuery($request);
         ImeiBulkEdit::applySearchCriteria($query, $request->searchCriteria());
 
-        $updateAttributes = ImeiBulkEdit::buildUpdateAttributes($request->replaceValues(), $now);
+        $removeFieldKeys = ImeiBulkEdit::removeSearchTextFieldKeys($formValues);
+        $replaceSearchFieldKeys = ImeiBulkEdit::replaceSearchTextFieldKeys($formValues);
+        $partialTextFieldKeys = ImeiBulkEdit::partialTextEditFieldKeys($formValues);
+        $updateAttributes = ImeiBulkEdit::buildUpdateAttributes(
+            $request->replaceValues(),
+            $now,
+            $partialTextFieldKeys,
+        );
         $updated = 0;
 
-        $query->chunkById(100, function ($imeis) use ($updateAttributes, $userEmail, &$updated): void {
+        $query->chunkById(100, function ($imeis) use ($updateAttributes, $formValues, $removeFieldKeys, $replaceSearchFieldKeys, $userEmail, &$updated): void {
             foreach ($imeis as $imei) {
+                $attributes = $updateAttributes;
+
+                foreach ($removeFieldKeys as $fieldKey) {
+                    $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);
+                    if ($searchTerm === null) {
+                        continue;
+                    }
+
+                    $column = ImeiBulkEdit::databaseColumn($fieldKey);
+                    $attributes[$column] = ImeiBulkEdit::removeSearchTextFromField(
+                        (string) $imei->{$column},
+                        $searchTerm,
+                    );
+                }
+
+                foreach ($replaceSearchFieldKeys as $fieldKey) {
+                    $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);
+                    $replaceWith = ImeiBulkEdit::replaceValue($formValues, $fieldKey);
+                    if ($searchTerm === null || $replaceWith === null) {
+                        continue;
+                    }
+
+                    $column = ImeiBulkEdit::databaseColumn($fieldKey);
+                    $attributes[$column] = ImeiBulkEdit::replaceSearchTextInField(
+                        (string) $imei->{$column},
+                        $searchTerm,
+                        $replaceWith,
+                    );
+                }
+
                 $imei->update([
-                    ...$updateAttributes,
+                    ...$attributes,
                     'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
                 ]);
                 $updated++;

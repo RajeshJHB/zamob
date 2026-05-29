@@ -82,7 +82,7 @@
                 <button
                     type="button"
                     id="imei-bulk-edit-open"
-                    class="bg-teal-600 hover:bg-teal-800 text-white font-bold py-1 px-3 rounded text-sm"
+                    class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-1 px-3 rounded text-sm shadow-sm"
                 >
                     Bulk Edit
                 </button>

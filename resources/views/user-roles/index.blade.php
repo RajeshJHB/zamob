@@ -59,6 +59,7 @@
                                     @if(auth()->id() === $user->id)
                                         <span class="text-xs text-gray-500">(You)</span>
                                     @endif
+                                    <input type="hidden" name="user_roles[{{ $index }}][user_id]" value="{{ $user->id }}">
                                 </td>
                                 <td class="px-4 py-3 border-t border-gray-200 text-sm text-gray-700">{{ $user->email }}</td>
                                 @foreach($roles as $role)
@@ -66,7 +67,6 @@
                                         $isChecked = in_array($role->id, $userRoleIds, true);
                                     @endphp
                                     <td class="px-4 py-3 border-t border-gray-200 text-center">
-                                        <input type="hidden" name="user_roles[{{ $index }}][user_id]" value="{{ $user->id }}">
                                         <input
                                             type="checkbox"
                                             name="user_roles[{{ $index }}][roles][]"

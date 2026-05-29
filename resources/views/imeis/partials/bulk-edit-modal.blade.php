@@ -28,6 +28,9 @@
                     Within the current filtered results (<strong>{{ number_format($bulkEditCount) }}</strong> record(s)),
                     find records matching the search values below and apply the replace values.
                     Deal Details and Customer Details search uses <strong>contains</strong> matching.
+                    To change or delete text inside a field, tick
+                    <strong>Replace search text only</strong> or <strong>Remove search text only</strong>
+                    (leave the replace box empty for remove).
                 </p>
 
                 @if ($errors->has('search_sale_type') || $errors->has('replace_sale_type'))
@@ -142,12 +145,33 @@
                                 name="replace_deal_details"
                                 id="replace_deal_details"
                                 value="{{ old('replace_deal_details') }}"
+                                placeholder="Replace whole field, or substitute text…"
                                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                                 autocomplete="off"
                             >
                             @error('replace_deal_details')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
+                            <label class="mt-2 flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="replace_search_text_deal_details"
+                                    value="1"
+                                    @checked(old('replace_search_text_deal_details'))
+                                    class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Replace search text only (use value above as substitute, keep rest)</span>
+                            </label>
+                            <label class="mt-2 flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="remove_search_deal_details"
+                                    value="1"
+                                    @checked(old('remove_search_deal_details'))
+                                    class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Remove search text only (leave replace empty, keep rest)</span>
+                            </label>
                         </div>
 
                         <div>
@@ -157,12 +181,33 @@
                                 name="replace_customer_details"
                                 id="replace_customer_details"
                                 value="{{ old('replace_customer_details') }}"
+                                placeholder="Replace whole field, or substitute text…"
                                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                                 autocomplete="off"
                             >
                             @error('replace_customer_details')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
+                            <label class="mt-2 flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="replace_search_text_customer_details"
+                                    value="1"
+                                    @checked(old('replace_search_text_customer_details'))
+                                    class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Replace search text only (use value above as substitute, keep rest)</span>
+                            </label>
+                            <label class="mt-2 flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="remove_search_customer_details"
+                                    value="1"
+                                    @checked(old('remove_search_customer_details'))
+                                    class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Remove search text only (leave replace empty, keep rest)</span>
+                            </label>
                         </div>
                     </fieldset>
                 </div>
@@ -174,7 +219,7 @@
                     <button
                         type="submit"
                         id="imei-bulk-edit-submit"
-                        class="bg-teal-600 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         @disabled($bulkEditCount === 0)
                     >
                         Execute
@@ -232,6 +277,10 @@ document.addEventListener('DOMContentLoaded', function () {
         || $errors->has('replace_status')
         || $errors->has('replace_deal_details')
         || $errors->has('replace_customer_details')
+        || $errors->has('remove_search_deal_details')
+        || $errors->has('remove_search_customer_details')
+        || $errors->has('replace_search_text_deal_details')
+        || $errors->has('replace_search_text_customer_details')
     )
         openBulkEditModal();
     @endif
