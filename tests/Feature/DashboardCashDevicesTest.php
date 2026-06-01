@@ -2,6 +2,7 @@
 
 use App\Models\Imei;
 use App\Models\ImeiSaleType;
+use App\Models\ImeiType;
 use App\Models\User;
 use App\Support\CashDevicesTable;
 use Illuminate\Database\Schema\Blueprint;
@@ -86,6 +87,7 @@ test('dashboard lists matching sale type records and excludes sold', function ()
         'type' => 'Trade-in',
         'status' => 'In Shop',
         'ref' => '128GB Black, excellent condition',
+        'cost_excl' => '100',
         'selling_price' => 9999,
     ]);
 
@@ -107,10 +109,15 @@ test('dashboard lists matching sale type records and excludes sold', function ()
         ->assertSuccessful()
         ->assertSee('Cash Devices', false)
         ->assertSee('Sale type', false)
+        ->assertSee('IMEI type', false)
         ->assertSee('>ALL</option>', false)
         ->assertSee('Apple', false)
         ->assertSee('iPhone 14', false)
+        ->assertSee('Cost incl', false)
+        ->assertSee('cash-devices-cost-incl-mask', false)
+        ->assertSee('cash-devices-cost-incl-value hidden', false)
         ->assertSee('9,999', false)
+        ->assertSee('115', false)
         ->assertSee(route('imeis.edit', $visible).'?return_query='.rawurlencode($returnQuery), false)
         ->assertDontSee('358918502270222', false)
         ->assertDontSee('Samsung', false);
@@ -148,6 +155,57 @@ test('dashboard all sale type shows records for any configured sale type except 
         ->assertSee('VodaMake', false)
         ->assertDontSee('NoneMake', false)
         ->assertDontSee('BlankMake', false);
+});
+
+test('dashboard can filter by a specific imei type', function () {
+    $user = User::factory()->create();
+
+    $tradeIn = ImeiType::factory()->create(['type' => 'Trade-in']);
+    ImeiType::factory()->create(['type' => 'New Cash device']);
+
+    createDashboardImei([
+        'cash_stock_type' => 'Cash',
+        'type' => 'Trade-in',
+        'make' => 'TradeInMake',
+    ]);
+
+    createDashboardImei([
+        'cash_stock_type' => 'Cash',
+        'type' => 'New Cash device',
+        'make' => 'NewCashMake',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['imei_type_id' => $tradeIn->id]))
+        ->assertSuccessful()
+        ->assertSee('TradeInMake', false)
+        ->assertDontSee('NewCashMake', false);
+});
+
+test('dashboard imei type filter supports type names with spaces and numbers', function () {
+    $user = User::factory()->create();
+
+    $exObfType = ImeiType::factory()->create(['type' => '14 day stock exOBF']);
+    ImeiType::factory()->create(['type' => 'New Cash device']);
+
+    createDashboardImei([
+        'cash_stock_type' => 'Cash',
+        'type' => '14 day stock exOBF',
+        'make' => 'ExObfMake',
+    ]);
+
+    createDashboardImei([
+        'cash_stock_type' => 'Cash',
+        'type' => 'New Cash device',
+        'make' => 'NewCashMake',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['imei_type_id' => $exObfType->id]))
+        ->assertSuccessful()
+        ->assertSee('ExObfMake', false)
+        ->assertDontSee('NewCashMake', false)
+        ->assertSee('value="'.$exObfType->id.'" selected', false);
 });
 
 test('dashboard can filter by a specific sale type regardless of device type', function () {

@@ -27,6 +27,7 @@
                 <p class="text-sm text-gray-700">
                     Within the current filtered results (<strong>{{ number_format($bulkEditCount) }}</strong> record(s)),
                     find records matching the search values below and apply the replace values.
+                    Sale Type, Status, and Type can use <strong>Exclude (not equal)</strong> to match records that do <strong>not</strong> have the selected value.
                     Deal Details and Customer Details search uses <strong>contains</strong> matching.
                     To change or delete text inside a field, tick
                     <strong>Replace search text only</strong> or <strong>Remove search text only</strong>
@@ -51,6 +52,16 @@
                         <legend class="text-sm font-semibold text-gray-900 px-1">Search</legend>
 
                         <div>
+                            <label class="mb-1 flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="search_not_sale_type"
+                                    value="1"
+                                    @checked(old('search_not_sale_type'))
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Exclude Sale Type (not equal to selection)</span>
+                            </label>
                             <label for="search_sale_type" class="block text-sm font-medium text-gray-700 mb-1">Sale Type</label>
                             <select name="search_sale_type" id="search_sale_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
                                 <option value="">— Any —</option>
@@ -64,6 +75,16 @@
                         </div>
 
                         <div>
+                            <label class="mb-1 flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="search_not_status"
+                                    value="1"
+                                    @checked(old('search_not_status'))
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Exclude Status (not equal to selection)</span>
+                            </label>
                             <label for="search_status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                             <select name="search_status" id="search_status" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
                                 <option value="">— Any —</option>
@@ -72,6 +93,29 @@
                                 @endforeach
                             </select>
                             @error('search_status')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="mb-1 flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="search_not_type"
+                                    value="1"
+                                    @checked(old('search_not_type'))
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Exclude Type (not equal to selection)</span>
+                            </label>
+                            <label for="search_type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <select name="search_type" id="search_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                <option value="">— Any —</option>
+                                @foreach($typeOptions as $typeOption)
+                                    <option value="{{ $typeOption }}" @selected(old('search_type') === $typeOption)>{{ $typeOption }}</option>
+                                @endforeach
+                            </select>
+                            @error('search_type')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -134,6 +178,19 @@
                                 @endforeach
                             </select>
                             @error('replace_status')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="replace_type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <select name="replace_type" id="replace_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                <option value="">— No change —</option>
+                                @foreach($typeOptions as $typeOption)
+                                    <option value="{{ $typeOption }}" @selected(old('replace_type') === $typeOption)>{{ $typeOption }}</option>
+                                @endforeach
+                            </select>
+                            @error('replace_type')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -271,10 +328,12 @@ document.addEventListener('DOMContentLoaded', function () {
     @if(
         $errors->has('search_sale_type')
         || $errors->has('search_status')
+        || $errors->has('search_type')
         || $errors->has('search_deal_details')
         || $errors->has('search_customer_details')
         || $errors->has('replace_sale_type')
         || $errors->has('replace_status')
+        || $errors->has('replace_type')
         || $errors->has('replace_deal_details')
         || $errors->has('replace_customer_details')
         || $errors->has('remove_search_deal_details')

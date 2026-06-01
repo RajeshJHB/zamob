@@ -2,6 +2,7 @@
 
 use App\Models\Imei;
 use App\Models\ImeiLocation;
+use App\Models\ImeiSaleType;
 use App\Models\ImeiStatus;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
@@ -86,7 +87,75 @@ test('filter page includes field filter controls with no filter default', functi
         ->assertSee('No filter', false)
         ->assertSee('field_filter_1', false)
         ->assertSee('field_filter_2', false)
+        ->assertSee('field_filter_3', false)
+        ->assertSee('Sale Type', false)
+        ->assertSee('Exclude (not equal', false)
         ->assertSee('In Shop', false);
+});
+
+test('find imei index applies three field filters including exclude sale type', function () {
+    $user = User::factory()->create();
+
+    ImeiSaleType::query()->firstOrCreate(['sale_type' => 'Cash']);
+    ImeiSaleType::query()->firstOrCreate(['sale_type' => 'Finance']);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '111111111111111',
+        'cash_stock_type' => 'Cash',
+        'make' => 'Apple',
+        'model' => 'A1',
+        'sn' => '',
+        'location' => 'Shop A',
+        'type' => 'Cash',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '222222222222222',
+        'cash_stock_type' => 'Finance',
+        'make' => 'Samsung',
+        'model' => 'S1',
+        'sn' => '',
+        'location' => 'Shop A',
+        'type' => 'Cash',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'field_filter_1' => 'status',
+            'field_value_1' => 'In Shop',
+            'field_filter_2' => 'location',
+            'field_value_2' => 'Shop A',
+            'field_filter_3' => 'sale_type',
+            'field_value_3' => 'Cash',
+            'field_not_3' => '1',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('222222222222222', false)
+        ->assertDontSee('111111111111111', false);
 });
 
 test('find imei index applies two field filters', function () {

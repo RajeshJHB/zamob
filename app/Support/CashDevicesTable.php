@@ -50,25 +50,36 @@ final class CashDevicesTable
         }
     }
 
-    public static function returnQuery(string $sort, string $dir, string $saleType = CashDevicesSaleTypeFilter::ALL): string
-    {
+    public static function returnQuery(
+        string $sort,
+        string $dir,
+        string $saleType = CashDevicesSaleTypeFilter::ALL,
+        ?int $imeiTypeId = null,
+    ): string {
         return http_build_query(array_filter([
             'return_to' => self::RETURN_TO,
             'sort' => $sort,
             'dir' => $dir,
             'sale_type' => $saleType !== CashDevicesSaleTypeFilter::ALL ? $saleType : null,
-        ]));
+            'imei_type_id' => $imeiTypeId,
+        ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 
-    public static function sortUrl(string $column, string $currentSort, string $currentDir, string $saleType = CashDevicesSaleTypeFilter::ALL): string
-    {
+    public static function sortUrl(
+        string $column,
+        string $currentSort,
+        string $currentDir,
+        string $saleType = CashDevicesSaleTypeFilter::ALL,
+        ?int $imeiTypeId = null,
+    ): string {
         $nextDir = ($currentSort === $column && $currentDir === 'asc') ? 'desc' : 'asc';
 
         return route('dashboard', array_filter([
             'sort' => $column,
             'dir' => $nextDir,
             'sale_type' => $saleType !== CashDevicesSaleTypeFilter::ALL ? $saleType : null,
-        ]));
+            'imei_type_id' => $imeiTypeId,
+        ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 
     public static function sortIndicator(string $column, string $currentSort, string $currentDir): string

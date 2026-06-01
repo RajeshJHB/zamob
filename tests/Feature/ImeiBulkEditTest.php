@@ -3,6 +3,7 @@
 use App\Models\Imei;
 use App\Models\ImeiSaleType;
 use App\Models\ImeiStatus;
+use App\Models\ImeiType;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -201,6 +202,51 @@ test('bulk edit uses contains matching for customer and deal details search', fu
     $dealMatch->refresh();
 
     expect($dealMatch->cash_stock_type)->toBe('Online_Only');
+});
+
+test('bulk edit can exclude records matching a status from search', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    ImeiStatus::query()->firstOrCreate(['status' => 'Sold']);
+    ImeiStatus::query()->firstOrCreate(['status' => 'In Shop']);
+
+    $sold = createBulkEditImei('111111111111111', ['status' => 'Sold']);
+    $inShop = createBulkEditImei('222222222222222', ['status' => 'In Shop']);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_status' => 'Sold',
+            'search_not_status' => '1',
+            'replace_status' => 'In Shop',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    expect($sold->fresh()->status)->toBe('Sold');
+    expect($inShop->fresh()->status)->toBe('In Shop');
+});
+
+test('bulk edit can search and replace by type', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    ImeiType::factory()->create(['type' => 'Trade-in']);
+    ImeiType::factory()->create(['type' => 'New Cash device']);
+
+    $match = createBulkEditImei('111111111111111', ['type' => 'Trade-in']);
+    $other = createBulkEditImei('222222222222222', ['type' => 'New Cash device']);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_type' => 'Trade-in',
+            'replace_type' => 'New Cash device',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    expect($match->fresh()->type)->toBe('New Cash device');
+    expect($other->fresh()->type)->toBe('New Cash device');
 });
 
 test('bulk edit can replace search text in customer details while keeping the rest', function () {

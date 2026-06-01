@@ -61,8 +61,13 @@ class ImeiController extends Controller
         'sort2_dir',
         'field_filter_1',
         'field_value_1',
+        'field_not_1',
         'field_filter_2',
         'field_value_2',
+        'field_not_2',
+        'field_filter_3',
+        'field_value_3',
+        'field_not_3',
         'page',
     ];
 
@@ -446,10 +451,14 @@ class ImeiController extends Controller
             'oldSort1Dir' => $request->input('sort1_dir', 'asc'),
             'oldSort2Column' => $request->input('sort2_column'),
             'oldSort2Dir' => $request->input('sort2_dir', 'asc'),
-            'oldFieldFilter1' => $request->input('field_filter_1', ''),
-            'oldFieldValue1' => $request->input('field_value_1', ''),
-            'oldFieldFilter2' => $request->input('field_filter_2', ''),
-            'oldFieldValue2' => $request->input('field_value_2', ''),
+            'fieldFilterRows' => collect(ImeiFieldFilter::FILTER_INDICES)
+                ->map(fn (int $index): array => [
+                    'index' => $index,
+                    'field' => $request->input('field_filter_'.$index, ''),
+                    'value' => $request->input('field_value_'.$index, ''),
+                    'not' => $request->boolean(ImeiFieldFilter::excludeRequestKey($index)),
+                ])
+                ->all(),
             'fieldFilterPicklists' => ImeiFieldFilter::picklistOptions($user),
             'savedFilters' => $savedFilters,
             'currentProfileName' => $currentProfileName,
@@ -522,6 +531,7 @@ class ImeiController extends Controller
             'bulkEditCount' => $bulkEditCount,
             'statusOptions' => ImeiStatus::query()->orderBy('status')->pluck('status')->all(),
             'saleTypeOptions' => ImeiSaleType::query()->orderBy('sale_type')->pluck('sale_type')->all(),
+            'typeOptions' => ImeiType::query()->orderBy('type')->pluck('type')->all(),
             'currentProfileName' => $this->activeProfileName($request),
             'savedFilters' => $savedFilters,
             'activeProfileId' => $activeProfileId,
@@ -1475,7 +1485,9 @@ class ImeiController extends Controller
             return route('dashboard', array_filter([
                 'sort' => CashDevicesTable::sortColumn(is_string($params['sort'] ?? null) ? $params['sort'] : null),
                 'dir' => CashDevicesTable::sortDir(is_string($params['dir'] ?? null) ? $params['dir'] : null),
-            ], fn (string $value): bool => $value !== ''));
+                'sale_type' => is_string($params['sale_type'] ?? null) ? $params['sale_type'] : null,
+                'imei_type_id' => is_numeric($params['imei_type_id'] ?? null) ? (int) $params['imei_type_id'] : null,
+            ], fn (mixed $value): bool => $value !== null && $value !== ''));
         }
 
         $filtered = array_intersect_key($params, array_flip(self::INDEX_RETURN_QUERY_KEYS));

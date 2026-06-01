@@ -148,16 +148,25 @@
                     </div>
                 </div>
 
-                {{-- Field filters (Location / Make / Type / Status) --}}
+                {{-- Field filters (Location / Make / Type / Status / Sale Type) --}}
                 <div class="pb-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold mb-3">Filter by field</h2>
                     <p class="text-sm text-gray-600 mb-4">
-                        Choose up to two filters. Values come from <strong>IMEI Settings</strong> (locations, makes, types, statuses).
+                        Choose up to three filters. Values come from <strong>IMEI Settings</strong>.
+                        Tick <strong>Exclude (not equal)</strong> to match records that do <strong>not</strong> have the selected value.
                         Leave the field as <strong>No filter</strong> to ignore a row.
                     </p>
                     <div class="space-y-4">
-                        @foreach([1, 2] as $filterIndex)
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                        @foreach($fieldFilterRows as $fieldFilterRow)
+                            @php
+                                $filterIndex = $fieldFilterRow['index'];
+                                $oldFieldFilter = $fieldFilterRow['field'];
+                                $oldFieldValue = $fieldFilterRow['value'];
+                                $fieldValueOptions = $oldFieldFilter !== ''
+                                    ? ($fieldFilterPicklists[$oldFieldFilter] ?? [])
+                                    : [];
+                            @endphp
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end border border-gray-100 rounded-lg p-3 bg-gray-50/50">
                                 <div>
                                     <label for="field_filter_{{ $filterIndex }}" class="block text-xs font-medium text-gray-700 mb-1">
                                         Filter {{ $filterIndex }} — field
@@ -165,33 +174,37 @@
                                     <select
                                         name="field_filter_{{ $filterIndex }}"
                                         id="field_filter_{{ $filterIndex }}"
-                                        class="imei-field-filter-field border border-gray-300 rounded px-2 py-1 shadow-sm w-full"
+                                        class="imei-field-filter-field border border-gray-300 rounded px-2 py-1 shadow-sm w-full bg-white"
                                         data-filter-index="{{ $filterIndex }}"
                                     >
                                         <option value="">No filter</option>
                                         @foreach(\App\Support\ImeiFieldFilter::FIELD_LABELS as $fieldKey => $fieldLabel)
                                             <option
                                                 value="{{ $fieldKey }}"
-                                                @selected(($filterIndex === 1 ? ($oldFieldFilter1 ?? '') : ($oldFieldFilter2 ?? '')) === $fieldKey)
+                                                @selected($oldFieldFilter === $fieldKey)
                                             >{{ $fieldLabel }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                @php
-                                    $oldFieldFilter = $filterIndex === 1 ? ($oldFieldFilter1 ?? '') : ($oldFieldFilter2 ?? '');
-                                    $oldFieldValue = $filterIndex === 1 ? ($oldFieldValue1 ?? '') : ($oldFieldValue2 ?? '');
-                                    $fieldValueOptions = $oldFieldFilter !== ''
-                                        ? ($fieldFilterPicklists[$oldFieldFilter] ?? [])
-                                        : [];
-                                @endphp
                                 <div>
+                                    <label class="mb-1 flex items-center gap-2 text-xs text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            name="field_not_{{ $filterIndex }}"
+                                            id="field_not_{{ $filterIndex }}"
+                                            value="1"
+                                            @checked($fieldFilterRow['not'])
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        >
+                                        <span>Exclude (not equal to value below)</span>
+                                    </label>
                                     <label for="field_value_{{ $filterIndex }}" class="block text-xs font-medium text-gray-700 mb-1">
                                         Filter {{ $filterIndex }} — value
                                     </label>
                                     <select
                                         name="{{ $oldFieldFilter !== '' ? 'field_value_'.$filterIndex : '' }}"
                                         id="field_value_{{ $filterIndex }}"
-                                        class="imei-field-filter-value border border-gray-300 rounded px-2 py-1 shadow-sm w-full"
+                                        class="imei-field-filter-value border border-gray-300 rounded px-2 py-1 shadow-sm w-full bg-white"
                                         data-filter-index="{{ $filterIndex }}"
                                         data-initial-value="{{ e($oldFieldValue) }}"
                                         @disabled($oldFieldFilter === '')
@@ -535,13 +548,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateScopeAll && dateScopeAll.checked) {
             document.querySelectorAll('.date-range-input').forEach(function(input) { input.removeAttribute('name'); });
         }
-        [1, 2].forEach(function (index) {
+        [1, 2, 3].forEach(function (index) {
             const fieldSelect = document.getElementById('field_filter_' + index);
             const valueSelect = document.getElementById('field_value_' + index);
+            const notCheckbox = document.getElementById('field_not_' + index);
             if (fieldSelect && fieldSelect.value === '') {
                 fieldSelect.removeAttribute('name');
                 if (valueSelect) {
                     valueSelect.removeAttribute('name');
+                }
+                if (notCheckbox) {
+                    notCheckbox.removeAttribute('name');
                 }
             } else if (valueSelect && valueSelect.value === '') {
                 valueSelect.removeAttribute('name');
@@ -740,9 +757,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (el) el.value = 'asc';
             });
 
-            [1, 2].forEach(function (index) {
+            [1, 2, 3].forEach(function (index) {
                 const fieldSelect = document.getElementById('field_filter_' + index);
                 const valueSelect = document.getElementById('field_value_' + index);
+                const notCheckbox = document.getElementById('field_not_' + index);
 
                 if (fieldSelect) {
                     fieldSelect.value = '';
@@ -751,6 +769,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (valueSelect) {
                     valueSelect.value = '';
+                }
+
+                if (notCheckbox) {
+                    notCheckbox.checked = false;
                 }
             });
 

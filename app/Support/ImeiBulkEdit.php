@@ -10,9 +10,22 @@ final class ImeiBulkEdit
 
     public const FIELD_STATUS = 'status';
 
+    public const FIELD_TYPE = 'type';
+
     public const FIELD_DEAL_DETAILS = 'deal_details';
 
     public const FIELD_CUSTOMER_DETAILS = 'customer_details';
+
+    /**
+     * Dropdown search fields that support exclude (not equal) matching.
+     *
+     * @var list<string>
+     */
+    public const EXACT_MATCH_SEARCH_FIELD_KEYS = [
+        self::FIELD_SALE_TYPE,
+        self::FIELD_STATUS,
+        self::FIELD_TYPE,
+    ];
 
     /**
      * Text fields that support partial search-text remove or replace.
@@ -33,6 +46,7 @@ final class ImeiBulkEdit
     public const FIELD_KEYS = [
         self::FIELD_SALE_TYPE,
         self::FIELD_STATUS,
+        self::FIELD_TYPE,
         self::FIELD_DEAL_DETAILS,
         self::FIELD_CUSTOMER_DETAILS,
     ];
@@ -45,6 +59,7 @@ final class ImeiBulkEdit
         return [
             self::FIELD_SALE_TYPE => 'Sale Type',
             self::FIELD_STATUS => 'Status',
+            self::FIELD_TYPE => 'Type',
             self::FIELD_DEAL_DETAILS => 'Deal Details',
             self::FIELD_CUSTOMER_DETAILS => 'Customer Details',
         ];
@@ -55,6 +70,7 @@ final class ImeiBulkEdit
         return match ($fieldKey) {
             self::FIELD_SALE_TYPE => 'cash_stock_type',
             self::FIELD_STATUS => 'status',
+            self::FIELD_TYPE => 'type',
             self::FIELD_DEAL_DETAILS => 'ref',
             self::FIELD_CUSTOMER_DETAILS => 'notes',
             default => throw new \InvalidArgumentException('Unknown bulk edit field: '.$fieldKey),
@@ -75,13 +91,39 @@ final class ImeiBulkEdit
             $column = self::databaseColumn($fieldKey);
 
             if (self::usesContainsSearch($fieldKey)) {
-                $query->where($column, 'LIKE', '%'.$value.'%');
+                if (self::shouldExcludeSearchMatch($search, $fieldKey)) {
+                    $query->where($column, 'NOT LIKE', '%'.$value.'%');
+                } else {
+                    $query->where($column, 'LIKE', '%'.$value.'%');
+                }
 
                 continue;
             }
 
-            $query->where($column, $value);
+            if (self::shouldExcludeSearchMatch($search, $fieldKey)) {
+                $query->where($column, '!=', $value);
+            } else {
+                $query->where($column, $value);
+            }
         }
+    }
+
+    public static function excludeSearchRequestKey(string $fieldKey): string
+    {
+        return 'search_not_'.$fieldKey;
+    }
+
+    /**
+     * @param  array<string, mixed>  $search
+     */
+    public static function shouldExcludeSearchMatch(array $search, string $fieldKey): bool
+    {
+        if (! in_array($fieldKey, self::EXACT_MATCH_SEARCH_FIELD_KEYS, true)
+            && ! in_array($fieldKey, self::TEXT_PARTIAL_EDIT_FIELD_KEYS, true)) {
+            return false;
+        }
+
+        return self::booleanValue($search[self::excludeSearchRequestKey($fieldKey)] ?? false);
     }
 
     public static function usesContainsSearch(string $fieldKey): bool
