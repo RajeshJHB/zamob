@@ -15,3 +15,11 @@ test('invalid cost excl returns null for cost incl', function () {
 test('cost excl with comma decimal is parsed', function () {
     expect(ImeiCostIncl::format('99,50', 10))->toBe('109.45');
 });
+
+test('sum inclusive totals parsed cost excl values with vat', function () {
+    expect(ImeiCostIncl::formatTotal(ImeiCostIncl::sumInclusive(['100', '50'], 15)))->toBe('172.5');
+});
+
+test('sum inclusive ignores invalid cost excl values', function () {
+    expect(ImeiCostIncl::formatTotal(ImeiCostIncl::sumInclusive(['100', '', 'abc'], 15)))->toBe('115');
+});

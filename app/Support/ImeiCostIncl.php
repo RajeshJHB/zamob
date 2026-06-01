@@ -48,6 +48,30 @@ final class ImeiCostIncl
         return (float) $normalized;
     }
 
+    /**
+     * @param  iterable<int|string, mixed>  $costExclValues
+     */
+    public static function sumInclusive(iterable $costExclValues, ?float $vatPercent = null): float
+    {
+        $vat = $vatPercent ?? self::vatPercent();
+        $multiplier = 1 + ($vat / 100);
+        $sum = 0.0;
+
+        foreach ($costExclValues as $costExcl) {
+            $amount = self::parseAmount(is_string($costExcl) ? $costExcl : null);
+            if ($amount !== null) {
+                $sum += $amount * $multiplier;
+            }
+        }
+
+        return $sum;
+    }
+
+    public static function formatTotal(float $total): string
+    {
+        return self::formatAmount($total);
+    }
+
     private static function formatAmount(float $amount): string
     {
         $formatted = number_format($amount, 2, '.', '');

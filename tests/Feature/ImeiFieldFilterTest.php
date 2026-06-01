@@ -239,3 +239,92 @@ test('find imei index applies two field filters', function () {
         ->assertDontSee('222222222222222', false)
         ->assertDontSee('333333333333333', false);
 });
+
+test('imei index hides cost incl total on unfiltered browse', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('imeis.index'))
+        ->assertSuccessful()
+        ->assertDontSee('id="imei-filtered-cost-incl-total"', false);
+});
+
+test('imei index shows cost incl total for all matching filtered records', function () {
+    $user = User::factory()->create();
+    ImeiStatus::factory()->create(['status' => 'In Shop']);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '111111111111111',
+        'cash_stock_type' => '',
+        'make' => 'Apple',
+        'model' => 'A1',
+        'sn' => '',
+        'location' => '',
+        'type' => 'Cash',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '100',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '222222222222222',
+        'cash_stock_type' => '',
+        'make' => 'Apple',
+        'model' => 'A2',
+        'sn' => '',
+        'location' => '',
+        'type' => 'Cash',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '200',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '333333333333333',
+        'cash_stock_type' => '',
+        'make' => 'Apple',
+        'model' => 'A3',
+        'sn' => '',
+        'location' => '',
+        'type' => 'Cash',
+        'status' => 'Sold',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '999',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'field_filter_1' => 'status',
+            'field_value_1' => 'In Shop',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('id="imei-filtered-cost-incl-total"', false)
+        ->assertSee('>345<', false);
+});

@@ -30,6 +30,12 @@
                             <option value="{{ $profile->id }}" @selected((int) $activeProfileId === (int) $profile->id)>{{ $profile->name }}</option>
                         @endforeach
                     </select>
+                    @if(! empty($filteredCostInclTotal))
+                        <div id="imei-filtered-cost-incl-total" class="flex items-center gap-1.5 border border-gray-200 rounded-md bg-gray-50 px-2.5 py-1.5">
+                            <span class="text-xs font-semibold text-gray-600">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }} total</span>
+                            <span class="text-sm font-bold text-gray-900 tabular-nums">{{ $filteredCostInclTotal }}</span>
+                        </div>
+                    @endif
                 </div>
             </div>
             @if(! empty($currentProfileName))

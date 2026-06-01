@@ -20,6 +20,7 @@ use App\Support\BrowseListLimit;
 use App\Support\CashDevicesTable;
 use App\Support\ContactImeiCustomerDetails;
 use App\Support\ImeiBulkEdit;
+use App\Support\ImeiCostIncl;
 use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiFieldFilter;
 use App\Support\ImeiNormalizedLookup;
@@ -504,6 +505,13 @@ class ImeiController extends Controller
         $canBulkEditImei = $request->user()?->canBulkEditImei() === true;
         $bulkEditCount = $canBulkEditImei ? (clone $query)->count() : 0;
 
+        $filteredCostInclTotal = null;
+        if (! $this->isUnfilteredBrowse($request)) {
+            $filteredCostInclTotal = ImeiCostIncl::formatTotal(
+                ImeiCostIncl::sumInclusive((clone $query)->pluck('cost_excl'))
+            );
+        }
+
         $imeis = $query->paginate(25)->withQueryString();
 
         $selectedColumns = $request->input('columns');
@@ -535,6 +543,7 @@ class ImeiController extends Controller
             'currentProfileName' => $this->activeProfileName($request),
             'savedFilters' => $savedFilters,
             'activeProfileId' => $activeProfileId,
+            'filteredCostInclTotal' => $filteredCostInclTotal,
         ]);
     }
 
