@@ -31,7 +31,7 @@ function serviceNoteLinkUserWithRole4(): User
     return $user;
 }
 
-test('contact show displays related note button and link summary', function () {
+test('contact show displays related note link summary', function () {
     $user = User::factory()->create();
     $contact = Contact::factory()->create();
 
@@ -49,7 +49,6 @@ test('contact show displays related note button and link summary', function () {
         ->assertSuccessful()
         ->getContent();
 
-    expect($html)->toContain('Related note', false);
     expect($html)->toContain('1 note link here', false);
     expect($html)->toContain('Called customer back', false);
     expect($html)->toContain('Related service note:', false);

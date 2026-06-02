@@ -35,21 +35,8 @@
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 class="text-xl font-bold">Service notes</h2>
-            <div class="flex flex-wrap items-center gap-2">
-                @if($contact->serviceNotes->isNotEmpty())
-                    <button
-                        type="button"
-                        id="related-note-open-btn"
-                        class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded text-sm"
-                    >
-                        Related note
-                    </button>
-                @endif
-                <a href="{{ route('contacts.service-notes.create', $contact) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">New service note</a>
-            </div>
+            <a href="{{ route('contacts.service-notes.create', $contact) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">New service note</a>
         </div>
-
-        @include('contacts.service-notes.partials.related-notes-modal')
 
         @forelse($contact->serviceNotes as $note)
             @php
@@ -135,43 +122,4 @@
         @endforelse
     </div>
 </div>
-
-@if($contact->serviceNotes->isNotEmpty())
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const modal = document.getElementById('related-notes-modal');
-    const openBtn = document.getElementById('related-note-open-btn');
-    const closeBtn = document.getElementById('related-notes-modal-close');
-    const cancelBtn = document.getElementById('related-notes-modal-cancel');
-
-    if (!modal || !openBtn) {
-        return;
-    }
-
-    function openModal() {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-
-    openBtn.addEventListener('click', openModal);
-    closeBtn?.addEventListener('click', closeModal);
-    cancelBtn?.addEventListener('click', closeModal);
-    modal.addEventListener('click', function (event) {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeModal();
-        }
-    });
-});
-</script>
-@endif
 @endsection
