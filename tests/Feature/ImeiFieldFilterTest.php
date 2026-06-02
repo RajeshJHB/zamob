@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AppSetting;
 use App\Models\Imei;
 use App\Models\ImeiLocation;
 use App\Models\ImeiSaleType;
@@ -238,6 +239,79 @@ test('find imei index applies two field filters', function () {
         ->assertSee('111111111111111', false)
         ->assertDontSee('222222222222222', false)
         ->assertDontSee('333333333333333', false);
+});
+
+test('search from filter with none profile and all columns keeps field filters without browse cap', function () {
+    AppSetting::setBrowseListLimit(50);
+    $user = User::factory()->create();
+    ImeiStatus::factory()->create(['status' => 'In Shop']);
+
+    for ($i = 0; $i < 60; $i++) {
+        Imei::query()->create([
+            'date_in' => now(),
+            'date_updated' => now(),
+            'imei' => 'BROWSE'.$i,
+            'cash_stock_type' => '',
+            'make' => 'Make',
+            'model' => 'Model',
+            'sn' => '',
+            'location' => '',
+            'type' => '',
+            'status' => 'Available',
+            'notes' => '',
+            'phonenumber' => '',
+            'ref' => '',
+            'staff' => '',
+            'item_code' => '',
+            'ourON' => '',
+            'salesON' => '',
+            'cost_excl' => '',
+            'selling_price' => null,
+        ]);
+    }
+
+    for ($i = 0; $i < 5; $i++) {
+        Imei::query()->create([
+            'date_in' => now(),
+            'date_updated' => now(),
+            'imei' => 'INSHOP'.$i,
+            'cash_stock_type' => '',
+            'make' => 'Make',
+            'model' => 'Model',
+            'sn' => '',
+            'location' => '',
+            'type' => '',
+            'status' => 'In Shop',
+            'notes' => '',
+            'phonenumber' => '',
+            'ref' => '',
+            'staff' => '',
+            'item_code' => '',
+            'ourON' => '',
+            'salesON' => '',
+            'cost_excl' => '',
+            'selling_price' => null,
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->get(route('imeis.profile.clear'))
+        ->assertRedirect();
+
+    $this->actingAs($user)
+        ->followingRedirects()
+        ->get(route('imeis.index', [
+            'from_filter' => '1',
+            'profile_id' => '',
+            'scope' => 'all',
+            'date_scope' => 'all',
+            'field_filter_1' => 'status',
+            'field_value_1' => 'In Shop',
+        ]))
+        ->assertSuccessful()
+        ->assertViewHas('imeis', fn ($paginator) => $paginator->total() === 5)
+        ->assertSee('INSHOP0', false)
+        ->assertDontSee('BROWSE0', false);
 });
 
 test('imei index hides cost incl total on unfiltered browse', function () {

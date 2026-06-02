@@ -1140,7 +1140,11 @@ class ImeiController extends Controller
         if ($submittedId !== 0 && $submittedId === $activeId) {
             $params = array_merge($params, $formParams);
         } elseif ($submittedId === 0) {
-            $params = array_merge($params, $this->searchSortOverridesFromForm($request));
+            $params = array_merge(
+                $params,
+                $this->searchSortOverridesFromForm($request),
+                $this->filterCriteriaOverridesFromForm($request),
+            );
         }
 
         $redirectParams = $this->filterParamsForRedirect($params);
@@ -1209,6 +1213,25 @@ class ImeiController extends Controller
                 'sort1_dir',
                 'sort2_column',
                 'sort2_dir',
+            ]),
+            fn (mixed $value): bool => $value !== null && $value !== '',
+        );
+    }
+
+    /**
+     * Date and field-filter criteria from the filter form (not column display / profile scope).
+     *
+     * @return array<string, mixed>
+     */
+    private function filterCriteriaOverridesFromForm(Request $request): array
+    {
+        return array_filter(
+            $request->only([
+                'date_scope',
+                'date_column',
+                'start_date',
+                'end_date',
+                ...ImeiFieldFilter::queryKeys(),
             ]),
             fn (mixed $value): bool => $value !== null && $value !== '',
         );

@@ -14,7 +14,7 @@ return [
     */
 
     'name' => env('APP_NAME', 'ZAMOBILE'),
-    'version' => env('APP_VERSION', '1.2.0'),
+    'version' => env('APP_VERSION', '1.3.0'),
 
     /*
     |--------------------------------------------------------------------------
