@@ -43,6 +43,31 @@ test('imei contacts browse returns contacts in alphabetical order with customer 
     ));
 });
 
+test('imei contacts browse filters by search query', function () {
+    $user = User::factory()->create();
+
+    Contact::factory()->create([
+        'company_name' => 'Match Corp',
+        'first_name' => 'Pat',
+        'surname' => 'Lee',
+        'telephone_1' => '0821112222',
+    ]);
+    Contact::factory()->create([
+        'company_name' => 'Other Corp',
+        'first_name' => 'Sam',
+        'surname' => 'Other',
+        'telephone_1' => '0839998888',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->getJson(route('imeis.contacts.browse', ['q' => '082111']))
+        ->assertSuccessful();
+
+    $contacts = $response->json('contacts');
+    expect($contacts)->toHaveCount(1);
+    expect($contacts[0]['company_name'])->toBe('Match Corp');
+});
+
 test('add and edit imei form includes browse contacts button', function () {
     $user = User::factory()->create();
 
@@ -53,6 +78,7 @@ test('add and edit imei form includes browse contacts button', function () {
         ->assertSee('imei-browse-deal-notes-btn', false)
         ->assertSee('Browse notes', false)
         ->assertSee('Browse', false)
+        ->assertSee('id="imei-contact-browse-search"', false)
         ->assertSee('id="close_linked_service_note"', false)
         ->assertSee('Close Note', false);
 });

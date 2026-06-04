@@ -548,18 +548,28 @@
                 <h2 id="imei-contact-browse-title" class="text-xl font-bold text-gray-900">Browse contacts</h2>
                 <button type="button" id="imei-contact-browse-close" class="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">&times;</button>
             </div>
-            <p class="px-6 pt-3 text-sm text-gray-600">All contacts (A&ndash;Z). Select one to fill Customer Details; you can still edit the text afterwards.</p>
+            <p class="px-6 pt-3 text-sm text-gray-600">Search and select a contact to fill Customer Details; you can still edit the text afterwards.</p>
+            <div class="px-6 pb-3">
+                <label for="imei-contact-browse-search" class="sr-only">Search contacts</label>
+                <input
+                    type="search"
+                    id="imei-contact-browse-search"
+                    placeholder="Search company, name, phone, email…"
+                    autocomplete="off"
+                    class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full text-sm"
+                >
+            </div>
             <div id="imei-contact-browse-loading" class="px-6 py-8 text-sm text-gray-500 hidden">Loading contacts…</div>
             <div id="imei-contact-browse-empty" class="px-6 py-8 text-sm text-gray-500 hidden">No contacts yet. Add contacts under Contacts first.</div>
             <div id="imei-contact-browse-table-wrap" class="px-6 py-4 overflow-auto flex-1 hidden">
                 <table class="min-w-full border border-gray-300 text-sm">
                     <thead class="bg-gray-100 sticky top-0">
                         <tr>
+                            <th class="px-3 py-2 text-left font-semibold w-24"></th>
                             <th class="px-3 py-2 text-left font-semibold">Company</th>
                             <th class="px-3 py-2 text-left font-semibold">First name</th>
                             <th class="px-3 py-2 text-left font-semibold">Surname</th>
                             <th class="px-3 py-2 text-left font-semibold">Telephone</th>
-                            <th class="px-3 py-2 text-left font-semibold"></th>
                         </tr>
                     </thead>
                     <tbody id="imei-contact-browse-tbody"></tbody>
@@ -590,12 +600,12 @@
                 <table class="min-w-full border border-gray-300 text-sm">
                     <thead class="bg-gray-100 sticky top-0">
                         <tr>
+                            <th class="px-3 py-2 text-left font-semibold w-24"></th>
                             <th class="px-3 py-2 text-left font-semibold">Note</th>
                             <th class="px-3 py-2 text-left font-semibold">Type</th>
                             <th class="px-3 py-2 text-left font-semibold">Heading</th>
                             <th class="px-3 py-2 text-left font-semibold">Recorded</th>
                             <th class="px-3 py-2 text-left font-semibold">Preview</th>
-                            <th class="px-3 py-2 text-left font-semibold"></th>
                         </tr>
                     </thead>
                     <tbody id="imei-deal-notes-browse-tbody"></tbody>
@@ -1609,7 +1619,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const contactBrowseEmpty = document.getElementById('imei-contact-browse-empty');
     const contactBrowseTableWrap = document.getElementById('imei-contact-browse-table-wrap');
     const contactBrowseTbody = document.getElementById('imei-contact-browse-tbody');
-    let contactsBrowseLoaded = false;
+    const contactBrowseSearch = document.getElementById('imei-contact-browse-search');
+    let contactBrowseSearchTimer = null;
 
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -1792,8 +1803,12 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         contactBrowseModal.classList.remove('hidden');
-        if (!contactsBrowseLoaded) {
-            loadContactsForBrowse();
+        if (contactBrowseSearch) {
+            contactBrowseSearch.value = '';
+        }
+        loadContactsForBrowse('');
+        if (contactBrowseSearch) {
+            contactBrowseSearch.focus();
         }
     }
 
@@ -1858,14 +1873,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-gray-50 border-t border-gray-200';
             tr.innerHTML =
+                '<td class="px-3 py-2 whitespace-nowrap">' +
+                    '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-deal-note-pick-btn">Select</button>' +
+                '</td>' +
                 '<td class="px-3 py-2 whitespace-nowrap font-mono text-xs">' + escapeHtml(note.note_number || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(note.note_type || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(note.heading || '—') + '</td>' +
                 '<td class="px-3 py-2 whitespace-nowrap">' + escapeHtml(note.noted_at || '—') + '</td>' +
-                '<td class="px-3 py-2 max-w-xs truncate" title="' + escapeHtml(note.body || '') + '">' + escapeHtml(preview) + '</td>' +
-                '<td class="px-3 py-2 whitespace-nowrap">' +
-                    '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-deal-note-pick-btn">Select</button>' +
-                '</td>';
+                '<td class="px-3 py-2 max-w-xs truncate" title="' + escapeHtml(note.body || '') + '">' + escapeHtml(preview) + '</td>';
             const pickBtn = tr.querySelector('.imei-deal-note-pick-btn');
             if (pickBtn) {
                 pickBtn.addEventListener('click', function () {
@@ -1941,13 +1956,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-gray-50 border-t border-gray-200';
             tr.innerHTML =
+                '<td class="px-3 py-2 whitespace-nowrap">' +
+                    '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-contact-pick-btn">Select</button>' +
+                '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(contact.company_name || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(contact.first_name || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(contact.surname || '—') + '</td>' +
-                '<td class="px-3 py-2">' + escapeHtml(contact.telephone_1 || '—') + '</td>' +
-                '<td class="px-3 py-2 whitespace-nowrap">' +
-                    '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-contact-pick-btn">Select</button>' +
-                '</td>';
+                '<td class="px-3 py-2">' + escapeHtml(contact.telephone_1 || '—') + '</td>';
             const pickBtn = tr.querySelector('.imei-contact-pick-btn');
             if (pickBtn) {
                 pickBtn.addEventListener('click', function () {
@@ -1958,25 +1973,40 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    async function loadContactsForBrowse() {
+    function contactsBrowseRequestUrl(searchTerm) {
+        const term = (searchTerm || '').trim();
+        if (term === '') {
+            return contactsBrowseUrl;
+        }
+
+        const separator = contactsBrowseUrl.indexOf('?') >= 0 ? '&' : '?';
+
+        return contactsBrowseUrl + separator + 'q=' + encodeURIComponent(term);
+    }
+
+    async function loadContactsForBrowse(searchTerm) {
+        const term = (searchTerm || '').trim();
+
         if (contactBrowseLoading) {
             contactBrowseLoading.classList.remove('hidden');
         }
         if (contactBrowseEmpty) {
             contactBrowseEmpty.classList.add('hidden');
+            contactBrowseEmpty.textContent = term === ''
+                ? 'No contacts yet. Add contacts under Contacts first.'
+                : 'No contacts match your search.';
         }
         if (contactBrowseTableWrap) {
             contactBrowseTableWrap.classList.add('hidden');
         }
 
         try {
-            const res = await fetch(contactsBrowseUrl, {
+            const res = await fetch(contactsBrowseRequestUrl(term), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'same-origin',
             });
             const data = await res.json();
             const contacts = data.contacts || [];
-            contactsBrowseLoaded = true;
 
             if (contacts.length === 0) {
                 if (contactBrowseEmpty) {
@@ -2002,6 +2032,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (contactBrowseBtn) {
         contactBrowseBtn.addEventListener('click', openContactBrowseModal);
+    }
+    if (contactBrowseSearch) {
+        contactBrowseSearch.addEventListener('input', function () {
+            if (contactBrowseSearchTimer) {
+                clearTimeout(contactBrowseSearchTimer);
+            }
+            contactBrowseSearchTimer = setTimeout(function () {
+                loadContactsForBrowse(contactBrowseSearch.value);
+            }, 300);
+        });
     }
     if (contactBrowseClose) {
         contactBrowseClose.addEventListener('click', closeContactBrowseModal);

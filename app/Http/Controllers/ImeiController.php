@@ -210,9 +210,16 @@ class ImeiController extends Controller
         ]);
     }
 
-    public function browseContacts(): JsonResponse
+    public function browseContacts(Request $request): JsonResponse
     {
-        $contacts = Contact::query()
+        $term = trim((string) $request->query('q', ''));
+
+        $query = Contact::query();
+        if ($term !== '') {
+            $query->searchTerm($term);
+        }
+
+        $contacts = $query
             ->orderBy('company_name')
             ->orderBy('surname')
             ->orderBy('first_name')
