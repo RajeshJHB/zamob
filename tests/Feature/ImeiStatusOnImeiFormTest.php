@@ -98,7 +98,11 @@ test('update allows unchanged legacy status when it is not in imei_statuses', fu
             'status' => 'LegacyStatusText',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', $row));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'upd-legacy-st',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     expect(Imei::query()->find($row->id)?->status)->toBe('LegacyStatusText');
 });

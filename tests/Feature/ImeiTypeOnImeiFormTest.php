@@ -98,7 +98,11 @@ test('update allows unchanged legacy type when it is not in imei_types', functio
             'type' => 'LegacyFreeText',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', $row));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'upd-legacy-type',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     expect(Imei::query()->find($row->id)?->type)->toBe('LegacyFreeText');
 });

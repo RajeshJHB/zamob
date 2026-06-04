@@ -102,7 +102,11 @@ test('update allows unchanged legacy location when it is not in imei_locations',
             'location' => 'LegacyShelf',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', $row));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'upd-legacy-loc',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     expect(Imei::query()->find($row->id)?->location)->toBe('LegacyShelf');
 });

@@ -399,7 +399,7 @@ class ImeiController extends Controller
 
         ImeiLinkedServiceNote::applyFromImeiSave($request, $imei->fresh() ?? $imei);
 
-        return $this->redirectToImeiView(
+        return $this->redirectAfterImeiUpdate(
             $imei,
             $this->returnQueryStringFromRequest($request),
             'IMEI record updated.',
@@ -1494,6 +1494,25 @@ class ImeiController extends Controller
         }
 
         return redirect()->to($url)->with('message', $message);
+    }
+
+    private function redirectAfterImeiUpdate(Imei $imei, ?string $returnQuery, string $message, bool $embedded = false): RedirectResponse
+    {
+        if ($embedded) {
+            return redirect()->to(route('imeis.edit', $imei).'?embedded=1&close=1')
+                ->with('message', $message);
+        }
+
+        $returnListUrl = $this->indexUrlFromReturnQuery($returnQuery);
+        if ($returnListUrl !== null) {
+            return redirect()->to($returnListUrl)->with('message', $message);
+        }
+
+        return redirect()->route('imeis.index', [
+            'search' => $imei->imei,
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ])->with('message', $message);
     }
 
     private function returnQueryStringFromRequest(Request $request): ?string

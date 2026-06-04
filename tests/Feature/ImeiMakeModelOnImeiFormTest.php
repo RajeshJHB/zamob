@@ -134,7 +134,11 @@ test('update allows unchanged legacy make and model when not in reference tables
             'model' => 'OldModel',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', $row));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'mklegacy',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     $fresh = Imei::query()->find($row->id);
     expect($fresh?->make)->toBe('OldMake');

@@ -145,7 +145,11 @@ test('close note on update appends imei without reopening a closed note', functi
             'linked_service_note_id' => $note->id,
             'close_linked_service_note' => '1',
         ]))
-        ->assertRedirect();
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'updateimei01',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     $note->refresh();
 

@@ -106,7 +106,11 @@ test('update appends editor email without duplicating creator on second save', f
             'date_in' => '',
             'notes' => 'updated',
         ])
-        ->assertRedirect(route('imeis.edit', $imei));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'staffupdate',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     expect($imei->fresh()->staff)->toBe('creator@example.com, editor@example.com');
 
@@ -116,7 +120,11 @@ test('update appends editor email without duplicating creator on second save', f
             'date_in' => '',
             'notes' => 'updated again',
         ])
-        ->assertRedirect(route('imeis.edit', $imei));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'staffupdate',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     expect($imei->fresh()->staff)->toBe('creator@example.com, editor@example.com');
 });
@@ -150,7 +158,11 @@ test('update preserves legacy staff text and appends editor email once', functio
             '_token' => csrf_token(),
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', $imei));
+        ->assertRedirect(route('imeis.index', [
+            'search' => 'legacystaff',
+            'scope' => 'all',
+            'date_scope' => 'all',
+        ]));
 
     expect($imei->fresh()->staff)->toBe('Legacy name, editor@example.com');
 

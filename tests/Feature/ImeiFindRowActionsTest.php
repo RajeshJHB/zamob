@@ -247,7 +247,7 @@ test('view page exposes return list url from return_query', function () {
     expect($html)->toContain('sort1_column=make');
 });
 
-test('update redirects back to view with return_query preserved', function () {
+test('update redirects back to results list with return_query preserved', function () {
     $user = User::factory()->create();
     $row = Imei::query()->create([
         'date_in' => now(),
@@ -283,7 +283,10 @@ test('update redirects back to view with return_query preserved', function () {
             'date_in' => '',
             'notes' => 'changed',
         ])
-        ->assertRedirect(route('imeis.edit', $row).'?return_query='.rawurlencode($returnQuery));
+        ->assertRedirect(route('imeis.index', [
+            'search' => '358918502270284',
+            'scope' => 'all',
+        ]));
 });
 
 test('find results include print and edit links per row', function () {
