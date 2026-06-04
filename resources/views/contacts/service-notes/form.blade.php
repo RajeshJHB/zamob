@@ -105,7 +105,11 @@
             </div>
 
             <div class="flex flex-wrap gap-3 pt-4">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">{{ $note ? 'Save' : 'Save service note' }}</button>
+                <button
+                    type="submit"
+                    id="service-note-submit-btn"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-60 disabled:cursor-not-allowed"
+                >{{ $note ? 'Save' : 'Save service note' }}</button>
                 <a href="{{ route('contacts.show', $contact) }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-block">Cancel</a>
             </div>
         </form>
@@ -122,16 +126,34 @@ document.addEventListener('DOMContentLoaded', function () {
     const headingInput = document.getElementById('heading');
     const bodyTextarea = document.getElementById('body');
     const serviceNoteForm = document.querySelector('form[action*="service-notes"]');
+    const submitBtn = document.getElementById('service-note-submit-btn');
 
-    if (serviceNoteForm && noteTypeSelect) {
+    if (serviceNoteForm) {
         serviceNoteForm.addEventListener('submit', function (event) {
-            if (noteTypeSelect.value === '') {
+            if (serviceNoteForm.dataset.submitting === '1') {
+                event.preventDefault();
+
+                return;
+            }
+
+            if (noteTypeSelect && noteTypeSelect.value === '') {
                 event.preventDefault();
                 noteTypeSelect.focus();
                 noteTypeSelect.classList.add('border-red-500');
+
+                return;
+            }
+
+            serviceNoteForm.dataset.submitting = '1';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.setAttribute('aria-disabled', 'true');
+                submitBtn.textContent = 'Saving…';
             }
         });
+    }
 
+    if (noteTypeSelect) {
         noteTypeSelect.addEventListener('change', function () {
             if (noteTypeSelect.value !== '') {
                 noteTypeSelect.classList.remove('border-red-500');

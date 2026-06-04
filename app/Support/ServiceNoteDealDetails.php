@@ -8,6 +8,17 @@ final class ServiceNoteDealDetails
 {
     public static function format(ServiceNote $note): string
     {
+        $details = self::formatHeadingAndBody($note);
+
+        if ($details === '') {
+            return $note->formattedNoteNumber();
+        }
+
+        return $note->formattedNoteNumber()."\n".$details;
+    }
+
+    private static function formatHeadingAndBody(ServiceNote $note): string
+    {
         $heading = trim((string) $note->heading);
         $body = trim((string) $note->body);
 

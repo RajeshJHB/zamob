@@ -7,6 +7,7 @@ use App\Rules\UniqueNormalizedImei;
 use App\Rules\UniqueNormalizedNonStandardImei;
 use App\Rules\ValidImei;
 use App\Support\ImeiDeletedStatus;
+use App\Support\ImeiLinkedServiceNote;
 use App\Support\ImeiNewRecordDefaults;
 use App\Support\ImeiOptionalStringFields;
 use App\Support\ImeiValidator;
@@ -144,12 +145,12 @@ class StoreImeiRequest extends FormRequest
                 new UniqueNormalizedNonStandardImei,
             ];
 
-            return $base;
+            return array_merge($base, ImeiLinkedServiceNote::validationRules());
         }
 
         $base['imei'] = ['required', 'string', 'size:15', new ValidImei, new UniqueNormalizedImei];
 
-        return $base;
+        return array_merge($base, ImeiLinkedServiceNote::validationRules());
     }
 
     public function withValidator(Validator $validator): void

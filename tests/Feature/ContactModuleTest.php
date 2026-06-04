@@ -180,6 +180,26 @@ test('user can create contact and service note with attachment', function () {
     Storage::disk('attachments')->assertExists($note->attachment_path);
 });
 
+test('service note form includes double submit prevention', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('contacts.service-notes.create', $contact))
+        ->assertSuccessful()
+        ->assertSee('id="service-note-submit-btn"', false)
+        ->assertSee("dataset.submitting = '1'", false)
+        ->assertSee('Saving…', false);
+
+    $note = ServiceNote::factory()->create(['contact_id' => $contact->id, 'created_by' => $user->id]);
+
+    $this->actingAs($user)
+        ->get(route('service-notes.edit', $note))
+        ->assertSuccessful()
+        ->assertSee('id="service-note-submit-btn"', false)
+        ->assertSee("dataset.submitting = '1'", false);
+});
+
 test('new service note form includes repair body template', function () {
     $user = User::factory()->create();
     $contact = Contact::factory()->create();

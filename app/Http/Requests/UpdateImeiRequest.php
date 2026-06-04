@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Imei;
 use App\Models\ImeiModel;
 use App\Support\ImeiDeletedStatus;
+use App\Support\ImeiLinkedServiceNote;
 use App\Support\ImeiOptionalStringFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -173,6 +174,7 @@ class UpdateImeiRequest extends FormRequest
             'salesON' => ['nullable', 'string', 'max:255'],
             'cost_excl' => ['nullable', 'string', 'max:255'],
             'selling_price' => ['nullable', 'integer'],
+            ...ImeiLinkedServiceNote::validationRules(),
         ];
     }
 

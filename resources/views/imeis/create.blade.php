@@ -473,6 +473,22 @@
                         @error('ref')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        @unless($readonlyAfterSave)
+                            <div id="imei-linked-service-note-wrap" class="hidden mt-3 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2">
+                                <input type="hidden" name="linked_service_note_id" id="linked_service_note_id" value="">
+                                <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                                    <input
+                                        type="checkbox"
+                                        name="close_linked_service_note"
+                                        id="close_linked_service_note"
+                                        value="1"
+                                        class="rounded border-gray-300"
+                                    >
+                                    <span class="font-medium">Close Note</span>
+                                </label>
+                                <p id="imei-linked-service-note-hint" class="mt-1 text-xs text-gray-600"></p>
+                            </div>
+                        @endunless
                     </div>
                 </div>
 
@@ -1646,6 +1662,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const dealNotesBrowseEmpty = document.getElementById('imei-deal-notes-browse-empty');
     const dealNotesBrowseTableWrap = document.getElementById('imei-deal-notes-browse-table-wrap');
     const dealNotesBrowseTbody = document.getElementById('imei-deal-notes-browse-tbody');
+    const linkedServiceNoteWrap = document.getElementById('imei-linked-service-note-wrap');
+    const linkedServiceNoteIdInput = document.getElementById('linked_service_note_id');
+    const closeLinkedServiceNoteCheckbox = document.getElementById('close_linked_service_note');
+    const linkedServiceNoteHint = document.getElementById('imei-linked-service-note-hint');
 
     function isImeiFieldEmpty(fieldId) {
         const el = document.getElementById(fieldId);
@@ -1709,8 +1729,47 @@ document.addEventListener('DOMContentLoaded', function () {
             dealNotesBrowseLoadedContactId = null;
         }
 
+        if (refEmpty) {
+            clearLinkedServiceNoteSelection();
+        }
+
         setCustomerBrowseEnabled(notesEmpty);
         setDealNotesBrowseEnabled(refEmpty && selectedContactIdForDealBrowse !== null);
+    }
+
+    function clearLinkedServiceNoteSelection() {
+        if (linkedServiceNoteIdInput) {
+            linkedServiceNoteIdInput.value = '';
+        }
+        if (closeLinkedServiceNoteCheckbox) {
+            closeLinkedServiceNoteCheckbox.checked = false;
+        }
+        if (linkedServiceNoteWrap) {
+            linkedServiceNoteWrap.classList.add('hidden');
+        }
+        if (linkedServiceNoteHint) {
+            linkedServiceNoteHint.textContent = '';
+        }
+    }
+
+    function showLinkedServiceNoteSelection(note) {
+        if (!linkedServiceNoteWrap || !linkedServiceNoteIdInput || !note || !note.id) {
+            return;
+        }
+
+        linkedServiceNoteIdInput.value = String(note.id);
+        if (closeLinkedServiceNoteCheckbox) {
+            closeLinkedServiceNoteCheckbox.checked = false;
+        }
+        linkedServiceNoteWrap.classList.remove('hidden');
+
+        if (linkedServiceNoteHint) {
+            const numberLabel = note.note_number ? String(note.note_number) : 'Selected note';
+            const statusLabel = note.status === 'closed' ? ' (already closed)' : ' (open)';
+            linkedServiceNoteHint.textContent = 'When you save this IMEI with Close Note ticked, '
+                + numberLabel + statusLabel
+                + ' will be closed if it is open and this IMEI number will be added to the service note.';
+        }
     }
 
     const notesFieldForBrowse = document.getElementById('notes');
@@ -1766,6 +1825,7 @@ document.addEventListener('DOMContentLoaded', function () {
             refEl.value = truncateToMaxLength(note.deal_details_text || '', dealDetailsMaxLength);
             refEl.dispatchEvent(new Event('input'));
         }
+        showLinkedServiceNoteSelection(note);
         closeDealNotesBrowseModal();
     }
 

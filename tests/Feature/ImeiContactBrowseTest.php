@@ -52,7 +52,9 @@ test('add and edit imei form includes browse contacts button', function () {
         ->assertSee('imei-browse-contacts-btn', false)
         ->assertSee('imei-browse-deal-notes-btn', false)
         ->assertSee('Browse notes', false)
-        ->assertSee('Browse', false);
+        ->assertSee('Browse', false)
+        ->assertSee('id="close_linked_service_note"', false)
+        ->assertSee('Close Note', false);
 });
 
 test('imei service notes browse returns notes for contact newest first', function () {

@@ -23,6 +23,7 @@ use App\Support\ImeiBulkEdit;
 use App\Support\ImeiCostIncl;
 use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiFieldFilter;
+use App\Support\ImeiLinkedServiceNote;
 use App\Support\ImeiNormalizedLookup;
 use App\Support\ImeiStaffAudit;
 use App\Support\ImeiTextLimits;
@@ -248,6 +249,7 @@ class ImeiController extends Controller
                 'heading' => $note->heading,
                 'noted_at' => $note->noted_at?->format('Y-m-d H:i'),
                 'body' => $note->body,
+                'status' => $note->status,
                 'deal_details_text' => ServiceNoteDealDetails::format($note),
             ])->values()->all(),
         ]);
@@ -365,11 +367,13 @@ class ImeiController extends Controller
 
     public function store(StoreImeiRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = ImeiLinkedServiceNote::stripFromImeiPayload($request->validated());
         $data['date_in'] = now();
         $data['date_updated'] = now();
         $data['staff'] = ImeiStaffAudit::appendEmail('', (string) $request->user()->email);
         $imei = Imei::create($data);
+
+        ImeiLinkedServiceNote::applyFromImeiSave($request, $imei);
 
         return $this->redirectToImeiView(
             $imei,
@@ -381,10 +385,12 @@ class ImeiController extends Controller
 
     public function update(UpdateImeiRequest $request, Imei $imei): RedirectResponse
     {
-        $data = $request->validated();
+        $data = ImeiLinkedServiceNote::stripFromImeiPayload($request->validated());
         $data['date_updated'] = now();
         $data['staff'] = ImeiStaffAudit::appendEmail((string) $imei->staff, (string) $request->user()->email);
         $imei->update($data);
+
+        ImeiLinkedServiceNote::applyFromImeiSave($request, $imei->fresh() ?? $imei);
 
         return $this->redirectToImeiView(
             $imei,
