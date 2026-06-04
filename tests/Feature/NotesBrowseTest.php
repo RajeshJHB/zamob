@@ -352,7 +352,10 @@ test('notes end date picker is constrained by selected start date', function () 
 });
 
 test('notes browse lists service notes with start time and last time', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'name' => 'Alex Logger',
+        'email' => 'alex.logger@example.com',
+    ]);
     $contact = Contact::factory()->create(['first_name' => 'Pat', 'surname' => 'Lee']);
     $note = ServiceNote::factory()->create([
         'contact_id' => $contact->id,
@@ -369,6 +372,7 @@ test('notes browse lists service notes with start time and last time', function 
         ->get(route('notes.index', ['note_status' => '']))
         ->assertSuccessful()
         ->assertSee('Browse listed note', false)
+        ->assertSee('Alex Logger (alex.logger@example.com)', false)
         ->assertSee('Start Time:', false)
         ->assertSee('2026-05-10 10:00', false)
         ->assertSee('Last Time:', false)

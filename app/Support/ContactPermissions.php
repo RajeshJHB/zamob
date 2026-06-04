@@ -25,7 +25,7 @@ final class ContactPermissions
 
     public static function canEditServiceNote(User $user, ServiceNote $note): bool
     {
-        if ($user->canDeleteImeiReferenceData()) {
+        if ($user->canEditServiceNoteAlways()) {
             return true;
         }
 

@@ -171,6 +171,11 @@
         @endif
 
         @forelse($notes as $note)
+            @php
+                $loggedBy = $note->author
+                    ? $note->author->name.' ('.$note->author->email.')'
+                    : (trim((string) $note->staff) !== '' ? trim((string) $note->staff) : null);
+            @endphp
             <div class="border border-gray-200 rounded-lg p-4 mb-4 hover:bg-gray-50">
                 <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-1 text-sm">
                     <div class="flex flex-wrap items-center gap-2 text-gray-600">
@@ -179,6 +184,16 @@
                             <span class="text-gray-400">&middot;</span>
                         @endif
                         <span class="font-mono font-semibold text-gray-800">{{ $note->formattedNoteNumber() }}</span>
+                        <span class="text-gray-400">&middot;</span>
+                        <span @class([
+                            'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                            'bg-green-100 text-green-800' => $note->status === \App\Models\ServiceNote::STATUS_OPEN,
+                            'bg-gray-200 text-gray-700' => $note->isClosed(),
+                        ])>{{ ucfirst($note->status) }}</span>
+                        @if($loggedBy)
+                            <span class="text-gray-400">&middot;</span>
+                            <span class="text-gray-700">{{ $loggedBy }}</span>
+                        @endif
                     </div>
                     @include('contacts.service-notes.partials.times', ['note' => $note, 'class' => 'sm:justify-end'])
                 </div>

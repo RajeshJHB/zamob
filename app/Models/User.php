@@ -86,6 +86,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole(5);
     }
 
+    public function canEditServiceNoteAlways(): bool
+    {
+        return $this->canDeleteImeiReferenceData()
+            || $this->hasRole(2)
+            || $this->hasRole(3);
+    }
+
     public function syncRoles(array $roleIds): void
     {
         $this->roles()->sync($roleIds);

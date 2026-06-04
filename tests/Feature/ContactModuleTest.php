@@ -431,6 +431,81 @@ test('role 4 user can edit old service note', function () {
     expect($note->fresh()->heading)->toBe('Revised by role 4');
 });
 
+test('role 2 user can edit old service note', function () {
+    $user = User::factory()->withoutRoles()->create();
+    grantApplicationAccess($user, 2);
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Old',
+        'body' => 'Old body',
+        'created_by' => $user->id,
+    ]);
+    $note->forceFill(['created_at' => now()->subWeek(), 'updated_at' => now()->subWeek()])->save();
+
+    $this->actingAs($user)
+        ->put(route('service-notes.update', $note), serviceNotePayload([
+            'heading' => 'Revised by role 2',
+            'body' => 'Updated long after create.',
+        ]))
+        ->assertRedirect();
+
+    expect($note->fresh()->heading)->toBe('Revised by role 2');
+});
+
+test('role 3 user can edit old service note', function () {
+    $role = Role::query()->firstOrCreate(
+        ['number' => 3],
+        ['name' => 'Role 3'],
+    );
+    $user = User::factory()->withoutRoles()->create();
+    $user->roles()->sync([$role->id]);
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Old',
+        'body' => 'Old body',
+        'created_by' => $user->id,
+    ]);
+    $note->forceFill(['created_at' => now()->subWeek(), 'updated_at' => now()->subWeek()])->save();
+
+    $this->actingAs($user)
+        ->put(route('service-notes.update', $note), serviceNotePayload([
+            'heading' => 'Revised by role 3',
+            'body' => 'Updated long after create.',
+        ]))
+        ->assertRedirect();
+
+    expect($note->fresh()->heading)->toBe('Revised by role 3');
+});
+
+test('user without role 2 3 or 4 cannot edit old service note', function () {
+    $role = Role::query()->firstOrCreate(
+        ['number' => 5],
+        ['name' => 'Role 5'],
+    );
+    $user = User::factory()->withoutRoles()->create();
+    $user->roles()->sync([$role->id]);
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Old',
+        'body' => 'Old body',
+        'created_by' => $user->id,
+    ]);
+    $note->forceFill(['created_at' => now()->subWeek(), 'updated_at' => now()->subWeek()])->save();
+
+    $this->actingAs($user)
+        ->get(route('service-notes.edit', $note))
+        ->assertForbidden();
+
+    $this->actingAs($user)
+        ->put(route('service-notes.update', $note), serviceNotePayload([
+            'heading' => 'Should not apply',
+        ]))
+        ->assertForbidden();
+});
+
 test('authenticated user can print repair service note with receipt layout', function () {
     $user = User::factory()->create();
     $contact = Contact::factory()->create([

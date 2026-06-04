@@ -105,7 +105,7 @@
             </div>
 
             <div class="flex flex-wrap gap-3 pt-4">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Save service note</button>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">{{ $note ? 'Save' : 'Save service note' }}</button>
                 <a href="{{ route('contacts.show', $contact) }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-block">Cancel</a>
             </div>
         </form>

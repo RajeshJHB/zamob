@@ -83,7 +83,7 @@ class NotesController extends Controller
         $endDate = $request->endDate();
 
         $query = ServiceNote::query()
-            ->with(['contact', 'noteType'])
+            ->with(['contact', 'noteType', 'author'])
             ->orderByDesc('noted_at')
             ->orderByDesc('id');
 
