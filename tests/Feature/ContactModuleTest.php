@@ -71,6 +71,56 @@ test('multiple contact matches show selection table', function () {
         ->assertSee('Select', false);
 });
 
+test('contacts list shows company column after email with sortable headings', function () {
+    $user = User::factory()->create();
+    Contact::factory()->create([
+        'first_name' => 'Jane',
+        'surname' => 'Doe',
+        'email_address' => 'jane@example.com',
+        'company_name' => 'Acme Ltd',
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('contacts.index'))
+        ->assertSuccessful()
+        ->getContent();
+
+    $emailSortPos = strpos($html, 'sort=email_address');
+    $companySortPos = strpos($html, 'sort=company_name');
+    expect($emailSortPos)->not->toBeFalse();
+    expect($companySortPos)->not->toBeFalse();
+    expect($emailSortPos)->toBeLessThan($companySortPos);
+
+    expect($html)->toContain('sort=surname', false);
+    expect($html)->toContain('sort=created_at', false);
+});
+
+test('contacts list can be sorted by surname ascending', function () {
+    $user = User::factory()->create();
+    Contact::factory()->create(['surname' => 'Zulu', 'first_name' => 'One']);
+    Contact::factory()->create(['surname' => 'Alpha', 'first_name' => 'Two']);
+
+    $html = $this->actingAs($user)
+        ->get(route('contacts.index', ['sort' => 'surname', 'dir' => 'asc']))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect(strpos($html, 'Alpha'))->toBeLessThan(strpos($html, 'Zulu'));
+});
+
+test('contact search results respect sort parameters', function () {
+    $user = User::factory()->create();
+    Contact::factory()->create(['surname' => 'Smith', 'company_name' => 'Zebra Co']);
+    Contact::factory()->create(['surname' => 'Smith', 'company_name' => 'Alpha Co']);
+
+    $html = $this->actingAs($user)
+        ->get(route('contacts.index', ['q' => 'Smith', 'sort' => 'company_name', 'dir' => 'asc']))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect(strpos($html, 'Alpha Co'))->toBeLessThan(strpos($html, 'Zebra Co'));
+});
+
 test('blank contact search lists all contacts newest first', function () {
     $user = User::factory()->create();
     $older = Contact::factory()->create(['first_name' => 'Older']);

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
 use App\Support\BrowseListLimit;
 use App\Support\ContactPermissions;
+use App\Support\ContactsTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,12 +17,14 @@ class ContactController extends Controller
     public function search(Request $request): View|RedirectResponse
     {
         $term = trim((string) $request->input('q', ''));
+        $sort = ContactsTable::sortColumn($request->input('sort'));
+        $dir = ContactsTable::sortDir($request->input('dir'));
+
+        $query = Contact::query()->with('relatedContact');
+        ContactsTable::applySort($query, $sort, $dir);
 
         if ($term === '') {
-            $contacts = Contact::query()
-                ->with('relatedContact')
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
+            $contacts = $query
                 ->limit(BrowseListLimit::limit())
                 ->get();
 
@@ -31,16 +34,12 @@ class ContactController extends Controller
                 'listingAll' => true,
                 'showCreatePrompt' => false,
                 'browseListLimit' => BrowseListLimit::limit(),
+                'sort' => $sort,
+                'sortDir' => $dir,
             ]);
         }
 
-        $contacts = Contact::query()
-            ->searchTerm($term)
-            ->with('relatedContact')
-            ->orderBy('surname')
-            ->orderBy('first_name')
-            ->orderBy('company_name')
-            ->get();
+        $contacts = $query->searchTerm($term)->get();
 
         if ($contacts->count() === 1) {
             return redirect()->route('contacts.show', $contacts->first());
@@ -52,6 +51,8 @@ class ContactController extends Controller
                 'contacts' => $contacts,
                 'listingAll' => false,
                 'showCreatePrompt' => true,
+                'sort' => $sort,
+                'sortDir' => $dir,
             ]);
         }
 
@@ -60,6 +61,8 @@ class ContactController extends Controller
             'contacts' => $contacts,
             'listingAll' => false,
             'showCreatePrompt' => false,
+            'sort' => $sort,
+            'sortDir' => $dir,
         ]);
     }
 

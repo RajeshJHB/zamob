@@ -3,6 +3,9 @@
 @section('title', 'Contacts')
 
 @section('content')
+@php
+    use App\Support\ContactsTable;
+@endphp
 <div class="max-w-6xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
@@ -16,6 +19,8 @@
         @endif
 
         <form method="GET" action="{{ route('contacts.index') }}" class="flex flex-wrap items-end gap-3 mb-6 pb-6 border-b border-gray-200">
+            <input type="hidden" name="sort" value="{{ $sort }}">
+            <input type="hidden" name="dir" value="{{ $sortDir }}">
             <div class="flex-1 min-w-[12rem]">
                 <label for="q" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                 <input type="text" name="q" id="q" value="{{ $term }}" placeholder="Phone, name, company, email, address…" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md" autofocus>
@@ -49,14 +54,13 @@
                     <thead class="bg-gray-100">
                         <tr>
                             <th class="px-3 py-2 text-left font-semibold">Select</th>
-                            <th class="px-3 py-2 text-left font-semibold">Company</th>
-                            <th class="px-3 py-2 text-left font-semibold">First name</th>
-                            <th class="px-3 py-2 text-left font-semibold">Surname</th>
-                            <th class="px-3 py-2 text-left font-semibold">Tel 1</th>
-                            <th class="px-3 py-2 text-left font-semibold">Tel 2</th>
-                            <th class="px-3 py-2 text-left font-semibold">Email</th>
-                            <th class="px-3 py-2 text-left font-semibold">Address</th>
-                            <th class="px-3 py-2 text-left font-semibold">Created</th>
+                            @foreach(ContactsTable::COLUMN_LABELS as $column => $label)
+                                <th class="px-3 py-2 text-left font-semibold">
+                                    <a href="{{ ContactsTable::sortUrl($column, $sort, $sortDir, $term) }}" class="text-gray-900 hover:text-blue-700 underline-offset-2 hover:underline">
+                                        {{ $label }}{{ ContactsTable::sortIndicator($column, $sort, $sortDir) }}
+                                    </a>
+                                </th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody>
@@ -65,12 +69,12 @@
                                 <td class="px-3 py-2 whitespace-nowrap">
                                     <a href="{{ route('contacts.show', $row) }}" class="text-blue-600 hover:text-blue-800 font-medium">Select</a>
                                 </td>
-                                <td class="px-3 py-2">{{ $row->company_name ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->first_name ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->surname ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->telephone_1 ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->telephone_2 ?: '—' }}</td>
                                 <td class="px-3 py-2">{{ $row->email_address ?: '—' }}</td>
+                                <td class="px-3 py-2">{{ $row->company_name ?: '—' }}</td>
                                 <td class="px-3 py-2 max-w-xs truncate" title="{{ $row->physical_address }}">{{ $row->physical_address ?: '—' }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap">{{ $row->created_at?->format('Y-m-d H:i') }}</td>
                             </tr>
