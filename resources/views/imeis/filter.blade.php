@@ -228,7 +228,7 @@
                     <h2 class="text-lg font-semibold mb-3">Sort order</h2>
                     <p class="text-sm text-gray-600 mb-3">
                         Choose up to two of the displayed columns to sort by (primary then secondary),
-                        each ascending or descending. Leave blank to use the default sort (newest Date In first).
+                        each ascending or descending. Leave blank to use the default sort (newest Date updated, then newest Date In).
                     </p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>

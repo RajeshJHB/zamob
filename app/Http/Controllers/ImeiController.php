@@ -746,6 +746,7 @@ class ImeiController extends Controller
             $latestIds = Imei::query()
                 ->visibleTo($request->user())
                 ->orderByDesc('date_updated')
+                ->orderByDesc('date_in')
                 ->orderByDesc('id')
                 ->limit(BrowseListLimit::limit())
                 ->pluck('id');
@@ -779,9 +780,10 @@ class ImeiController extends Controller
             $hasSort = true;
         }
 
-        // Default sort if nothing chosen: newest Date updated first.
+        // Default sort if nothing chosen: newest Date updated, then newest Date In.
         if (! $hasSort) {
             $query->orderByDesc('date_updated');
+            $query->orderByDesc('date_in');
         }
 
         return $query;

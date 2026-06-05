@@ -402,3 +402,62 @@ test('imei index shows cost incl total for all matching filtered records', funct
         ->assertSee('id="imei-filtered-cost-incl-total"', false)
         ->assertSee('>345<', false);
 });
+
+test('imei index default sort uses date updated then date in newest first', function () {
+    $user = User::factory()->create();
+    $sharedUpdated = now()->subDay();
+
+    Imei::query()->create([
+        'date_in' => now()->subDays(3),
+        'date_updated' => $sharedUpdated,
+        'imei' => 'OLDER-DATE-IN',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => 'SortTest',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now()->subDay(),
+        'date_updated' => $sharedUpdated,
+        'imei' => 'NEWER-DATE-IN',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => 'SortTest',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'field_filter_1' => 'status',
+            'field_value_1' => 'SortTest',
+        ]))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect(strpos($html, 'NEWER-DATE-IN'))->toBeLessThan(strpos($html, 'OLDER-DATE-IN'));
+});
