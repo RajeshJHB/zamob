@@ -67,6 +67,7 @@ final class ContactsTable
         string $currentSort,
         string $currentDir,
         string $term = '',
+        ?string $categoryUrlParam = null,
     ): string {
         $nextDir = ($currentSort === $column && $currentDir === 'asc') ? 'desc' : 'asc';
 
@@ -74,6 +75,7 @@ final class ContactsTable
             'q' => trim($term) !== '' ? trim($term) : null,
             'sort' => $column,
             'dir' => $nextDir,
+            'category' => $categoryUrlParam,
         ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 

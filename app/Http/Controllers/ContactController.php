@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
+use App\Models\ContactCategory;
 use App\Support\BrowseListLimit;
+use App\Support\ContactCategoryFilter;
 use App\Support\ContactPermissions;
 use App\Support\ContactsTable;
 use Illuminate\Http\RedirectResponse;
@@ -19,9 +21,13 @@ class ContactController extends Controller
         $term = trim((string) $request->input('q', ''));
         $sort = ContactsTable::sortColumn($request->input('sort'));
         $dir = ContactsTable::sortDir($request->input('dir'));
+        $selectedCategory = ContactCategoryFilter::resolveSelected($request->input('category'));
 
-        $query = Contact::query()->with('relatedContact');
+        $query = Contact::query()->with(['relatedContact', 'contactCategory']);
+        ContactCategoryFilter::applyFilter($query, $selectedCategory);
         ContactsTable::applySort($query, $sort, $dir);
+
+        $searchViewData = $this->searchViewData($sort, $dir, $selectedCategory);
 
         if ($term === '') {
             $contacts = $query
@@ -34,8 +40,7 @@ class ContactController extends Controller
                 'listingAll' => true,
                 'showCreatePrompt' => false,
                 'browseListLimit' => BrowseListLimit::limit(),
-                'sort' => $sort,
-                'sortDir' => $dir,
+                ...$searchViewData,
             ]);
         }
 
@@ -51,8 +56,7 @@ class ContactController extends Controller
                 'contacts' => $contacts,
                 'listingAll' => false,
                 'showCreatePrompt' => true,
-                'sort' => $sort,
-                'sortDir' => $dir,
+                ...$searchViewData,
             ]);
         }
 
@@ -61,8 +65,7 @@ class ContactController extends Controller
             'contacts' => $contacts,
             'listingAll' => false,
             'showCreatePrompt' => false,
-            'sort' => $sort,
-            'sortDir' => $dir,
+            ...$searchViewData,
         ]);
     }
 
@@ -76,6 +79,8 @@ class ContactController extends Controller
         return view('contacts.form', [
             'contact' => null,
             'contactsForRelated' => Contact::query()->orderBy('surname')->orderBy('first_name')->get(),
+            'contactCategories' => $this->contactCategories(),
+            'defaultCategoryId' => ContactCategory::customerId(),
             'prefill' => [
                 'telephone_1' => $request->input('telephone_1', ''),
             ],
@@ -95,6 +100,7 @@ class ContactController extends Controller
     {
         $contact->load([
             'relatedContact',
+            'contactCategory',
             'serviceNotes' => fn ($q) => $q
                 ->with(['noteType', 'relatedNote', 'notesLinkingHere.noteType'])
                 ->orderByDesc('noted_at')
@@ -119,6 +125,8 @@ class ContactController extends Controller
                 ->orderBy('surname')
                 ->orderBy('first_name')
                 ->get(),
+            'contactCategories' => $this->contactCategories(),
+            'defaultCategoryId' => ContactCategory::customerId(),
             'prefill' => [],
         ]);
     }
@@ -148,8 +156,52 @@ class ContactController extends Controller
     /**
      * @return array<string, mixed>
      */
+    private function searchViewData(string $sort, string $dir, string|int $selectedCategory): array
+    {
+        $categories = $this->contactCategories();
+
+        return [
+            'sort' => $sort,
+            'sortDir' => $dir,
+            'categories' => $categories,
+            'selectedCategory' => $selectedCategory,
+            'categoryUrlParam' => ContactCategoryFilter::urlParam($selectedCategory),
+            'selectedCategoryLabel' => $this->selectedCategoryLabel($selectedCategory, $categories),
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, ContactCategory>  $categories
+     */
+    private function selectedCategoryLabel(string|int $selectedCategory, $categories): string
+    {
+        if ($selectedCategory === ContactCategoryFilter::ALL) {
+            return 'All categories';
+        }
+
+        $match = $categories->firstWhere('id', $selectedCategory);
+
+        return $match !== null ? $match->name : 'Contacts';
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, ContactCategory>
+     */
+    private function contactCategories()
+    {
+        return ContactCategory::query()->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function contactAttributes(StoreContactRequest|UpdateContactRequest $request): array
     {
+        $categoryId = (int) $request->input('contact_category_id');
+        if ($categoryId === 0) {
+            $categoryId = ContactCategory::customerId();
+        }
+
         return [
             'company_name' => trim((string) $request->input('company_name', '')),
             'first_name' => trim((string) $request->input('first_name', '')),
@@ -159,6 +211,7 @@ class ContactController extends Controller
             'email_address' => trim((string) $request->input('email_address', '')),
             'physical_address' => trim((string) $request->input('physical_address', '')),
             'related_contact_id' => $request->input('related_contact_id') ?: null,
+            'contact_category_id' => $categoryId,
         ];
     }
 }

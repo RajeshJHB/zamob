@@ -72,6 +72,9 @@
                                 <a href="{{ route('settings.notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                     Note Settings
                                 </a>
+                                <a href="{{ route('settings.contacts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
+                                    Contact Settings
+                                </a>
                                 <a href="{{ route('settings.vat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md mx-1">
                                     VAT Settings
                                 </a>

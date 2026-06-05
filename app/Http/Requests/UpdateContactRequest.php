@@ -35,6 +35,7 @@ class UpdateContactRequest extends FormRequest
                 Rule::exists('contacts', 'id'),
                 Rule::notIn([$contact->id]),
             ],
+            'contact_category_id' => ['required', 'integer', Rule::exists('contact_categories', 'id')],
         ];
     }
 

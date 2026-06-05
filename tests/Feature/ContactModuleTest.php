@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Contact;
+use App\Models\ContactCategory;
 use App\Models\NoteType;
 use App\Models\Role;
 use App\Models\ServiceNote;
@@ -121,6 +122,55 @@ test('contact search results respect sort parameters', function () {
     expect(strpos($html, 'Alpha Co'))->toBeLessThan(strpos($html, 'Zebra Co'));
 });
 
+test('contacts index defaults to customer category only', function () {
+    $user = User::factory()->create();
+    $customer = Contact::factory()->create(['first_name' => 'CustVisible']);
+    $supplierCategoryId = ContactCategory::query()->where('name', 'Supplier')->value('id');
+    Contact::factory()->create(['first_name' => 'SuppHidden', 'contact_category_id' => $supplierCategoryId]);
+    Contact::factory()->create(['first_name' => 'NoCatHidden', 'contact_category_id' => null]);
+
+    $html = $this->actingAs($user)
+        ->get(route('contacts.index'))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('CustVisible', false);
+    expect($html)->not->toContain('SuppHidden', false);
+    expect($html)->not->toContain('NoCatHidden', false);
+});
+
+test('contacts index can show all categories', function () {
+    $user = User::factory()->create();
+    Contact::factory()->create(['first_name' => 'CustAll']);
+    $supplierCategoryId = ContactCategory::query()->where('name', 'Supplier')->value('id');
+    Contact::factory()->create(['first_name' => 'SuppAll', 'contact_category_id' => $supplierCategoryId]);
+
+    $html = $this->actingAs($user)
+        ->get(route('contacts.index', ['category' => 'all']))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('CustAll', false);
+    expect($html)->toContain('SuppAll', false);
+});
+
+test('new contact defaults to customer category', function () {
+    $user = User::factory()->create();
+    $customerId = ContactCategory::customerId();
+
+    $this->actingAs($user)
+        ->post(route('contacts.store'), [
+            '_token' => csrf_token(),
+            'first_name' => 'New',
+            'surname' => 'Person',
+            'telephone_1' => '0821234567',
+        ])
+        ->assertRedirect();
+
+    $contact = Contact::query()->where('telephone_1', '0821234567')->firstOrFail();
+    expect($contact->contact_category_id)->toBe($customerId);
+});
+
 test('blank contact search lists all contacts newest first', function () {
     $user = User::factory()->create();
     $older = Contact::factory()->create(['first_name' => 'Older']);
@@ -132,7 +182,7 @@ test('blank contact search lists all contacts newest first', function () {
         ->assertSuccessful()
         ->getContent();
 
-    expect($html)->toContain('newest contacts', false);
+    expect($html)->toContain('Customer', false);
     expect($html)->toContain('200', false);
     expect($html)->toContain('Newer', false);
     expect($html)->toContain('Older', false);

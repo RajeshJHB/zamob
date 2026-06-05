@@ -26,6 +26,7 @@ class StoreContactRequest extends FormRequest
             'email_address' => ['nullable', 'email', 'max:255'],
             'physical_address' => ['nullable', 'string', 'max:5000'],
             'related_contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')],
+            'contact_category_id' => ['nullable', 'integer', Rule::exists('contact_categories', 'id')],
         ];
     }
 

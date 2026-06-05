@@ -22,7 +22,13 @@ class Contact extends Model
         'email_address',
         'physical_address',
         'related_contact_id',
+        'contact_category_id',
     ];
+
+    public function contactCategory(): BelongsTo
+    {
+        return $this->belongsTo(ContactCategory::class);
+    }
 
     public function relatedContact(): BelongsTo
     {

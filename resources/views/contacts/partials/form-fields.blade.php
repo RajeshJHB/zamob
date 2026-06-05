@@ -10,8 +10,29 @@
 
         return (string) ($prefill[$key] ?? '');
     };
+    $categoryValue = function () use ($contact, $defaultCategoryId): string {
+        if (old('contact_category_id') !== null) {
+            return (string) old('contact_category_id');
+        }
+        if ($contact !== null && $contact->contact_category_id !== null) {
+            return (string) $contact->contact_category_id;
+        }
+
+        return (string) ($defaultCategoryId ?? '');
+    };
 @endphp
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="sm:col-span-2">
+        <label for="contact_category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+        <select name="contact_category_id" id="contact_category_id" required class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-md bg-white">
+            @if($isEdit && $contact->contact_category_id === null)
+                <option value="" disabled @selected($categoryValue() === '')>— Choose category —</option>
+            @endif
+            @foreach($contactCategories as $categoryOption)
+                <option value="{{ $categoryOption->id }}" @selected($categoryValue() === (string) $categoryOption->id)>{{ $categoryOption->name }}</option>
+            @endforeach
+        </select>
+    </div>
     <div>
         <label for="company_name" class="block text-sm font-medium text-gray-700 mb-1">Company name</label>
         <input type="text" name="company_name" id="company_name" value="{{ $val('company_name') }}" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full">

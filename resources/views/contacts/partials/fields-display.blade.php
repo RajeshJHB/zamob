@@ -3,6 +3,10 @@
 @endphp
 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
     <div>
+        <dt class="font-medium text-gray-500">Category</dt>
+        <dd class="text-gray-900">{{ $contact->contactCategory?->name ?? '—' }}</dd>
+    </div>
+    <div>
         <dt class="font-medium text-gray-500">Company name</dt>
         <dd class="text-gray-900">{{ $contact->company_name !== '' ? $contact->company_name : '—' }}</dd>
     </div>

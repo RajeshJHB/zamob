@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Contact;
+use App\Models\ContactCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -26,6 +27,7 @@ class ContactFactory extends Factory
             'email_address' => fake()->safeEmail(),
             'physical_address' => fake()->streetAddress(),
             'related_contact_id' => null,
+            'contact_category_id' => fn (): ?int => ContactCategory::customerId(),
         ];
     }
 }
