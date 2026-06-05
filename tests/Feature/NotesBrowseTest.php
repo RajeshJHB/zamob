@@ -23,6 +23,9 @@ test('notes page shows search form and nav includes notes link', function () {
         ->assertSee('Showing open service notes', false)
         ->assertSee('Print', false)
         ->assertSee(route('notes.print'), false)
+        ->assertSee('id="note_status"', false)
+        ->assertSee('name="only_mine"', false)
+        ->assertSee('onchange="this.form.submit()"', false)
         ->getContent();
 
     expect($html)->toContain(route('notes.index'))

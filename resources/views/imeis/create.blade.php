@@ -566,9 +566,9 @@
                     <thead class="bg-gray-100 sticky top-0">
                         <tr>
                             <th class="px-3 py-2 text-left font-semibold w-24"></th>
-                            <th class="px-3 py-2 text-left font-semibold">Company</th>
                             <th class="px-3 py-2 text-left font-semibold">First name</th>
                             <th class="px-3 py-2 text-left font-semibold">Surname</th>
+                            <th class="px-3 py-2 text-left font-semibold">Company</th>
                             <th class="px-3 py-2 text-left font-semibold">Telephone</th>
                         </tr>
                     </thead>
@@ -1959,9 +1959,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<td class="px-3 py-2 whitespace-nowrap">' +
                     '<button type="button" class="text-blue-600 hover:text-blue-800 font-medium imei-contact-pick-btn">Select</button>' +
                 '</td>' +
-                '<td class="px-3 py-2">' + escapeHtml(contact.company_name || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(contact.first_name || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(contact.surname || '—') + '</td>' +
+                '<td class="px-3 py-2">' + escapeHtml(contact.company_name || '—') + '</td>' +
                 '<td class="px-3 py-2">' + escapeHtml(contact.telephone_1 || '—') + '</td>';
             const pickBtn = tr.querySelector('.imei-contact-pick-btn');
             if (pickBtn) {

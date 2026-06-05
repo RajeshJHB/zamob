@@ -23,7 +23,7 @@
         <form method="GET" action="{{ route('notes.index') }}" class="flex flex-wrap items-end gap-3 mb-6 pb-6 border-b border-gray-200">
             <div class="min-w-[12rem]">
                 <label for="note_status" class="block text-sm font-medium text-gray-700 mb-1">Note status</label>
-                <select name="note_status" id="note_status" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-xs">
+                <select name="note_status" id="note_status" onchange="this.form.submit()" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-xs">
                     <option value="{{ \App\Models\ServiceNote::STATUS_OPEN }}" @selected(($noteStatus ?? \App\Models\ServiceNote::STATUS_OPEN) === \App\Models\ServiceNote::STATUS_OPEN)>Open</option>
                     <option value="{{ \App\Models\ServiceNote::STATUS_CLOSED }}" @selected(($noteStatus ?? '') === \App\Models\ServiceNote::STATUS_CLOSED)>Closed</option>
                     <option value="" @selected(($noteStatus ?? \App\Models\ServiceNote::STATUS_OPEN) === '')>All statuses</option>
@@ -34,6 +34,7 @@
                         name="only_mine"
                         value="1"
                         class="rounded border-gray-300"
+                        onchange="this.form.submit()"
                         @checked($onlyMine ?? false)
                     >
                     <span class="text-sm text-gray-800">Only my notes</span>
