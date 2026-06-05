@@ -592,18 +592,13 @@ class ImeiController extends Controller
         $userEmail = (string) $request->user()->email;
         $now = now();
 
-        $query = $this->buildImeiQuery($request);
-        $updated = 0;
-
-        $query->chunkById(100, function ($imeis) use ($toStatus, $userEmail, $now, &$updated): void {
-            foreach ($imeis as $imei) {
-                $imei->update([
-                    'status' => $toStatus,
-                    'date_updated' => $now,
-                    'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
-                ]);
-                $updated++;
-            }
+        $query = $this->buildImeiQueryForBulkOperation($request);
+        $updated = $this->processImeisForBulkOperation($query, function (Imei $imei) use ($toStatus, $userEmail, $now): void {
+            $imei->update([
+                'status' => $toStatus,
+                'date_updated' => $now,
+                'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
+            ]);
         });
 
         return redirect()
@@ -617,7 +612,7 @@ class ImeiController extends Controller
         $now = now();
         $formValues = $request->all();
 
-        $query = $this->buildImeiQuery($request);
+        $query = $this->buildImeiQueryForBulkOperation($request);
         ImeiBulkEdit::applySearchCriteria($query, $request->searchCriteria());
 
         $removeFieldKeys = ImeiBulkEdit::removeSearchTextFieldKeys($formValues);
@@ -628,51 +623,83 @@ class ImeiController extends Controller
             $now,
             $partialTextFieldKeys,
         );
-        $updated = 0;
 
-        $query->chunkById(100, function ($imeis) use ($updateAttributes, $formValues, $removeFieldKeys, $replaceSearchFieldKeys, $userEmail, &$updated): void {
-            foreach ($imeis as $imei) {
-                $attributes = $updateAttributes;
+        $updated = $this->processImeisForBulkOperation($query, function (Imei $imei) use (
+            $updateAttributes,
+            $formValues,
+            $removeFieldKeys,
+            $replaceSearchFieldKeys,
+            $userEmail,
+        ): void {
+            $attributes = $updateAttributes;
 
-                foreach ($removeFieldKeys as $fieldKey) {
-                    $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);
-                    if ($searchTerm === null) {
-                        continue;
-                    }
-
-                    $column = ImeiBulkEdit::databaseColumn($fieldKey);
-                    $attributes[$column] = ImeiBulkEdit::removeSearchTextFromField(
-                        (string) $imei->{$column},
-                        $searchTerm,
-                    );
+            foreach ($removeFieldKeys as $fieldKey) {
+                $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);
+                if ($searchTerm === null) {
+                    continue;
                 }
 
-                foreach ($replaceSearchFieldKeys as $fieldKey) {
-                    $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);
-                    $replaceWith = ImeiBulkEdit::replaceValue($formValues, $fieldKey);
-                    if ($searchTerm === null || $replaceWith === null) {
-                        continue;
-                    }
-
-                    $column = ImeiBulkEdit::databaseColumn($fieldKey);
-                    $attributes[$column] = ImeiBulkEdit::replaceSearchTextInField(
-                        (string) $imei->{$column},
-                        $searchTerm,
-                        $replaceWith,
-                    );
-                }
-
-                $imei->update([
-                    ...$attributes,
-                    'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
-                ]);
-                $updated++;
+                $column = ImeiBulkEdit::databaseColumn($fieldKey);
+                $attributes[$column] = ImeiBulkEdit::removeSearchTextFromField(
+                    (string) $imei->{$column},
+                    $searchTerm,
+                );
             }
+
+            foreach ($replaceSearchFieldKeys as $fieldKey) {
+                $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);
+                $replaceWith = ImeiBulkEdit::replaceValue($formValues, $fieldKey);
+                if ($searchTerm === null || $replaceWith === null) {
+                    continue;
+                }
+
+                $column = ImeiBulkEdit::databaseColumn($fieldKey);
+                $attributes[$column] = ImeiBulkEdit::replaceSearchTextInField(
+                    (string) $imei->{$column},
+                    $searchTerm,
+                    $replaceWith,
+                );
+            }
+
+            $imei->update([
+                ...$attributes,
+                'staff' => ImeiStaffAudit::appendEmail((string) $imei->staff, $userEmail),
+            ]);
         });
 
         return redirect()
             ->route('imeis.index', $this->imeiFilterParams($request))
             ->with('message', "Bulk edit updated {$updated} record(s).");
+    }
+
+    private function buildImeiQueryForBulkOperation(Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        $this->applyActiveFilterProfile($request);
+
+        return $this->buildImeiQuery($request);
+    }
+
+    /**
+     * @param  callable(Imei): void  $callback
+     */
+    private function processImeisForBulkOperation(\Illuminate\Database\Eloquent\Builder $query, callable $callback): int
+    {
+        $ids = (clone $query)->reorder('id')->pluck('id');
+        $updated = 0;
+
+        foreach ($ids->chunk(100) as $idChunk) {
+            $imeis = Imei::query()
+                ->whereIn('id', $idChunk->all())
+                ->orderBy('id')
+                ->get();
+
+            foreach ($imeis as $imei) {
+                $callback($imei);
+                $updated++;
+            }
+        }
+
+        return $updated;
     }
 
     private function buildImeiQuery(Request $request): \Illuminate\Database\Eloquent\Builder

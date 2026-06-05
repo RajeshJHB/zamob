@@ -185,6 +185,30 @@ test('bulk status change requires a status field filter', function () {
     expect($record->fresh()->status)->toBe('Error');
 });
 
+test('role 4 user bulk status change updates all matching records not just the first chunk', function () {
+    $user = User::factory()->create(['email' => 'admin@example.com']);
+    grantRoleFourForImeiReferenceDeletes($user);
+    ImeiStatus::factory()->create(['status' => 'Error']);
+    ImeiStatus::factory()->create(['status' => 'Unknown']);
+
+    for ($i = 1; $i <= 250; $i++) {
+        createImeiRecord(sprintf('1111111111%05d', $i), 'Error');
+    }
+
+    createImeiRecord('999999999999999', 'Sold');
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-status'), array_merge(bulkStatusFilterParams('Error'), [
+            'status_to' => 'Unknown',
+        ]))
+        ->assertRedirect(route('imeis.index', bulkStatusFilterParams('Error')))
+        ->assertSessionHas('message', 'Updated 250 record(s) from Error to Unknown.');
+
+    expect(Imei::query()->where('status', 'Unknown')->count())->toBe(250);
+    expect(Imei::query()->where('status', 'Error')->count())->toBe(0);
+    expect(Imei::query()->where('imei', '999999999999999')->value('status'))->toBe('Sold');
+});
+
 test('bulk status change rejects choosing the same status as the filter', function () {
     $user = User::factory()->create();
     grantRoleFourForImeiReferenceDeletes($user);
