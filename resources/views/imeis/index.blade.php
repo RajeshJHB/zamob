@@ -6,6 +6,7 @@
 
 @section('content')
 @php
+    use App\Support\ImeiInShopAgeHighlight;
     use Illuminate\Support\Str;
 
     $listReturnQuery = http_build_query(array_filter(array_merge(
@@ -134,7 +135,7 @@
             </thead>
             <tbody>
                 @forelse($imeis as $row)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="{{ ImeiInShopAgeHighlight::rowClasses($row) }}">
                         <td class="whitespace-nowrap border border-gray-300 px-1.5 py-1.5 text-xs">
                             <a href="{{ route('imeis.receipt', $row) }}" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:text-blue-900 font-medium underline">Print</a>
                         </td>

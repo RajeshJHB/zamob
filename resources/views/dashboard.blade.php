@@ -6,6 +6,7 @@
 @php
     use App\Support\CashDevicesTable;
     use App\Support\ImeiCostIncl;
+    use App\Support\ImeiInShopAgeHighlight;
 
     $sortableHeaders = [
         'date_in' => 'Date In',
@@ -82,7 +83,7 @@
                         $sellingPriceDisplay = $imei->selling_price !== null ? number_format($imei->selling_price) : '—';
                         $costInclDisplay = ImeiCostIncl::format($imei->cost_excl) ?? '—';
                     @endphp
-                    <tr class="hover:bg-gray-50 border-t border-gray-200">
+                    <tr class="{{ ImeiInShopAgeHighlight::rowClasses($imei) }} border-t border-gray-200">
                         <td class="px-3 py-2 whitespace-nowrap">
                             <a href="{{ route('imeis.edit', $imei).'?return_query='.rawurlencode($cashDevicesReturnQuery) }}" class="text-blue-600 hover:text-blue-800 font-medium">Edit</a>
                         </td>

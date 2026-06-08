@@ -207,6 +207,8 @@ test('add imei form includes model catalog with item code for auto fill', functi
         ->getContent();
 
     expect($html)->toContain('"item_code":"IT-XYZ"');
+    expect($html)->toContain("label += ' (' + itemCode + ')'");
+    expect($html)->not->toContain("label += ' (' + serial + ')'");
     expect($html)->toContain('applyModelCatalogFields');
     expect($html)->toContain('id="imei_final"');
     expect($html)->toContain('id="location"');
@@ -218,7 +220,12 @@ test('add imei form includes model catalog with item code for auto fill', functi
 test('edit imei form lists models for the records make', function () {
     $user = User::factory()->create();
     ImeiMake::factory()->create(['make' => 'Samsung']);
-    ImeiModel::factory()->create(['make' => 'Samsung', 'model' => 'Galaxy S', 'serial' => '']);
+    ImeiModel::factory()->create([
+        'make' => 'Samsung',
+        'model' => 'Galaxy S',
+        'serial' => 'SN-OLD',
+        'item_code' => 'SAM-GS',
+    ]);
     $row = Imei::query()->create([
         'date_in' => now(),
         'date_updated' => now(),
@@ -244,5 +251,6 @@ test('edit imei form lists models for the records make', function () {
     $this->actingAs($user)
         ->get(route('imeis.edit', $row))
         ->assertSuccessful()
-        ->assertSee('Galaxy S', false);
+        ->assertSee('Galaxy S (SAM-GS)', false)
+        ->assertDontSee('(SN-OLD)', false);
 });

@@ -8,13 +8,14 @@ final class ServiceNoteDealDetails
 {
     public static function format(ServiceNote $note): string
     {
+        $firstLine = $note->formattedNoteNumber().' Claim Reference No. CRN-';
         $details = self::formatHeadingAndBody($note);
 
         if ($details === '') {
-            return $note->formattedNoteNumber();
+            return $firstLine;
         }
 
-        return $note->formattedNoteNumber()."\n".$details;
+        return $firstLine."\n".$details;
     }
 
     private static function formatHeadingAndBody(ServiceNote $note): string

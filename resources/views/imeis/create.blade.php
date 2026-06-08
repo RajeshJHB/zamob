@@ -97,7 +97,7 @@
     $currentModelForSelect = $imeiFieldValue('model');
 
     $modelsForSelectedMake = $makeInReferenceTable
-        ? $allImeiModels->where('make', $currentMakeForSelect)->sortBy(fn (\App\Models\ImeiModel $m): string => $m->model.(string) ($m->serial ?? ''))->unique('model')->values()
+        ? $allImeiModels->where('make', $currentMakeForSelect)->sortBy(fn (\App\Models\ImeiModel $m): string => $m->model.(string) ($m->item_code ?? ''))->unique('model')->values()
         : collect();
 
     $modelInReferenceTableForMake = $allImeiModels->contains(
@@ -296,7 +296,7 @@
                                     <option value="{{ $currentModelForSelect }}" selected>{{ $currentModelForSelect }} (not in list)</option>
                                 @endif
                                 @foreach($modelsForSelectedMake as $imeiModelRow)
-                                    <option value="{{ $imeiModelRow->model }}" @selected(! $showLegacyModelOption && $currentModelForSelect === $imeiModelRow->model)>{{ $imeiModelRow->model }}@if(($imeiModelRow->serial ?? '') !== '') ({{ $imeiModelRow->serial }})@endif</option>
+                                    <option value="{{ $imeiModelRow->model }}" @selected(! $showLegacyModelOption && $currentModelForSelect === $imeiModelRow->model)>{{ $imeiModelRow->model }}@if(($imeiModelRow->item_code ?? '') !== '') ({{ $imeiModelRow->item_code }})@endif</option>
                                 @endforeach
                             </select>
                             @error('model')
@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (c !== 0) {
                 return c;
             }
-            return String(a.serial || '').localeCompare(String(b.serial || ''));
+            return String(a.item_code || '').localeCompare(String(b.item_code || ''));
         });
 
         return out;
@@ -755,9 +755,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const o = document.createElement('option');
             o.value = r.model;
             let label = r.model;
-            const serial = String(r.serial || '').trim();
-            if (serial !== '') {
-                label += ' (' + serial + ')';
+            const itemCode = String(r.item_code || '').trim();
+            if (itemCode !== '') {
+                label += ' (' + itemCode + ')';
             }
             o.textContent = label;
             modelSelect.appendChild(o);
