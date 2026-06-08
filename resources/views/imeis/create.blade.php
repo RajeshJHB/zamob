@@ -110,6 +110,7 @@
         'make' => $m->make,
         'model' => $m->model,
         'serial' => (string) ($m->serial ?? ''),
+        'item_code' => (string) ($m->item_code ?? ''),
     ])->values()->all();
 @endphp
 
@@ -237,34 +238,6 @@
                     </p>
                 </div>
 
-                <div class="pb-4 border-b border-gray-200 space-y-3">
-                    <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Date in is recorded automatically when you save a new IMEI.</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,15rem)_1fr] gap-4 items-start">
-                        <div>
-                            <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['date_in'] ?? 'Date in' }}</label>
-                            <input type="datetime-local" name="date_in" id="date_in" value="{{ $imeiFieldValue('date_in') }}" @readonly($dateInReadonly) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $dateInFieldClass }} @error('date_in') border-red-500 @enderror">
-                            @error('date_in')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="location" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['location'] ?? 'Location' }}</label>
-                            <select name="location" id="location" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('location') border-red-500 @enderror">
-                                <option value="">— Select location —</option>
-                                @if($currentLocationForSelect !== '' && ! $locationInReferenceTable)
-                                    <option value="{{ $currentLocationForSelect }}" selected>{{ $currentLocationForSelect }} (not in list)</option>
-                                @endif
-                                @foreach($imeiLocations as $imeiLocation)
-                                    <option value="{{ $imeiLocation->location }}" @selected($currentLocationForSelect === $imeiLocation->location)>{{ $imeiLocation->location }}</option>
-                                @endforeach
-                            </select>
-                            @error('location')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
                 <div class="space-y-4 pb-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold">Device</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -284,33 +257,17 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="cash_stock_type" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cash_stock_type'] ?? 'Sale type' }}</label>
-                            <select name="cash_stock_type" id="cash_stock_type" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('cash_stock_type') border-red-500 @enderror">
-                                <option value="">— Select sale type —</option>
-                                @if($currentSaleTypeForSelect !== '' && ! $saleTypeInReferenceTable)
-                                    <option value="{{ $currentSaleTypeForSelect }}" selected>{{ $currentSaleTypeForSelect }} (not in list)</option>
+                            <label for="location" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['location'] ?? 'Location' }}</label>
+                            <select name="location" id="location" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('location') border-red-500 @enderror">
+                                <option value="">— Select location —</option>
+                                @if($currentLocationForSelect !== '' && ! $locationInReferenceTable)
+                                    <option value="{{ $currentLocationForSelect }}" selected>{{ $currentLocationForSelect }} (not in list)</option>
                                 @endif
-                                @foreach($imeiSaleTypes as $imeiSaleType)
-                                    <option value="{{ $imeiSaleType->sale_type }}" @selected($currentSaleTypeForSelect === $imeiSaleType->sale_type)>{{ $imeiSaleType->sale_type }}</option>
+                                @foreach($imeiLocations as $imeiLocation)
+                                    <option value="{{ $imeiLocation->location }}" @selected($currentLocationForSelect === $imeiLocation->location)>{{ $imeiLocation->location }}</option>
                                 @endforeach
                             </select>
-                            @error('cash_stock_type')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="sn" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['sn'] ?? 'Serial Number' }}</label>
-                            <input type="text" name="sn" id="sn" value="{{ $imeiFieldValue('sn') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('sn') border-red-500 @enderror">
-                            @error('sn')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="item_code" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['item_code'] ?? 'Item code' }}</label>
-                            <input type="text" name="item_code" id="item_code" value="{{ $imeiFieldValue('item_code') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('item_code') border-red-500 @enderror">
-                            @error('item_code')
+                            @error('location')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -349,6 +306,22 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
+                            <label for="sn" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['sn'] ?? 'Serial Number' }}</label>
+                            <input type="text" name="sn" id="sn" value="{{ $imeiFieldValue('sn') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('sn') border-red-500 @enderror">
+                            @error('sn')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="item_code" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['item_code'] ?? 'Item code' }}</label>
+                            <input type="text" name="item_code" id="item_code" value="{{ $imeiFieldValue('item_code') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('item_code') border-red-500 @enderror">
+                            @error('item_code')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
                             <label for="ourON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['ourON'] ?? 'ourON' }}</label>
                             <input type="text" name="ourON" id="ourON" value="{{ $imeiFieldValue('ourON') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('ourON') border-red-500 @enderror">
                             @error('ourON')
@@ -359,28 +332,6 @@
                             <label for="salesON" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['salesON'] ?? 'salesON' }}</label>
                             <input type="text" name="salesON" id="salesON" value="{{ $imeiFieldValue('salesON') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('salesON') border-red-500 @enderror">
                             @error('salesON')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label for="cost_excl" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_excl'] ?? 'Cost excl' }}</label>
-                            <input type="text" name="cost_excl" id="cost_excl" value="{{ $imeiFieldValue('cost_excl') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('cost_excl') border-red-500 @enderror">
-                            @error('cost_excl')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }}</label>
-                            <p id="cost_incl_display" class="border border-gray-200 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 min-h-[42px] flex items-center">
-                                {{ \App\Support\ImeiCostIncl::format($imeiFieldValue('cost_excl')) ?? '—' }}
-                            </p>
-                        </div>
-                        <div>
-                            <label for="selling_price" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['selling_price'] ?? 'Selling price' }}</label>
-                            <input type="number" name="selling_price" id="selling_price" value="{{ $imeiFieldValue('selling_price') }}" step="1" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('selling_price') border-red-500 @enderror">
-                            @error('selling_price')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -416,6 +367,53 @@
                                 @endif
                             </select>
                             @error('status')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="cost_excl" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_excl'] ?? 'Cost excl' }}</label>
+                            <input type="text" name="cost_excl" id="cost_excl" value="{{ $imeiFieldValue('cost_excl') }}" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('cost_excl') border-red-500 @enderror">
+                            @error('cost_excl')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }}</label>
+                            <p id="cost_incl_display" class="border border-gray-200 rounded px-3 py-2 shadow-sm w-full bg-gray-50 text-gray-900 min-h-[42px] flex items-center">
+                                {{ \App\Support\ImeiCostIncl::format($imeiFieldValue('cost_excl')) ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <label for="selling_price" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['selling_price'] ?? 'Selling price' }}</label>
+                            <input type="number" name="selling_price" id="selling_price" value="{{ $imeiFieldValue('selling_price') }}" step="1" {{ $roAttr }} class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $roFieldClass }} @error('selling_price') border-red-500 @enderror">
+                            @error('selling_price')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <p id="imei-date-hint-new" class="text-xs text-gray-500 @if($readonlyAfterSave) hidden @endif">Date in is recorded automatically when you save a new IMEI.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="cash_stock_type" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['cash_stock_type'] ?? 'Sale type' }}</label>
+                            <select name="cash_stock_type" id="cash_stock_type" @disabled($readonlyAfterSave) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full bg-white {{ $roFieldClass }} @error('cash_stock_type') border-red-500 @enderror">
+                                <option value="">— Select sale type —</option>
+                                @if($currentSaleTypeForSelect !== '' && ! $saleTypeInReferenceTable)
+                                    <option value="{{ $currentSaleTypeForSelect }}" selected>{{ $currentSaleTypeForSelect }} (not in list)</option>
+                                @endif
+                                @foreach($imeiSaleTypes as $imeiSaleType)
+                                    <option value="{{ $imeiSaleType->sale_type }}" @selected($currentSaleTypeForSelect === $imeiSaleType->sale_type)>{{ $imeiSaleType->sale_type }}</option>
+                                @endforeach
+                            </select>
+                            @error('cash_stock_type')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">{{ $columnLabels['date_in'] ?? 'Date in' }}</label>
+                            <input type="datetime-local" name="date_in" id="date_in" value="{{ $imeiFieldValue('date_in') }}" @readonly($dateInReadonly) class="js-imei-mutable border border-gray-300 rounded px-3 py-2 shadow-sm w-full {{ $dateInFieldClass }} @error('date_in') border-red-500 @enderror">
+                            @error('date_in')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -714,6 +712,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const deleteActionWraps = document.querySelectorAll('.imei-delete-action-wrap');
     const makeSelect = document.getElementById('make');
     const modelSelect = document.getElementById('model');
+    const snInput = document.getElementById('sn');
+    const itemCodeInput = document.getElementById('item_code');
 
     const mutableSelector = '.js-imei-mutable';
 
@@ -790,6 +790,45 @@ document.addEventListener('DOMContentLoaded', function () {
         modelSelect.value = modelVal;
     }
 
+    function catalogRowForMakeModel(make, model) {
+        if (!make || !model) {
+            return null;
+        }
+
+        return imeiModelsCatalog.find(function (r) {
+            return r.make === make && r.model === model;
+        }) || null;
+    }
+
+    function clearModelCatalogFields() {
+        if (snInput) {
+            snInput.value = '';
+        }
+        if (itemCodeInput) {
+            itemCodeInput.value = '';
+        }
+    }
+
+    function applyModelCatalogFields() {
+        if (!makeSelect || !modelSelect) {
+            return;
+        }
+
+        const row = catalogRowForMakeModel(makeSelect.value, modelSelect.value);
+        if (!row) {
+            clearModelCatalogFields();
+
+            return;
+        }
+
+        if (snInput) {
+            snInput.value = row.serial || '';
+        }
+        if (itemCodeInput) {
+            itemCodeInput.value = row.item_code || '';
+        }
+    }
+
     function onMakeChanged() {
         if (!makeSelect || !modelSelect) {
             return;
@@ -803,8 +842,17 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             if (stillExists) {
                 modelSelect.value = prevModel;
+            } else {
+                modelSelect.value = '';
             }
+        } else {
+            modelSelect.value = '';
         }
+        applyModelCatalogFields();
+    }
+
+    function onModelChanged() {
+        applyModelCatalogFields();
     }
 
     function setImeiDeleteActionsVisible(visible) {
@@ -1586,6 +1634,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (makeSelect) {
         makeSelect.addEventListener('change', onMakeChanged);
+    }
+
+    if (modelSelect) {
+        modelSelect.addEventListener('change', onModelChanged);
     }
 
     function goBackToImeiStep() {

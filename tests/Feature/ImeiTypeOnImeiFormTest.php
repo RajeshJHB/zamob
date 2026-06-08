@@ -60,7 +60,7 @@ test('store persists the chosen type string from imei_types', function () {
             'date_in' => '',
             'type' => 'Retail',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storetypeok')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('storetypeok'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storetypeok',

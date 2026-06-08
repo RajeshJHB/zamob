@@ -81,20 +81,57 @@ test('store rejects make not in imei_make', function () {
         ->assertSessionHasErrors('make');
 });
 
+test('models settings lists item code column for selected make', function () {
+    $user = User::factory()->create();
+    ImeiMake::factory()->create(['make' => 'Samsung']);
+    ImeiModel::factory()->create([
+        'make' => 'Samsung',
+        'model' => 'Galaxy S24',
+        'serial' => 'SN-99',
+        'item_code' => 'SKU-ABC',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('settings.models.index', ['make' => 'Samsung']))
+        ->assertSuccessful()
+        ->assertSee('Item code', false)
+        ->assertSee('SKU-ABC', false)
+        ->assertSee('name="item_code"', false);
+});
+
+test('verified user can add a model with item code', function () {
+    $user = User::factory()->create();
+    ImeiMake::factory()->create(['make' => 'Sony']);
+
+    $this->actingAs($user)
+        ->post(route('settings.models.store'), [
+            'make' => 'Sony',
+            'model' => 'Xperia',
+            'serial' => 'SN-1',
+            'item_code' => ' IT-001 ',
+        ])
+        ->assertRedirect(route('settings.models.index', ['make' => 'Sony']));
+
+    $row = ImeiModel::query()->where('make', 'Sony')->firstOrFail();
+    expect($row->item_code)->toBe('IT-001');
+});
+
 test('verified user can update a model', function () {
     $user = User::factory()->create();
     ImeiMake::factory()->create(['make' => 'LG']);
-    $row = ImeiModel::factory()->create(['make' => 'LG', 'model' => 'Old', 'serial' => 's1']);
+    $row = ImeiModel::factory()->create(['make' => 'LG', 'model' => 'Old', 'serial' => 's1', 'item_code' => 'old-code']);
 
     $this->actingAs($user)
         ->put(route('settings.models.update', $row), [
             'model' => 'New',
             'serial' => 's2',
+            'item_code' => 'new-code',
         ])
         ->assertRedirect(route('settings.models.index', ['make' => 'LG']));
 
     expect($row->fresh()->model)->toBe('New')
         ->and($row->fresh()->serial)->toBe('s2')
+        ->and($row->fresh()->item_code)->toBe('new-code')
         ->and($row->fresh()->make)->toBe('LG');
 });
 

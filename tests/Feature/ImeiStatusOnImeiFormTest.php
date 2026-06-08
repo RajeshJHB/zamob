@@ -60,7 +60,7 @@ test('store persists the chosen status string from imei_statuses', function () {
             'date_in' => '',
             'status' => 'In Stock',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storestatok')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('storestatok'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storestatok',

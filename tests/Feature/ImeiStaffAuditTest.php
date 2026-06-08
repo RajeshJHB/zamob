@@ -59,7 +59,7 @@ test('store sets staff to the authenticated user email', function () {
             'imei' => 'staffcreate',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'staffcreate')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('staffcreate'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'staffcreate',
@@ -78,7 +78,7 @@ test('store ignores staff value submitted from the client', function () {
             'date_in' => '',
             'staff' => 'forged@example.com',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'staffignore')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('staffignore'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'staffignore',

@@ -74,6 +74,7 @@
                         <tr class="bg-gray-100">
                             <th class="px-4 py-2 border-b text-left">Model</th>
                             <th class="px-4 py-2 border-b text-left">Serial</th>
+                            <th class="px-4 py-2 border-b text-left">Item code</th>
                             <th class="px-4 py-2 border-b text-left">Actions</th>
                         </tr>
                     </thead>
@@ -88,9 +89,16 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-2 border-b align-top">
-                                    <span class="serial-cell-display-{{ $record->id }}">{{ $record->serial }}</span>
+                                    <span class="serial-cell-display-{{ $record->id }}">{{ $record->serial !== '' ? $record->serial : '—' }}</span>
                                     <div class="serial-cell-edit-{{ $record->id }}" style="display: none;">
                                         <input type="text" name="serial" form="edit-form-{{ $record->id }}" value="{{ old('serial', $record->serial) }}"
+                                               class="shadow appearance-none border rounded py-1 px-2 text-gray-700 w-full max-w-md">
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2 border-b align-top">
+                                    <span class="item-code-cell-display-{{ $record->id }}">{{ $record->item_code !== '' ? $record->item_code : '—' }}</span>
+                                    <div class="item-code-cell-edit-{{ $record->id }}" style="display: none;">
+                                        <input type="text" name="item_code" form="edit-form-{{ $record->id }}" value="{{ old('item_code', $record->item_code) }}"
                                                class="shadow appearance-none border rounded py-1 px-2 text-gray-700 w-full max-w-md">
                                     </div>
                                 </td>
@@ -129,7 +137,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-4 py-2 text-center text-gray-500">No models for this make yet. Add one above.</td>
+                                <td colspan="4" class="px-4 py-2 text-center text-gray-500">No models for this make yet. Add one above.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -149,6 +157,7 @@
             originalModelRows[{{ $record->id }}] = {
                 model: @json($record->model),
                 serial: @json($record->serial),
+                item_code: @json($record->item_code),
             };
         @endforeach
     });
@@ -156,12 +165,19 @@
     function editModelRow(id) {
         const modelInput = document.querySelector(`[form="edit-form-${id}"][name="model"]`);
         const serialInput = document.querySelector(`[form="edit-form-${id}"][name="serial"]`);
-        originalModelRows[id] = { model: modelInput.value, serial: serialInput.value };
+        const itemCodeInput = document.querySelector(`[form="edit-form-${id}"][name="item_code"]`);
+        originalModelRows[id] = {
+            model: modelInput.value,
+            serial: serialInput.value,
+            item_code: itemCodeInput.value,
+        };
 
         document.querySelector(`.model-cell-display-${id}`).style.display = 'none';
         document.querySelector(`.serial-cell-display-${id}`).style.display = 'none';
+        document.querySelector(`.item-code-cell-display-${id}`).style.display = 'none';
         document.querySelector(`.model-cell-edit-${id}`).style.display = 'block';
         document.querySelector(`.serial-cell-edit-${id}`).style.display = 'block';
+        document.querySelector(`.item-code-cell-edit-${id}`).style.display = 'block';
         document.querySelector(`.model-actions-view-${id}`).style.display = 'none';
         document.querySelector(`.model-actions-edit-${id}`).style.display = 'flex';
         modelInput.focus();
@@ -170,13 +186,17 @@
     function cancelEditModelRow(id) {
         const modelInput = document.querySelector(`[form="edit-form-${id}"][name="model"]`);
         const serialInput = document.querySelector(`[form="edit-form-${id}"][name="serial"]`);
+        const itemCodeInput = document.querySelector(`[form="edit-form-${id}"][name="item_code"]`);
         modelInput.value = originalModelRows[id].model;
         serialInput.value = originalModelRows[id].serial;
+        itemCodeInput.value = originalModelRows[id].item_code;
 
         document.querySelector(`.model-cell-display-${id}`).style.display = 'inline';
         document.querySelector(`.serial-cell-display-${id}`).style.display = 'inline';
+        document.querySelector(`.item-code-cell-display-${id}`).style.display = 'inline';
         document.querySelector(`.model-cell-edit-${id}`).style.display = 'none';
         document.querySelector(`.serial-cell-edit-${id}`).style.display = 'none';
+        document.querySelector(`.item-code-cell-edit-${id}`).style.display = 'none';
         document.querySelector(`.model-actions-view-${id}`).style.display = 'flex';
         document.querySelector(`.model-actions-edit-${id}`).style.display = 'none';
     }

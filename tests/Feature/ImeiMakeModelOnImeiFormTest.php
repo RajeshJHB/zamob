@@ -94,7 +94,7 @@ test('store persists make and model text from reference tables', function () {
             'make' => 'Vodacom',
             'model' => 'Router',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'mkstoreok')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('mkstoreok'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'mkstoreok',
@@ -189,6 +189,30 @@ test('add imei form lists makes from imei_make', function () {
         ->assertSee('name="make"', false)
         ->assertSee('name="model"', false)
         ->assertSee('Samsung', false);
+});
+
+test('add imei form includes model catalog with item code for auto fill', function () {
+    $user = User::factory()->create();
+    ImeiMake::factory()->create(['make' => 'Samsung']);
+    ImeiModel::factory()->create([
+        'make' => 'Samsung',
+        'model' => 'Galaxy S24',
+        'serial' => 'SN-ABC',
+        'item_code' => 'IT-XYZ',
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.create'))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect($html)->toContain('"item_code":"IT-XYZ"');
+    expect($html)->toContain('applyModelCatalogFields');
+    expect($html)->toContain('id="imei_final"');
+    expect($html)->toContain('id="location"');
+    expect(strpos($html, 'id="imei_final"'))->toBeLessThan(strpos($html, 'id="location"'));
+    expect(strpos($html, 'id="make"'))->toBeLessThan(strpos($html, 'id="sn"'));
+    expect(strpos($html, 'id="cash_stock_type"'))->toBeLessThan(strpos($html, 'id="date_in"'));
 });
 
 test('edit imei form lists models for the records make', function () {

@@ -64,7 +64,7 @@ test('store persists the chosen location string from imei_locations', function (
             'date_in' => '',
             'location' => 'Warehouse A',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storelocok')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('storelocok'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storelocok',

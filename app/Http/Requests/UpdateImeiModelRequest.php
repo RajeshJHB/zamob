@@ -19,6 +19,7 @@ class UpdateImeiModelRequest extends FormRequest
         return [
             'model' => ['required', 'string', 'max:65535'],
             'serial' => ['nullable', 'string', 'max:65535'],
+            'item_code' => ['nullable', 'string', 'max:65535'],
         ];
     }
 }

@@ -150,6 +150,7 @@ class ImeiController extends Controller
             defaultImeiNonStandard: ImeiValidator::isValidChecksum($digits) ? '0' : '1',
             returnQuery: $returnQuery,
             embedded: $request->boolean('embedded'),
+            embeddedClose: $request->boolean('close'),
             editableOnLoad: true,
         );
     }
@@ -382,7 +383,7 @@ class ImeiController extends Controller
 
         ImeiLinkedServiceNote::applyFromImeiSave($request, $imei);
 
-        return $this->redirectToImeiView(
+        return $this->redirectAfterImeiUpdate(
             $imei,
             $this->returnQueryStringFromRequest($request),
             'IMEI record created.',
@@ -1509,20 +1510,6 @@ class ImeiController extends Controller
             'imeiMakes' => $this->imeiMakesForForm(),
             'allImeiModels' => $this->allImeiModelsForForm(),
         ]);
-    }
-
-    private function redirectToImeiView(Imei $imei, ?string $returnQuery, string $message, bool $embedded = false): RedirectResponse
-    {
-        $url = route('imeis.edit', $imei);
-        if ($embedded) {
-            return redirect()->to($url.'?embedded=1')->with('message', $message);
-        }
-
-        if ($returnQuery !== null && $this->indexUrlFromReturnQuery($returnQuery) !== null) {
-            $url .= '?return_query='.rawurlencode($returnQuery);
-        }
-
-        return redirect()->to($url)->with('message', $message);
     }
 
     private function redirectAfterImeiUpdate(Imei $imei, ?string $returnQuery, string $message, bool $embedded = false): RedirectResponse

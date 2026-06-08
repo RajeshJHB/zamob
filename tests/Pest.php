@@ -74,3 +74,12 @@ function grantRoleFiveForImeiBulkEdit(User $user): void
     );
     $user->roles()->syncWithoutDetaching([$role->id]);
 }
+
+function imeiListUrlAfterSave(string $imei): string
+{
+    return route('imeis.index', [
+        'search' => $imei,
+        'scope' => 'all',
+        'date_scope' => 'all',
+    ]);
+}

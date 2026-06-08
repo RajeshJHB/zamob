@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Imei;
 use App\Models\ImeiSaleType;
 use App\Models\User;
 use App\Support\ImeiNewRecordDefaults;
@@ -60,7 +59,7 @@ test('store persists the chosen sale type in cash_stock_type', function () {
             'date_in' => '',
             'cash_stock_type' => 'Cash',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'storesaleok')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('storesaleok'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'storesaleok',
@@ -102,7 +101,7 @@ test('store defaults cash_stock_type to none when omitted', function () {
             'imei' => 'defaultsaletype',
             'date_in' => '',
         ])
-        ->assertRedirect(route('imeis.edit', Imei::query()->where('imei', 'defaultsaletype')->firstOrFail()));
+        ->assertRedirect(imeiListUrlAfterSave('defaultsaletype'));
 
     $this->assertDatabaseHas('imei', [
         'imei' => 'defaultsaletype',

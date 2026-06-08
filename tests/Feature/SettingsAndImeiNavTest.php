@@ -1,7 +1,10 @@
 <?php
 
+use App\Models\Imei;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
@@ -88,6 +91,39 @@ test('verified users can view settings and add imei form', function () {
         ->assertSee('Add IMEI', false)
         ->assertDontSee('id="settings-menu-button"', false)
         ->assertDontSee('id="user-menu-button"', false);
+});
+
+test('embedded imei edit with close signals parent dialog to close', function () {
+    Schema::create('imei', function (Blueprint $table) {
+        $table->id();
+        $table->dateTime('date_in')->nullable();
+        $table->string('cash_stock_type')->default('');
+        $table->dateTime('date_updated')->nullable();
+        $table->string('make')->default('');
+        $table->string('model')->default('');
+        $table->string('sn')->default('');
+        $table->string('imei');
+        $table->string('location')->default('');
+        $table->string('type')->default('');
+        $table->string('status')->default('');
+        $table->text('notes')->nullable();
+        $table->string('phonenumber')->default('');
+        $table->string('ref')->default('');
+        $table->string('staff')->default('');
+        $table->string('item_code')->default('');
+        $table->string('ourON')->default('');
+        $table->string('salesON')->default('');
+        $table->string('cost_excl')->default('');
+        $table->integer('selling_price')->nullable();
+    });
+
+    $user = User::factory()->create();
+    $imei = Imei::query()->create(['imei' => 'embeddedclose1']);
+
+    $this->actingAs($user)
+        ->get(route('imeis.edit', $imei).'?embedded=1&close=1')
+        ->assertSuccessful()
+        ->assertSee('const embeddedCloseOnLoad = true', false);
 });
 
 test('role 4 users can access sale type settings from imei settings', function () {
