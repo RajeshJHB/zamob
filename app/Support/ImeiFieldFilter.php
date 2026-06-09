@@ -110,19 +110,65 @@ final class ImeiFieldFilter
      */
     public static function applyToQuery(Builder $query, Request $request): void
     {
+        /** @var array<string, list<array{field: string, value: string, exclude: bool}>> $grouped */
+        $grouped = [];
+
         foreach (self::FILTER_INDICES as $index) {
             $pair = self::pairFromRequest($request, $index);
             if ($pair === null) {
                 continue;
             }
 
-            $column = self::databaseColumn($pair['field']);
+            $grouped[$pair['field']][] = $pair;
+        }
 
+        foreach ($grouped as $field => $fieldPairs) {
+            self::applyFieldGroupToQuery($query, $field, $fieldPairs);
+        }
+    }
+
+    /**
+     * @param  Builder<\App\Models\Imei>  $query
+     * @param  list<array{field: string, value: string, exclude: bool}>  $fieldPairs
+     */
+    private static function applyFieldGroupToQuery(Builder $query, string $field, array $fieldPairs): void
+    {
+        $column = self::databaseColumn($field);
+
+        if (count($fieldPairs) === 1) {
+            $pair = $fieldPairs[0];
             if ($pair['exclude']) {
                 $query->where($column, '!=', $pair['value']);
             } else {
                 $query->where($column, $pair['value']);
             }
+
+            return;
+        }
+
+        $includes = array_values(array_filter(
+            $fieldPairs,
+            fn (array $pair): bool => ! $pair['exclude'],
+        ));
+        $excludes = array_values(array_filter(
+            $fieldPairs,
+            fn (array $pair): bool => $pair['exclude'],
+        ));
+
+        if ($includes !== []) {
+            $query->where(function (Builder $groupedQuery) use ($column, $includes): void {
+                foreach ($includes as $index => $pair) {
+                    if ($index === 0) {
+                        $groupedQuery->where($column, $pair['value']);
+                    } else {
+                        $groupedQuery->orWhere($column, $pair['value']);
+                    }
+                }
+            });
+        }
+
+        foreach ($excludes as $pair) {
+            $query->where($column, '!=', $pair['value']);
         }
     }
 

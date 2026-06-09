@@ -159,6 +159,88 @@ test('find imei index applies three field filters including exclude sale type', 
         ->assertDontSee('111111111111111', false);
 });
 
+test('find imei index ors multiple filters on the same field', function () {
+    $user = User::factory()->create();
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '111111111111111',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => 'Vodacom Contract',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '222222222222222',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => 'Cash Vodacom device',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '333333333333333',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => 'Trade-in',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'field_filter_1' => 'type',
+            'field_value_1' => 'Vodacom Contract',
+            'field_filter_2' => 'type',
+            'field_value_2' => 'Cash Vodacom device',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('111111111111111', false)
+        ->assertSee('222222222222222', false)
+        ->assertDontSee('333333333333333', false);
+});
+
 test('find imei index applies two field filters', function () {
     $user = User::factory()->create();
 

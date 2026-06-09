@@ -19,7 +19,7 @@ class HelpController extends Controller
         $updateHistory = [
             '2026-05-28' => [
                 'Version 1.3.0 — IMEI bulk edit (role 5): search and replace sale type, status, type, and deal/customer details; partial in-field replace/remove; exclude (not equal) on search criteria.',
-                'IMEI filter: up to three Filter by field rows (location, make, type, status, sale type) with exclude (not equal); field filters kept when searching with All columns and no profile.',
+                'IMEI filter: up to three Filter by field rows (location, make, type, status, sale type) with exclude (not equal); same field on multiple rows is OR, different fields are AND; field filters kept when searching with All columns and no profile.',
                 'IMEI index: Cost incl total for all matching records when any filter is active (shown next to Profile).',
                 'Dashboard Cash Devices: Cost incl column; IMEI type filter; tap cost column/header to reveal values.',
                 'Assign roles: bulk save fixed when no roles are ticked for a user.',
