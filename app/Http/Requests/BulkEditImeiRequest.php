@@ -14,6 +14,21 @@ class BulkEditImeiRequest extends FormRequest
         return $this->user()?->canBulkEditImei() === true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $key = ImeiBulkEdit::REPLACE_DATE_UPDATED_REQUEST_KEY;
+        $raw = $this->input($key);
+
+        if ($raw === null || trim((string) $raw) === '') {
+            $this->merge([$key => null]);
+
+            return;
+        }
+
+        $normalized = str_replace('T', ' ', trim((string) $raw));
+        $this->merge([$key => $normalized]);
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -64,6 +79,13 @@ class BulkEditImeiRequest extends FormRequest
         foreach (ImeiBulkEdit::EXACT_MATCH_SEARCH_FIELD_KEYS as $fieldKey) {
             $rules[ImeiBulkEdit::excludeSearchRequestKey($fieldKey)] = ['nullable', 'boolean'];
         }
+
+        $rules[ImeiBulkEdit::KEEP_DATE_UPDATED_REQUEST_KEY] = ['nullable', 'boolean'];
+        $rules[ImeiBulkEdit::REPLACE_DATE_UPDATED_REQUEST_KEY] = [
+            'nullable',
+            'date_format:Y-m-d H:i',
+            'date',
+        ];
 
         return $rules;
     }

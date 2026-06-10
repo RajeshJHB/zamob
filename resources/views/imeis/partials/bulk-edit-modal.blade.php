@@ -157,6 +157,41 @@
                         <legend class="text-sm font-semibold text-gray-900 px-1">Replace</legend>
 
                         <div>
+                            <label class="flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="keep_date_updated"
+                                    value="1"
+                                    @checked(old('keep_date_updated'))
+                                    class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Do not change date updated (leave each record&apos;s current value unless a Date updated value is set below)</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label for="replace_date_updated" class="block text-sm font-medium text-gray-700 mb-1">Date updated</label>
+                            <input
+                                type="text"
+                                name="replace_date_updated"
+                                id="replace_date_updated"
+                                value="{{ old('replace_date_updated') }}"
+                                placeholder="2024-03-15 14:30"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                class="w-full border border-gray-300 rounded px-3 py-2 text-sm @error('replace_date_updated') border-red-500 @enderror"
+                            >
+                            <p class="mt-1 text-xs text-gray-500">
+                                Optional. Use <strong>YYYY-MM-DD HH:MM</strong> (past or future dates are allowed).
+                                Leave empty to keep each record&apos;s current value when the checkbox above is ticked,
+                                or to set today&apos;s date and time when it is not ticked.
+                            </p>
+                            @error('replace_date_updated')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
                             <label for="replace_sale_type" class="block text-sm font-medium text-gray-700 mb-1">Sale Type</label>
                             <select name="replace_sale_type" id="replace_sale_type" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
                                 <option value="">— No change —</option>
@@ -340,6 +375,7 @@ document.addEventListener('DOMContentLoaded', function () {
         || $errors->has('remove_search_customer_details')
         || $errors->has('replace_search_text_deal_details')
         || $errors->has('replace_search_text_customer_details')
+        || $errors->has('replace_date_updated')
     )
         openBulkEditModal();
     @endif

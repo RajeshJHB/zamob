@@ -623,6 +623,8 @@ class ImeiController extends Controller
             $request->replaceValues(),
             $now,
             $partialTextFieldKeys,
+            ImeiBulkEdit::shouldKeepDateUpdated($formValues),
+            ImeiBulkEdit::normalizedReplaceDateUpdated($formValues),
         );
 
         $updated = $this->processImeisForBulkOperation($query, function (Imei $imei) use (

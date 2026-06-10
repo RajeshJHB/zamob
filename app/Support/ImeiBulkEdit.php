@@ -16,6 +16,10 @@ final class ImeiBulkEdit
 
     public const FIELD_CUSTOMER_DETAILS = 'customer_details';
 
+    public const KEEP_DATE_UPDATED_REQUEST_KEY = 'keep_date_updated';
+
+    public const REPLACE_DATE_UPDATED_REQUEST_KEY = 'replace_date_updated';
+
     /**
      * Dropdown search fields that support exclude (not equal) matching.
      *
@@ -132,15 +136,55 @@ final class ImeiBulkEdit
     }
 
     /**
+     * @param  array<string, mixed>  $values
+     */
+    public static function shouldKeepDateUpdated(array $values): bool
+    {
+        return self::booleanValue($values[self::KEEP_DATE_UPDATED_REQUEST_KEY] ?? false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public static function normalizedReplaceDateUpdated(array $values): ?\DateTimeInterface
+    {
+        $raw = $values[self::REPLACE_DATE_UPDATED_REQUEST_KEY] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+
+        $value = str_replace('T', ' ', trim((string) $raw));
+        if ($value === '') {
+            return null;
+        }
+
+        $parsed = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $value);
+        if ($parsed !== false) {
+            return $parsed;
+        }
+
+        return \Carbon\Carbon::parse($value);
+    }
+
+    /**
      * @param  array<string, mixed>  $replace
      * @param  list<string>  $excludeFieldKeys
      * @return array<string, mixed>
      */
-    public static function buildUpdateAttributes(array $replace, \DateTimeInterface $now, array $excludeFieldKeys = []): array
-    {
-        $attributes = [
-            'date_updated' => $now,
-        ];
+    public static function buildUpdateAttributes(
+        array $replace,
+        \DateTimeInterface $now,
+        array $excludeFieldKeys = [],
+        bool $keepDateUpdated = false,
+        ?\DateTimeInterface $replaceDateUpdated = null,
+    ): array {
+        $attributes = [];
+
+        if ($replaceDateUpdated !== null) {
+            $attributes['date_updated'] = $replaceDateUpdated;
+        } elseif (! $keepDateUpdated) {
+            $attributes['date_updated'] = $now;
+        }
 
         foreach (self::FIELD_KEYS as $fieldKey) {
             if (in_array($fieldKey, $excludeFieldKeys, true)) {
@@ -231,6 +275,10 @@ final class ImeiBulkEdit
      */
     public static function hasAnyReplaceAction(array $values): bool
     {
+        if (self::normalizedReplaceDateUpdated($values) !== null) {
+            return true;
+        }
+
         foreach (self::TEXT_PARTIAL_EDIT_FIELD_KEYS as $fieldKey) {
             if (self::shouldRemoveSearchText($values, $fieldKey)) {
                 return true;

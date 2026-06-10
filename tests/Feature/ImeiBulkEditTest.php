@@ -308,6 +308,87 @@ test('bulk edit remove search text requires matching search value', function () 
         ->assertSessionHasErrors('search_customer_details');
 });
 
+test('bulk edit can keep date updated unchanged when checkbox is ticked', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    ImeiStatus::query()->firstOrCreate(['status' => 'Available']);
+    ImeiStatus::query()->firstOrCreate(['status' => 'Sold']);
+
+    $originalUpdated = now()->subDays(30)->startOfMinute();
+    $match = createBulkEditImei('111111111111111', [
+        'status' => 'Available',
+        'date_updated' => $originalUpdated,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_status' => 'Available',
+            'replace_status' => 'Sold',
+            'keep_date_updated' => '1',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    $match->refresh();
+
+    expect($match->status)->toBe('Sold')
+        ->and($match->date_updated?->format('Y-m-d H:i'))->toBe($originalUpdated->format('Y-m-d H:i'));
+});
+
+test('bulk edit can set date updated to a specific value', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    ImeiStatus::query()->firstOrCreate(['status' => 'Available']);
+    ImeiStatus::query()->firstOrCreate(['status' => 'Sold']);
+
+    $match = createBulkEditImei('111111111111111', [
+        'status' => 'Available',
+        'date_updated' => now()->subDays(30),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_status' => 'Available',
+            'replace_date_updated' => '2024-03-15 14:30',
+            'keep_date_updated' => '1',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    $match->refresh();
+
+    expect($match->date_updated?->format('Y-m-d H:i'))->toBe('2024-03-15 14:30');
+});
+
+test('bulk edit can backdate date updated without keep checkbox', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    ImeiStatus::query()->firstOrCreate(['status' => 'Available']);
+    ImeiStatus::query()->firstOrCreate(['status' => 'Sold']);
+
+    $match = createBulkEditImei('111111111111111', [
+        'status' => 'Available',
+        'date_updated' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_status' => 'Available',
+            'replace_status' => 'Sold',
+            'replace_date_updated' => '2020-01-01 08:00',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    $match->refresh();
+
+    expect($match->status)->toBe('Sold')
+        ->and($match->date_updated?->format('Y-m-d H:i'))->toBe('2020-01-01 08:00');
+});
+
 test('bulk edit requires at least one search and one replace value', function () {
     $user = User::factory()->create();
     grantRoleFiveForImeiBulkEdit($user);
