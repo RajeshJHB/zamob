@@ -81,11 +81,7 @@
                     <p class="text-xs text-gray-500 mb-3">Staff: {{ $note->staff }}</p>
                 @endif
                 @if($note->hasAttachment())
-                    <p class="text-sm mb-3">
-                        <a href="{{ route('service-notes.attachment', $note) }}" class="text-blue-600 hover:text-blue-800 font-medium" target="_blank" rel="noopener noreferrer">
-                            Download: {{ $note->attachment_original_name }}
-                        </a>
-                    </p>
+                    @include('contacts.service-notes.partials.attachment-actions', ['note' => $note])
                 @endif
                 @if($note->notesLinkingHere->isNotEmpty())
                     <div class="mb-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
@@ -120,6 +116,8 @@
         @empty
             <p class="text-gray-600 text-sm">No service notes yet. Create the first one above.</p>
         @endforelse
+
+        @include('contacts.service-notes.partials.attachment-preview-modal')
     </div>
 </div>
 @endsection

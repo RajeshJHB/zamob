@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ServiceNoteAttachmentPreview;
 use App\Support\ServiceNoteNumberAssigner;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -113,6 +114,16 @@ class ServiceNote extends Model
     public function hasAttachment(): bool
     {
         return $this->attachment_path !== null && $this->attachment_path !== '';
+    }
+
+    public function canPreviewAttachment(): bool
+    {
+        return ServiceNoteAttachmentPreview::canPreview($this);
+    }
+
+    public function attachmentPreviewKind(): ?string
+    {
+        return ServiceNoteAttachmentPreview::previewKind($this);
     }
 
     /**

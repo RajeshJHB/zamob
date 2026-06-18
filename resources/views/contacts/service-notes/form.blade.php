@@ -81,10 +81,9 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Attachment (optional, one file, any type)</label>
                 @if($note && $note->hasAttachment())
-                    <p class="text-sm text-gray-600 mb-2">
-                        Current:
-                        <a href="{{ route('service-notes.attachment', $note) }}" class="text-blue-600 hover:text-blue-800 font-medium" target="_blank" rel="noopener noreferrer">{{ $note->attachment_original_name }}</a>
-                    </p>
+                    <div class="text-sm text-gray-600 mb-2">
+                        @include('contacts.service-notes.partials.attachment-actions', ['note' => $note])
+                    </div>
                     <label class="flex items-center gap-2 text-sm text-gray-700 mb-2">
                         <input type="checkbox" name="remove_attachment" value="1" {{ old('remove_attachment') ? 'checked' : '' }}>
                         Remove current attachment
@@ -115,6 +114,8 @@
         </form>
     </div>
 </div>
+
+@include('contacts.service-notes.partials.attachment-preview-modal')
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

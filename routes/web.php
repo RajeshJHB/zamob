@@ -120,6 +120,7 @@ Route::middleware(['auth', 'verified', 'role.assigned'])->group(function () {
     Route::put('/service-notes/{serviceNote}', [ServiceNoteController::class, 'update'])->name('service-notes.update');
     Route::delete('/service-notes/{serviceNote}', [ServiceNoteController::class, 'destroy'])->name('service-notes.destroy');
     Route::get('/service-notes/{serviceNote}/attachment', [ServiceNoteController::class, 'attachment'])->name('service-notes.attachment');
+    Route::get('/service-notes/{serviceNote}/attachment/preview', [ServiceNoteController::class, 'preview'])->name('service-notes.attachment.preview');
     Route::get('/service-notes/{serviceNote}/print', [ServiceNoteController::class, 'print'])->name('service-notes.print');
     Route::get('/imeis/create', [ImeiController::class, 'create'])->name('imeis.create');
     Route::get('/imeis/lookup', [ImeiController::class, 'lookup'])->name('imeis.lookup');

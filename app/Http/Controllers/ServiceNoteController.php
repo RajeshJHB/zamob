@@ -11,12 +11,14 @@ use App\Support\ContactPermissions;
 use App\Support\ImeiStaffAudit;
 use App\Support\RepairServiceNoteBodyParser;
 use App\Support\RepairServiceNoteTemplate;
+use App\Support\ServiceNoteAttachmentPreview;
 use App\Support\ServiceNoteAttachmentStorage;
 use App\Support\ServiceNoteNumberAssigner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ServiceNoteController extends Controller
@@ -177,12 +179,33 @@ class ServiceNoteController extends Controller
 
     public function attachment(Request $request, ServiceNote $serviceNote): StreamedResponse
     {
-        abort_unless($request->user() !== null, 403);
-        abort_unless($serviceNote->hasAttachment(), 404);
+        $this->authorizeAttachmentAccess($request, $serviceNote);
 
         return Storage::disk(ServiceNoteAttachmentStorage::DISK)->download(
             $serviceNote->attachment_path,
             $serviceNote->attachment_original_name ?? 'attachment',
         );
+    }
+
+    public function preview(Request $request, ServiceNote $serviceNote): Response
+    {
+        $this->authorizeAttachmentAccess($request, $serviceNote);
+        abort_unless(ServiceNoteAttachmentPreview::canPreview($serviceNote), 404);
+
+        $filename = $serviceNote->attachment_original_name ?? 'attachment';
+
+        return Storage::disk(ServiceNoteAttachmentStorage::DISK)->response(
+            $serviceNote->attachment_path,
+            $filename,
+            [
+                'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"',
+            ],
+        );
+    }
+
+    private function authorizeAttachmentAccess(Request $request, ServiceNote $serviceNote): void
+    {
+        abort_unless($request->user() !== null, 403);
+        abort_unless($serviceNote->hasAttachment(), 404);
     }
 }
