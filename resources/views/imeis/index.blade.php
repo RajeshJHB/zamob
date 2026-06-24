@@ -113,6 +113,9 @@
             <a href="{{ route('imeis.print', $filterParams ?? []) }}" target="_blank" class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-1 px-3 rounded text-sm">
                 Print all results
             </a>
+            <a href="{{ route('imeis.export', $filterParams ?? []) }}" class="bg-green-700 hover:bg-green-900 text-white font-bold py-1 px-3 rounded text-sm">
+                Export CSV
+            </a>
         </div>
     </div>
 

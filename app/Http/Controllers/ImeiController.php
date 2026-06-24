@@ -21,6 +21,7 @@ use App\Support\CashDevicesTable;
 use App\Support\ContactImeiCustomerDetails;
 use App\Support\ImeiBulkEdit;
 use App\Support\ImeiCostIncl;
+use App\Support\ImeiCsvExporter;
 use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiFieldFilter;
 use App\Support\ImeiLinkedServiceNote;
@@ -35,6 +36,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ImeiController extends Controller
 {
@@ -528,18 +530,7 @@ class ImeiController extends Controller
 
         $imeis = $query->paginate(25)->withQueryString();
 
-        $selectedColumns = $request->input('columns');
-        if (is_string($selectedColumns)) {
-            $selectedColumns = array_filter(explode(',', $selectedColumns));
-        }
-        if (empty($selectedColumns) || $request->input('scope') === 'all') {
-            $selectedColumns = array_keys(self::COLUMNS);
-        } else {
-            $selectedColumns = array_intersect($selectedColumns, array_keys(self::COLUMNS));
-            if (empty($selectedColumns)) {
-                $selectedColumns = array_keys(self::COLUMNS);
-            }
-        }
+        $selectedColumns = $this->selectedColumnsFromRequest($request);
 
         return view('imeis.index', [
             'imeis' => $imeis,
@@ -566,24 +557,41 @@ class ImeiController extends Controller
         $query = $this->buildImeiQuery($request);
         $imeis = $query->get();
 
+        return view('imeis.print', [
+            'imeis' => $imeis,
+            'columns' => $this->selectedColumnsFromRequest($request),
+            'columnLabels' => self::COLUMNS,
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $query = $this->buildImeiQuery($request, unlimited: true);
+
+        return ImeiCsvExporter::download(
+            $query->cursor(),
+            $this->selectedColumnsFromRequest($request),
+            self::COLUMNS,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function selectedColumnsFromRequest(Request $request): array
+    {
         $selectedColumns = $request->input('columns');
         if (is_string($selectedColumns)) {
             $selectedColumns = array_filter(explode(',', $selectedColumns));
         }
+
         if (empty($selectedColumns) || $request->input('scope') === 'all') {
-            $selectedColumns = array_keys(self::COLUMNS);
-        } else {
-            $selectedColumns = array_intersect($selectedColumns, array_keys(self::COLUMNS));
-            if (empty($selectedColumns)) {
-                $selectedColumns = array_keys(self::COLUMNS);
-            }
+            return array_keys(self::COLUMNS);
         }
 
-        return view('imeis.print', [
-            'imeis' => $imeis,
-            'columns' => $selectedColumns,
-            'columnLabels' => self::COLUMNS,
-        ]);
+        $selectedColumns = array_values(array_intersect($selectedColumns, array_keys(self::COLUMNS)));
+
+        return $selectedColumns === [] ? array_keys(self::COLUMNS) : $selectedColumns;
     }
 
     public function bulkChangeStatus(BulkChangeImeiStatusRequest $request): RedirectResponse
@@ -705,7 +713,7 @@ class ImeiController extends Controller
         return $updated;
     }
 
-    private function buildImeiQuery(Request $request): \Illuminate\Database\Eloquent\Builder
+    private function buildImeiQuery(Request $request, bool $unlimited = false): \Illuminate\Database\Eloquent\Builder
     {
         $dateScope = $request->input('date_scope', 'all');
         $dateColumn = $request->input('date_column');
@@ -744,7 +752,7 @@ class ImeiController extends Controller
 
         ImeiFieldFilter::applyToQuery($query, $request);
 
-        if ($this->isUnfilteredBrowse($request)) {
+        if (! $unlimited && $this->isUnfilteredBrowse($request)) {
             // Pluck IDs first: MySQL (older versions) rejects LIMIT inside IN subqueries.
             $latestIds = Imei::query()
                 ->visibleTo($request->user())
