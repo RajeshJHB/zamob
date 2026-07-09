@@ -11,28 +11,30 @@ use Illuminate\Support\Facades\Schema;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    Schema::create('imei', function (Blueprint $table) {
-        $table->id();
-        $table->dateTime('date_in')->nullable();
-        $table->string('cash_stock_type')->default('');
-        $table->dateTime('date_updated')->nullable();
-        $table->string('make')->default('');
-        $table->string('model')->default('');
-        $table->string('sn')->default('');
-        $table->string('imei');
-        $table->string('location')->default('');
-        $table->string('type')->default('');
-        $table->string('status')->default('');
-        $table->text('notes')->nullable();
-        $table->string('phonenumber')->default('');
-        $table->string('ref')->default('');
-        $table->string('staff')->default('');
-        $table->string('item_code')->default('');
-        $table->string('ourON')->default('');
-        $table->string('salesON')->default('');
-        $table->string('cost_excl')->default('');
-        $table->integer('selling_price')->nullable();
-    });
+    if (! Schema::hasTable('imei')) {
+        Schema::create('imei', function (Blueprint $table) {
+            $table->id();
+            $table->dateTime('date_in')->nullable();
+            $table->string('cash_stock_type')->default('');
+            $table->dateTime('date_updated')->nullable();
+            $table->string('make')->default('');
+            $table->string('model')->default('');
+            $table->string('sn')->default('');
+            $table->string('imei');
+            $table->string('location')->default('');
+            $table->string('type')->default('');
+            $table->string('status')->default('');
+            $table->text('notes')->nullable();
+            $table->string('phonenumber')->default('');
+            $table->string('ref')->default('');
+            $table->string('staff')->default('');
+            $table->string('item_code')->default('');
+            $table->string('ourON')->default('');
+            $table->string('salesON')->default('');
+            $table->string('cost_excl')->default('');
+            $table->integer('selling_price')->nullable();
+        });
+    }
 });
 
 test('store rejects make that is not in imei_make', function () {
@@ -253,4 +255,76 @@ test('edit imei form lists models for the records make', function () {
         ->assertSuccessful()
         ->assertSee('Galaxy S (SAM-GS)', false)
         ->assertDontSee('(SN-OLD)', false);
+});
+
+test('edit imei form lists model when make text differs only by whitespace', function () {
+    $user = User::factory()->create();
+    \Illuminate\Support\Facades\DB::table('imei_make')->insert([
+        'make' => 'Oppo ',
+        'date_added' => now(),
+    ]);
+    \Illuminate\Support\Facades\DB::table('imei_models')->insert([
+        'make' => 'Oppo',
+        'model' => 'A5 128GB 4G White',
+        'serial' => '',
+        'item_code' => '104077586',
+        'date_added' => now(),
+    ]);
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'oppowhitespace',
+        'cash_stock_type' => '',
+        'make' => 'Oppo ',
+        'model' => 'A5 128GB 4G White',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.edit', $row))
+        ->assertSuccessful()
+        ->assertSee('A5 128GB 4G White', false);
+});
+
+test('store accepts model when make text differs only by whitespace', function () {
+    $user = User::factory()->create();
+    \Illuminate\Support\Facades\DB::table('imei_make')->insert([
+        'make' => 'Oppo ',
+        'date_added' => now(),
+    ]);
+    \Illuminate\Support\Facades\DB::table('imei_models')->insert([
+        'make' => 'Oppo',
+        'model' => 'A5 128GB 4G White',
+        'serial' => '',
+        'date_added' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.store'), [
+            '_token' => csrf_token(),
+            'imei_non_standard' => '1',
+            'imei' => 'oppotrimtest',
+            'date_in' => '',
+            'make' => 'Oppo ',
+            'model' => 'A5 128GB 4G White',
+        ])
+        ->assertRedirect(imeiListUrlAfterSave('oppotrimtest'));
+
+    $this->assertDatabaseHas('imei', [
+        'imei' => 'oppotrimtest',
+        'make' => 'Oppo',
+        'model' => 'A5 128GB 4G White',
+    ]);
 });

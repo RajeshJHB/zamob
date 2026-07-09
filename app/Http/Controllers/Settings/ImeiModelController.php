@@ -7,6 +7,7 @@ use App\Http\Requests\StoreImeiModelRequest;
 use App\Http\Requests\UpdateImeiModelRequest;
 use App\Models\ImeiMake;
 use App\Models\ImeiModel;
+use App\Support\ImeiReferenceText;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,6 +22,10 @@ class ImeiModelController extends Controller
             $selectedMake = $request->old('make');
         }
 
+        if ($selectedMake !== null && $selectedMake !== '') {
+            $selectedMake = ImeiReferenceText::resolveStoredMake($selectedMake) ?? ImeiReferenceText::normalize($selectedMake);
+        }
+
         if ($selectedMake === null || $selectedMake === '') {
             return view('settings.models.index', [
                 'makes' => $makes,
@@ -29,14 +34,13 @@ class ImeiModelController extends Controller
             ]);
         }
 
-        if (! ImeiMake::query()->where('make', $selectedMake)->exists()) {
+        if (! ImeiReferenceText::makeExists($selectedMake)) {
             return redirect()
                 ->route('settings.models.index')
                 ->with('error', 'Please choose a valid make from the list.');
         }
 
-        $models = ImeiModel::query()
-            ->where('make', $selectedMake)
+        $models = ImeiReferenceText::applyWhereMake(ImeiModel::query(), $selectedMake)
             ->orderBy('model')
             ->get();
 
@@ -50,16 +54,17 @@ class ImeiModelController extends Controller
     public function store(StoreImeiModelRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $make = ImeiReferenceText::resolveStoredMake($validated['make']) ?? ImeiReferenceText::normalize($validated['make']);
 
         ImeiModel::query()->create([
-            'make' => $validated['make'],
-            'model' => trim($validated['model']),
-            'serial' => isset($validated['serial']) ? trim((string) $validated['serial']) : '',
-            'item_code' => isset($validated['item_code']) ? trim((string) $validated['item_code']) : '',
+            'make' => $make,
+            'model' => ImeiReferenceText::normalize($validated['model']),
+            'serial' => isset($validated['serial']) ? ImeiReferenceText::normalize((string) $validated['serial']) : '',
+            'item_code' => isset($validated['item_code']) ? ImeiReferenceText::normalize((string) $validated['item_code']) : '',
         ]);
 
         return redirect()
-            ->route('settings.models.index', ['make' => $validated['make']])
+            ->route('settings.models.index', ['make' => $make])
             ->with('message', 'Model added.');
     }
 
@@ -68,9 +73,9 @@ class ImeiModelController extends Controller
         $validated = $request->validated();
 
         $imeiModel->update([
-            'model' => trim($validated['model']),
-            'serial' => isset($validated['serial']) ? trim((string) $validated['serial']) : '',
-            'item_code' => isset($validated['item_code']) ? trim((string) $validated['item_code']) : '',
+            'model' => ImeiReferenceText::normalize($validated['model']),
+            'serial' => isset($validated['serial']) ? ImeiReferenceText::normalize((string) $validated['serial']) : '',
+            'item_code' => isset($validated['item_code']) ? ImeiReferenceText::normalize((string) $validated['item_code']) : '',
         ]);
 
         return redirect()

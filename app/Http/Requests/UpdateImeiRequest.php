@@ -3,10 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\Imei;
-use App\Models\ImeiModel;
 use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiLinkedServiceNote;
 use App\Support\ImeiOptionalStringFields;
+use App\Support\ImeiReferenceText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -34,6 +34,14 @@ class UpdateImeiRequest extends FormRequest
                 $this->merge([$key => '']);
             }
         }
+
+        if ($this->has('make') && is_string($this->input('make'))) {
+            $this->merge(['make' => ImeiReferenceText::normalize($this->input('make'))]);
+        }
+
+        if ($this->has('model') && is_string($this->input('model'))) {
+            $this->merge(['model' => ImeiReferenceText::normalize($this->input('model'))]);
+        }
     }
 
     /**
@@ -47,20 +55,20 @@ class UpdateImeiRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                Rule::when(
-                    function (): bool {
-                        if ((string) $this->input('make', '') === '') {
-                            return false;
-                        }
-                        $imei = $this->route('imei');
-                        if ($imei instanceof Imei && $imei->make === $this->input('make')) {
-                            return false;
-                        }
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === '' || $value === null) {
+                        return;
+                    }
 
-                        return true;
-                    },
-                    ['exists:imei_make,make'],
-                ),
+                    $imei = $this->route('imei');
+                    if ($imei instanceof Imei && ImeiReferenceText::equals($imei->make, (string) $value)) {
+                        return;
+                    }
+
+                    if (! ImeiReferenceText::makeExists((string) $value)) {
+                        $fail('The selected make is invalid.');
+                    }
+                },
             ],
             'model' => [
                 'nullable',
@@ -72,7 +80,9 @@ class UpdateImeiRequest extends FormRequest
                     }
                     $make = (string) $this->input('make', '');
                     $imei = $this->route('imei');
-                    if ($imei instanceof Imei && $imei->make === $make && $imei->model === (string) $value) {
+                    if ($imei instanceof Imei
+                        && ImeiReferenceText::equals($imei->make, $make)
+                        && ImeiReferenceText::equals($imei->model, (string) $value)) {
                         return;
                     }
                     if ($make === '') {
@@ -80,7 +90,7 @@ class UpdateImeiRequest extends FormRequest
 
                         return;
                     }
-                    if (! ImeiModel::query()->where('make', $make)->where('model', (string) $value)->exists()) {
+                    if (! ImeiReferenceText::modelExistsForMake($make, (string) $value)) {
                         $fail('The selected model is not valid for this make.');
                     }
                 },

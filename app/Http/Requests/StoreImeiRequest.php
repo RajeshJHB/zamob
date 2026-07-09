@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\ImeiModel;
 use App\Rules\UniqueNormalizedImei;
 use App\Rules\UniqueNormalizedNonStandardImei;
 use App\Rules\ValidImei;
@@ -10,6 +9,7 @@ use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiLinkedServiceNote;
 use App\Support\ImeiNewRecordDefaults;
 use App\Support\ImeiOptionalStringFields;
+use App\Support\ImeiReferenceText;
 use App\Support\ImeiValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -52,6 +52,14 @@ class StoreImeiRequest extends FormRequest
                 $this->merge([$key => '']);
             }
         }
+
+        if ($this->has('make') && is_string($this->input('make'))) {
+            $this->merge(['make' => ImeiReferenceText::normalize($this->input('make'))]);
+        }
+
+        if ($this->has('model') && is_string($this->input('model'))) {
+            $this->merge(['model' => ImeiReferenceText::normalize($this->input('model'))]);
+        }
     }
 
     /**
@@ -65,10 +73,15 @@ class StoreImeiRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                Rule::when(
-                    fn (): bool => filled($this->input('make')),
-                    ['exists:imei_make,make'],
-                ),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === '' || $value === null) {
+                        return;
+                    }
+
+                    if (! ImeiReferenceText::makeExists((string) $value)) {
+                        $fail('The selected make is invalid.');
+                    }
+                },
             ],
             'model' => [
                 'nullable',
@@ -84,7 +97,7 @@ class StoreImeiRequest extends FormRequest
 
                         return;
                     }
-                    if (! ImeiModel::query()->where('make', $make)->where('model', (string) $value)->exists()) {
+                    if (! ImeiReferenceText::modelExistsForMake($make, (string) $value)) {
                         $fail('The selected model is not valid for this make.');
                     }
                 },

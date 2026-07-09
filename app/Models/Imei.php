@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ImeiDeletedStatus;
+use App\Support\ImeiReferenceText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -44,6 +45,14 @@ class Imei extends Model
             'date_updated' => 'datetime',
             'selling_price' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Imei $imei): void {
+            $imei->make = ImeiReferenceText::normalize($imei->make);
+            $imei->model = ImeiReferenceText::normalize($imei->model);
+        });
     }
 
     /**

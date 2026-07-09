@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ImeiReferenceText;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -17,6 +18,13 @@ class ImeiMake extends Model
     protected $fillable = [
         'make',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (ImeiMake $imeiMake): void {
+            $imeiMake->make = ImeiReferenceText::normalize($imeiMake->make);
+        });
+    }
 
     /**
      * @return array<string, string>

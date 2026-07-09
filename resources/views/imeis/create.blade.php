@@ -2,6 +2,7 @@
 
 @php
     use App\Support\ImeiNewRecordDefaults;
+    use App\Support\ImeiReferenceText;
     /** @var array<string, mixed>|null $viewRecord */
     $viewRecord = $viewRecord ?? null;
     $editableOnLoad = $editableOnLoad ?? false;
@@ -90,18 +91,18 @@
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiMake>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiMake> $imeiMakes */
     $imeiMakes = $imeiMakes ?? collect();
     $currentMakeForSelect = $imeiFieldValue('make');
-    $makeInReferenceTable = $imeiMakes->contains(fn (\App\Models\ImeiMake $m): bool => $m->make === $currentMakeForSelect);
+    $makeInReferenceTable = $imeiMakes->contains(fn (\App\Models\ImeiMake $m): bool => ImeiReferenceText::equals($m->make, $currentMakeForSelect));
 
     /** @var \Illuminate\Support\Collection<int, \App\Models\ImeiModel>|\Illuminate\Database\Eloquent\Collection<int, \App\Models\ImeiModel> $allImeiModels */
     $allImeiModels = $allImeiModels ?? collect();
     $currentModelForSelect = $imeiFieldValue('model');
 
     $modelsForSelectedMake = $makeInReferenceTable
-        ? $allImeiModels->where('make', $currentMakeForSelect)->sortBy(fn (\App\Models\ImeiModel $m): string => $m->model.(string) ($m->item_code ?? ''))->unique('model')->values()
+        ? $allImeiModels->filter(fn (\App\Models\ImeiModel $m): bool => ImeiReferenceText::equals($m->make, $currentMakeForSelect))->sortBy(fn (\App\Models\ImeiModel $m): string => $m->model.(string) ($m->item_code ?? ''))->unique('model')->values()
         : collect();
 
     $modelInReferenceTableForMake = $allImeiModels->contains(
-        fn (\App\Models\ImeiModel $m): bool => $m->make === $currentMakeForSelect && $m->model === $currentModelForSelect
+        fn (\App\Models\ImeiModel $m): bool => ImeiReferenceText::equals($m->make, $currentMakeForSelect) && ImeiReferenceText::equals($m->model, $currentModelForSelect)
     );
 
     $showLegacyModelOption = $currentModelForSelect !== '' && ! $modelInReferenceTableForMake;
@@ -717,9 +718,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const mutableSelector = '.js-imei-mutable';
 
+    function referenceTextEquals(left, right) {
+        return String(left).trim() === String(right).trim();
+    }
+
     function uniqueModelsForMake(make) {
         const rows = imeiModelsCatalog.filter(function (r) {
-            return r.make === make;
+            return referenceTextEquals(r.make, make);
         });
         const seen = {};
         const out = [];
@@ -779,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function () {
         makeSelect.value = makeVal;
         refreshModelSelectForMake(makeVal);
         const inCat = imeiModelsCatalog.some(function (r) {
-            return r.make === makeVal && r.model === modelVal;
+            return referenceTextEquals(r.make, makeVal) && referenceTextEquals(r.model, modelVal);
         });
         if (!inCat && modelVal !== '') {
             const o = document.createElement('option');
@@ -796,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         return imeiModelsCatalog.find(function (r) {
-            return r.make === make && r.model === model;
+            return referenceTextEquals(r.make, make) && referenceTextEquals(r.model, model);
         }) || null;
     }
 
@@ -838,7 +843,7 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshModelSelectForMake(makeVal);
         if (makeVal && prevModel) {
             const stillExists = imeiModelsCatalog.some(function (r) {
-                return r.make === makeVal && r.model === prevModel;
+                return referenceTextEquals(r.make, makeVal) && referenceTextEquals(r.model, prevModel);
             });
             if (stillExists) {
                 modelSelect.value = prevModel;
