@@ -26,6 +26,7 @@ use App\Support\ImeiDeletedStatus;
 use App\Support\ImeiFieldFilter;
 use App\Support\ImeiLinkedServiceNote;
 use App\Support\ImeiNormalizedLookup;
+use App\Support\ImeiReferenceText;
 use App\Support\ImeiStaffAudit;
 use App\Support\ImeiTextLimits;
 use App\Support\ImeiValidator;
@@ -1445,7 +1446,11 @@ class ImeiController extends Controller
      */
     private function imeiMakesForForm(): Collection
     {
-        return ImeiMake::query()->orderBy('make')->get();
+        return ImeiMake::query()
+            ->orderBy('make')
+            ->get()
+            ->unique(fn (ImeiMake $make): string => ImeiReferenceText::normalize($make->make))
+            ->values();
     }
 
     /**

@@ -28,7 +28,8 @@
 
     $imeiFieldValue = function (string $key) use ($errors, $viewRecord): string {
         if ($errors->any()) {
-            return old($key, '');
+            // old() can return null when flashed input explicitly stored null (e.g. empty selling_price).
+            return (string) (old($key) ?? '');
         }
         if (! empty($viewRecord)) {
             if (! array_key_exists($key, $viewRecord)) {
@@ -38,14 +39,8 @@
             if ($key === 'date_in' && $val !== null) {
                 return substr((string) $val, 0, 16);
             }
-            if ($key === 'notes') {
-                return $val === null ? '' : (string) $val;
-            }
-            if ($key === 'selling_price') {
-                return $val === null || $val === '' ? '' : (string) $val;
-            }
 
-            return $val === null ? '' : (string) $val;
+            return $val === null || $val === '' ? '' : (string) $val;
         }
 
         $default = match ($key) {
@@ -56,7 +51,7 @@
             default => '',
         };
 
-        return old($key, $default);
+        return (string) (old($key) ?? $default);
     };
 
     $customerDetailsEmpty = trim($imeiFieldValue('notes')) === '';
@@ -282,7 +277,8 @@
                                     <option value="{{ $currentMakeForSelect }}" selected>{{ $currentMakeForSelect }} (not in list)</option>
                                 @endif
                                 @foreach($imeiMakes as $imeiMake)
-                                    <option value="{{ $imeiMake->make }}" @selected($currentMakeForSelect === $imeiMake->make)>{{ $imeiMake->make }}</option>
+                                    @php $makeOption = \App\Support\ImeiReferenceText::normalize($imeiMake->make); @endphp
+                                    <option value="{{ $makeOption }}" @selected(\App\Support\ImeiReferenceText::equals($currentMakeForSelect, $makeOption))>{{ $makeOption }}</option>
                                 @endforeach
                             </select>
                             @error('make')
@@ -297,7 +293,7 @@
                                     <option value="{{ $currentModelForSelect }}" selected>{{ $currentModelForSelect }} (not in list)</option>
                                 @endif
                                 @foreach($modelsForSelectedMake as $imeiModelRow)
-                                    <option value="{{ $imeiModelRow->model }}" @selected(! $showLegacyModelOption && $currentModelForSelect === $imeiModelRow->model)>{{ $imeiModelRow->model }}@if(($imeiModelRow->item_code ?? '') !== '') ({{ $imeiModelRow->item_code }})@endif</option>
+                                    <option value="{{ $imeiModelRow->model }}" @selected(! $showLegacyModelOption && \App\Support\ImeiReferenceText::equals($currentModelForSelect, $imeiModelRow->model))>{{ $imeiModelRow->model }}@if(($imeiModelRow->item_code ?? '') !== '') ({{ $imeiModelRow->item_code }})@endif</option>
                                 @endforeach
                             </select>
                             @error('model')
@@ -722,6 +718,21 @@ document.addEventListener('DOMContentLoaded', function () {
         return String(left).trim() === String(right).trim();
     }
 
+    function setSelectValueByReferenceText(select, value) {
+        if (! select) {
+            return;
+        }
+
+        const target = String(value == null ? '' : value).trim();
+        let matched = '';
+        Array.prototype.forEach.call(select.options, function (opt) {
+            if (matched === '' && referenceTextEquals(opt.value, target)) {
+                matched = opt.value;
+            }
+        });
+        select.value = matched !== '' ? matched : (value == null ? '' : String(value));
+    }
+
     function uniqueModelsForMake(make) {
         const rows = imeiModelsCatalog.filter(function (r) {
             return referenceTextEquals(r.make, make);
@@ -770,8 +781,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const optionValues = Array.prototype.map.call(modelSelect.options, function (opt) {
             return opt.value;
         });
-        if (selected && optionValues.indexOf(selected) !== -1) {
-            modelSelect.value = selected;
+        if (selected && optionValues.some(function (value) {
+            return referenceTextEquals(value, selected);
+        })) {
+            setSelectValueByReferenceText(modelSelect, selected);
         }
     }
 
@@ -781,8 +794,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const makeVal = record.make == null ? '' : String(record.make);
         const modelVal = record.model == null ? '' : String(record.model);
-        makeSelect.value = makeVal;
-        refreshModelSelectForMake(makeVal);
+        setSelectValueByReferenceText(makeSelect, makeVal);
+        refreshModelSelectForMake(makeSelect.value);
         const inCat = imeiModelsCatalog.some(function (r) {
             return referenceTextEquals(r.make, makeVal) && referenceTextEquals(r.model, modelVal);
         });
@@ -792,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function () {
             o.textContent = modelVal + ' (not in list)';
             modelSelect.appendChild(o);
         }
-        modelSelect.value = modelVal;
+        setSelectValueByReferenceText(modelSelect, modelVal);
     }
 
     function catalogRowForMakeModel(make, model) {

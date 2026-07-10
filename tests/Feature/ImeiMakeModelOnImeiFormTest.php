@@ -328,3 +328,112 @@ test('store accepts model when make text differs only by whitespace', function (
         'model' => 'A5 128GB 4G White',
     ]);
 });
+
+test('edit form selects make when stored value differs only by whitespace', function () {
+    $user = User::factory()->create();
+    \Illuminate\Support\Facades\DB::table('imei_make')->insert([
+        'make' => 'Oppo ',
+        'date_added' => now(),
+    ]);
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'opposelecttrim',
+        'cash_stock_type' => '',
+        'make' => 'Oppo',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $html = $this->actingAs($user)
+        ->get(route('imeis.edit', $row))
+        ->assertSuccessful()
+        ->getContent();
+
+    expect(preg_match('/<option[^>]*value="Oppo"[^>]*selected/i', $html))->toBe(1);
+});
+
+test('edit form loads when selling price is null', function () {
+    $user = User::factory()->create();
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'nullsellprice',
+        'cash_stock_type' => '',
+        'make' => 'Oppo',
+        'model' => 'A5 128GB 4G White',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => 'Customer details from contact',
+        'phonenumber' => '',
+        'ref' => 'Deal details from note',
+        'staff' => 'staff@example.com',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '2649',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.edit', $row))
+        ->assertSuccessful()
+        ->assertSee('nullsellprice', false)
+        ->assertSee('Customer details from contact', false);
+});
+
+test('validation failure with empty selling price re-renders edit form', function () {
+    $user = User::factory()->create();
+    ImeiMake::factory()->create(['make' => 'Oppo']);
+    $row = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'nullsellfail',
+        'cash_stock_type' => '',
+        'make' => 'Oppo',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('imeis.edit', $row))
+        ->followingRedirects()
+        ->put(route('imeis.update', $row), [
+            '_token' => csrf_token(),
+            'make' => 'NotARealMake',
+            'model' => '',
+            'selling_price' => '',
+            'date_in' => '',
+            'notes' => 'Browsed contact details',
+            'ref' => 'Browsed note details',
+        ])
+        ->assertSuccessful()
+        ->assertSee('Browsed contact details', false)
+        ->assertSee('Browsed note details', false);
+});
