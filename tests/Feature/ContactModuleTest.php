@@ -216,7 +216,7 @@ test('blank service note search lists all notes paginated', function () {
     $this->actingAs($user)
         ->get(route('notes.index'))
         ->assertSuccessful()
-        ->assertSee('Showing open service notes', false)
+        ->assertSee('Showing your service notes', false)
         ->assertSee('Note 1', false)
         ->assertSee('Note 20', false)
         ->assertDontSee('Note 21', false);

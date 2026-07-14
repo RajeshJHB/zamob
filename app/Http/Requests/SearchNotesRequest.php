@@ -79,6 +79,10 @@ class SearchNotesRequest extends FormRequest
 
     public function onlyMine(): bool
     {
+        if (! $this->has('only_mine')) {
+            return true;
+        }
+
         return $this->boolean('only_mine');
     }
 

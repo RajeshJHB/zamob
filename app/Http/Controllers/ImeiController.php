@@ -792,8 +792,13 @@ class ImeiController extends Controller
             $hasSort = true;
         }
 
-        // Default sort if nothing chosen: newest Date updated, then newest Date In.
+        // Default sort if nothing chosen: IMEI-column matches first when searching, then newest dates.
         if (! $hasSort) {
+            $imeiPriorityTerm = $search !== '' ? $search : $search2;
+            if ($imeiPriorityTerm !== '') {
+                $query->orderByRaw('CASE WHEN imei LIKE ? THEN 0 ELSE 1 END', ['%'.$imeiPriorityTerm.'%']);
+            }
+
             $query->orderByDesc('date_updated');
             $query->orderByDesc('date_in');
         }

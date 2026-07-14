@@ -20,7 +20,7 @@ test('notes page shows search form and nav includes notes link', function () {
         ->assertSee('Selected types only', false)
         ->assertSee('Start date', false)
         ->assertSee('End date', false)
-        ->assertSee('Showing open service notes', false)
+        ->assertSee('Showing your service notes', false)
         ->assertSee('Print', false)
         ->assertSee(route('notes.print'), false)
         ->assertSee('id="note_status"', false)
@@ -29,7 +29,8 @@ test('notes page shows search form and nav includes notes link', function () {
         ->getContent();
 
     expect($html)->toContain(route('notes.index'))
-        ->and($html)->toContain('>Notes</');
+        ->and($html)->toContain('>Notes</')
+        ->and($html)->toMatch('/name="only_mine"[^>]*value="1"[^>]*checked|checked[^>]*name="only_mine"[^>]*value="1"/');
 });
 
 test('legacy notes search url redirects to notes index', function () {
@@ -189,8 +190,9 @@ test('notes search rejects selected note type scope without any types chosen', f
         ->assertSessionHasErrors('note_type_id');
 });
 
-test('notes page defaults to open notes only', function () {
+test('notes page defaults to all statuses and only my notes', function () {
     $user = User::factory()->create();
+    $otherUser = User::factory()->create();
     $contact = Contact::factory()->create();
 
     ServiceNote::factory()->create([
@@ -206,12 +208,27 @@ test('notes page defaults to open notes only', function () {
         'body' => 'Already completed',
         'created_by' => $user->id,
     ]);
+    ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'heading' => 'Someone else note',
+        'body' => 'Not mine',
+        'created_by' => $otherUser->id,
+    ]);
 
     $this->actingAs($user)
         ->get(route('notes.index'))
         ->assertSuccessful()
+        ->assertSee('Showing your service notes', false)
         ->assertSee('Open note', false)
-        ->assertDontSee('Closed note', false);
+        ->assertSee('Closed note', false)
+        ->assertDontSee('Someone else note', false);
+
+    $this->actingAs($user)
+        ->get(route('notes.index', ['note_status' => ServiceNote::STATUS_OPEN]))
+        ->assertSuccessful()
+        ->assertSee('Open note', false)
+        ->assertDontSee('Closed note', false)
+        ->assertDontSee('Someone else note', false);
 
     $this->actingAs($user)
         ->get(route('notes.index', ['note_status' => ServiceNote::STATUS_CLOSED]))
@@ -220,10 +237,14 @@ test('notes page defaults to open notes only', function () {
         ->assertDontSee('Open note', false);
 
     $this->actingAs($user)
-        ->get(route('notes.index', ['note_status' => '']))
+        ->get(route('notes.index', [
+            'note_status' => '',
+            'only_mine' => '0',
+        ]))
         ->assertSuccessful()
         ->assertSee('Open note', false)
-        ->assertSee('Closed note', false);
+        ->assertSee('Closed note', false)
+        ->assertSee('Someone else note', false);
 });
 
 test('only my notes checkbox limits results to the logged in user', function () {

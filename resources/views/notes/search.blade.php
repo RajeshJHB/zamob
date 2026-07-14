@@ -24,18 +24,19 @@
             <div class="min-w-[12rem]">
                 <label for="note_status" class="block text-sm font-medium text-gray-700 mb-1">Note status</label>
                 <select name="note_status" id="note_status" onchange="this.form.submit()" class="border border-gray-300 rounded px-3 py-2 shadow-sm w-full max-w-xs">
-                    <option value="{{ \App\Models\ServiceNote::STATUS_OPEN }}" @selected(($noteStatus ?? \App\Models\ServiceNote::STATUS_OPEN) === \App\Models\ServiceNote::STATUS_OPEN)>Open</option>
+                    <option value="{{ \App\Models\ServiceNote::STATUS_OPEN }}" @selected(($noteStatus ?? '') === \App\Models\ServiceNote::STATUS_OPEN)>Open</option>
                     <option value="{{ \App\Models\ServiceNote::STATUS_CLOSED }}" @selected(($noteStatus ?? '') === \App\Models\ServiceNote::STATUS_CLOSED)>Closed</option>
-                    <option value="" @selected(($noteStatus ?? \App\Models\ServiceNote::STATUS_OPEN) === '')>All statuses</option>
+                    <option value="" @selected(($noteStatus ?? '') === '')>All statuses</option>
                 </select>
                 <label class="mt-2 flex items-center gap-2 cursor-pointer">
+                    <input type="hidden" name="only_mine" value="0">
                     <input
                         type="checkbox"
                         name="only_mine"
                         value="1"
                         class="rounded border-gray-300"
                         onchange="this.form.submit()"
-                        @checked($onlyMine ?? false)
+                        @checked($onlyMine ?? true)
                     >
                     <span class="text-sm text-gray-800">Only my notes</span>
                 </label>
@@ -122,6 +123,8 @@
 
         @if($listingAll ?? false)
             <p class="text-sm text-gray-600 mb-4">Showing all service notes (newest first, {{ \App\Support\ServiceNoteBrowsePageSize::SIZE }} per page).</p>
+        @elseif($listingMyNotesDefault ?? false)
+            <p class="text-sm text-gray-600 mb-4">Showing your service notes (all statuses, newest first, {{ \App\Support\ServiceNoteBrowsePageSize::SIZE }} per page).</p>
         @elseif($listingOpenDefault ?? false)
             <p class="text-sm text-gray-600 mb-4">Showing open service notes (newest first, {{ \App\Support\ServiceNoteBrowsePageSize::SIZE }} per page).</p>
         @else
@@ -211,6 +214,8 @@
             <p class="text-gray-600">
                 @if($listingAll ?? false)
                     No service notes yet.
+                @elseif($listingMyNotesDefault ?? false)
+                    You have no service notes yet.
                 @else
                     No service notes matched your search.
                 @endif

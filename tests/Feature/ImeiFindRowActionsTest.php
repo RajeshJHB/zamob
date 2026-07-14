@@ -167,6 +167,120 @@ test('imei index quick search filters results by search term', function () {
         ->assertDontSee('OTHER0', false);
 });
 
+test('quick search lists imei-column matches before other column matches when unsorted', function () {
+    $user = User::factory()->create();
+    $now = now();
+
+    Imei::query()->create([
+        'date_in' => $now->copy()->subDay(),
+        'date_updated' => $now->copy()->subHour(),
+        'imei' => '357050940000001',
+        'cash_stock_type' => '',
+        'make' => 'ImeiColMake',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => $now,
+        'date_updated' => $now,
+        'imei' => '999999999999999',
+        'cash_stock_type' => '',
+        'make' => 'NotesOnlyMake',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => 'Customer mentioned 35705094 earlier',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', ['search' => '35705094', 'scope' => 'all', 'date_scope' => 'all']))
+        ->assertSuccessful()
+        ->assertSeeInOrder(['357050940000001', '999999999999999']);
+});
+
+test('explicit sort overrides imei-column search priority', function () {
+    $user = User::factory()->create();
+    $now = now();
+
+    Imei::query()->create([
+        'date_in' => $now->copy()->subDay(),
+        'date_updated' => $now->copy()->subHour(),
+        'imei' => '357050940000001',
+        'cash_stock_type' => '',
+        'make' => 'AlphaMake',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => $now,
+        'date_updated' => $now,
+        'imei' => '999999999999999',
+        'cash_stock_type' => '',
+        'make' => 'ZuluMake',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => 'Customer mentioned 35705094 earlier',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'search' => '35705094',
+            'scope' => 'all',
+            'date_scope' => 'all',
+            'sort1_column' => 'make',
+            'sort1_dir' => 'desc',
+        ]))
+        ->assertSuccessful()
+        ->assertSeeInOrder(['ZuluMake', 'AlphaMake']);
+});
+
 test('view link from index preserves list filter state for exit return', function () {
     $user = User::factory()->create();
     Imei::query()->create([

@@ -21,12 +21,13 @@ class NotesController extends Controller
         $noteStatusFilter = $this->resolvedNoteStatus($request);
         $noteStatusInput = $request->has('note_status')
             ? (string) $request->input('note_status', '')
-            : ServiceNote::STATUS_OPEN;
+            : '';
         $onlyMine = $request->onlyMine();
         $startDate = $request->startDate();
         $endDate = $request->endDate();
         $hasDateFilter = $request->hasDateFilter();
         $listingAll = $term === '' && $noteTypeIds === [] && $noteStatusFilter === null && ! $onlyMine && ! $hasDateFilter;
+        $listingMyNotesDefault = $term === '' && $noteTypeIds === [] && $noteStatusFilter === null && $onlyMine && ! $hasDateFilter;
         $listingOpenDefault = $term === '' && $noteTypeIds === [] && $noteStatusFilter === ServiceNote::STATUS_OPEN && ! $onlyMine && ! $hasDateFilter;
         $noteTypes = $this->noteTypesForSelect();
         $selectedNoteTypes = $noteTypes->whereIn('id', $noteTypeIds)->values();
@@ -48,6 +49,7 @@ class NotesController extends Controller
             'selectedNoteTypes' => $selectedNoteTypes,
             'notes' => $notes,
             'listingAll' => $listingAll,
+            'listingMyNotesDefault' => $listingMyNotesDefault,
             'listingOpenDefault' => $listingOpenDefault,
         ]);
     }
@@ -128,7 +130,7 @@ class NotesController extends Controller
     private function resolvedNoteStatus(SearchNotesRequest $request): ?string
     {
         if (! $request->has('note_status')) {
-            return ServiceNote::STATUS_OPEN;
+            return null;
         }
 
         $raw = (string) $request->input('note_status', '');
@@ -139,6 +141,6 @@ class NotesController extends Controller
 
         return in_array($raw, [ServiceNote::STATUS_OPEN, ServiceNote::STATUS_CLOSED], true)
             ? $raw
-            : ServiceNote::STATUS_OPEN;
+            : null;
     }
 }
