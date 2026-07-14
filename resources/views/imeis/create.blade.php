@@ -471,16 +471,28 @@
                         @unless($readonlyAfterSave)
                             <div id="imei-linked-service-note-wrap" class="hidden mt-3 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2">
                                 <input type="hidden" name="linked_service_note_id" id="linked_service_note_id" value="">
-                                <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
-                                    <input
-                                        type="checkbox"
-                                        name="close_linked_service_note"
-                                        id="close_linked_service_note"
-                                        value="1"
-                                        class="rounded border-gray-300"
-                                    >
-                                    <span class="font-medium">Close Note</span>
-                                </label>
+                                <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                                        <input
+                                            type="checkbox"
+                                            name="close_linked_service_note"
+                                            id="close_linked_service_note"
+                                            value="1"
+                                            class="rounded border-gray-300"
+                                        >
+                                        <span class="font-medium">Close Note</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                                        <input
+                                            type="checkbox"
+                                            name="scan_out_device"
+                                            id="scan_out_device"
+                                            value="1"
+                                            class="rounded border-gray-300"
+                                        >
+                                        <span class="font-medium">Scan out Device</span>
+                                    </label>
+                                </div>
                                 <p id="imei-linked-service-note-hint" class="mt-1 text-xs text-gray-600"></p>
                             </div>
                         @endunless
@@ -1746,6 +1758,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const linkedServiceNoteWrap = document.getElementById('imei-linked-service-note-wrap');
     const linkedServiceNoteIdInput = document.getElementById('linked_service_note_id');
     const closeLinkedServiceNoteCheckbox = document.getElementById('close_linked_service_note');
+    const scanOutDeviceCheckbox = document.getElementById('scan_out_device');
     const linkedServiceNoteHint = document.getElementById('imei-linked-service-note-hint');
 
     function isImeiFieldEmpty(fieldId) {
@@ -1825,6 +1838,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (closeLinkedServiceNoteCheckbox) {
             closeLinkedServiceNoteCheckbox.checked = false;
         }
+        if (scanOutDeviceCheckbox) {
+            scanOutDeviceCheckbox.checked = false;
+        }
         if (linkedServiceNoteWrap) {
             linkedServiceNoteWrap.classList.add('hidden');
         }
@@ -1842,6 +1858,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (closeLinkedServiceNoteCheckbox) {
             closeLinkedServiceNoteCheckbox.checked = false;
         }
+        if (scanOutDeviceCheckbox) {
+            scanOutDeviceCheckbox.checked = false;
+        }
         linkedServiceNoteWrap.classList.remove('hidden');
 
         if (linkedServiceNoteHint) {
@@ -1849,7 +1868,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const statusLabel = note.status === 'closed' ? ' (already closed)' : ' (open)';
             linkedServiceNoteHint.textContent = 'When you save this IMEI with Close Note ticked, '
                 + numberLabel + statusLabel
-                + ' will be closed if it is open and this IMEI number will be added to the service note.';
+                + ' will be closed if it is open and this IMEI number will be added to the service note. '
+                + 'Scan out Device changes status from In Shop to Scanned Out.';
         }
     }
 

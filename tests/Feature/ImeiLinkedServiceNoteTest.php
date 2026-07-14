@@ -156,3 +156,91 @@ test('close note on update appends imei without reopening a closed note', functi
     expect($note->status)->toBe(ServiceNote::STATUS_CLOSED);
     expect($note->body)->toContain('IMEI: updateimei01');
 });
+
+test('scan out device changes in shop status to scanned out on update', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'status' => ServiceNote::STATUS_OPEN,
+        'body' => 'Ready for collection.',
+        'created_by' => $user->id,
+    ]);
+    \App\Models\ImeiStatus::query()->firstOrCreate(['status' => 'In Shop']);
+    $imei = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'scanout01',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => 'In Shop',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('imeis.update', $imei), imeiStorePayload([
+            'imei' => 'scanout01',
+            'status' => 'In Shop',
+            'linked_service_note_id' => $note->id,
+            'scan_out_device' => '1',
+        ]))
+        ->assertRedirect();
+
+    expect($imei->fresh()->status)->toBe(\App\Support\ImeiLinkedServiceNote::SCAN_OUT_STATUS);
+    expect(\App\Models\ImeiStatus::query()->where('status', 'Scanned Out')->exists())->toBeTrue();
+    expect($note->fresh()->status)->toBe(ServiceNote::STATUS_OPEN);
+});
+
+test('scan out device does not change status when imei is not in shop', function () {
+    $user = User::factory()->create();
+    $contact = Contact::factory()->create();
+    $note = ServiceNote::factory()->create([
+        'contact_id' => $contact->id,
+        'created_by' => $user->id,
+    ]);
+    \App\Models\ImeiStatus::query()->firstOrCreate(['status' => 'Sold']);
+    $imei = Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'scanout02',
+        'cash_stock_type' => '',
+        'make' => '',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => 'Sold',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('imeis.update', $imei), imeiStorePayload([
+            'imei' => 'scanout02',
+            'status' => 'Sold',
+            'linked_service_note_id' => $note->id,
+            'scan_out_device' => '1',
+        ]))
+        ->assertRedirect();
+
+    expect($imei->fresh()->status)->toBe('Sold');
+});

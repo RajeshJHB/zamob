@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Imei;
+use App\Models\ImeiStatus;
 use App\Models\ServiceNote;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ final class ImeiLinkedServiceNote
 
     public const BODY_MAX_LENGTH = 2000;
 
+    public const SCAN_OUT_STATUS = 'Scanned Out';
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -22,6 +25,7 @@ final class ImeiLinkedServiceNote
         return [
             'linked_service_note_id' => ['nullable', 'integer', Rule::exists('service_notes', 'id')],
             'close_linked_service_note' => ['nullable', 'boolean'],
+            'scan_out_device' => ['nullable', 'boolean'],
         ];
     }
 
@@ -31,17 +35,24 @@ final class ImeiLinkedServiceNote
      */
     public static function stripFromImeiPayload(array $data): array
     {
-        unset($data['linked_service_note_id'], $data['close_linked_service_note']);
+        unset($data['linked_service_note_id'], $data['close_linked_service_note'], $data['scan_out_device']);
 
         return $data;
     }
 
     public static function applyFromImeiSave(Request $request, Imei $imei): void
     {
-        if (! $request->boolean('close_linked_service_note')) {
-            return;
+        if ($request->boolean('close_linked_service_note')) {
+            self::closeLinkedServiceNote($request, $imei);
         }
 
+        if ($request->boolean('scan_out_device')) {
+            self::scanOutDeviceIfInShop($imei);
+        }
+    }
+
+    private static function closeLinkedServiceNote(Request $request, Imei $imei): void
+    {
         $noteId = (int) $request->input('linked_service_note_id', 0);
         if ($noteId <= 0) {
             return;
@@ -67,6 +78,21 @@ final class ImeiLinkedServiceNote
         }
 
         $note->update($updates);
+    }
+
+    private static function scanOutDeviceIfInShop(Imei $imei): void
+    {
+        $imei->refresh();
+
+        if ($imei->status !== ImeiInShopAgeHighlight::IN_SHOP_STATUS) {
+            return;
+        }
+
+        ImeiStatus::query()->firstOrCreate(['status' => self::SCAN_OUT_STATUS]);
+
+        $imei->update([
+            'status' => self::SCAN_OUT_STATUS,
+        ]);
     }
 
     public static function appendImeiToBody(string $body, string $imei): string

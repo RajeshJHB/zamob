@@ -80,7 +80,9 @@ test('add and edit imei form includes browse contacts button', function () {
         ->assertSee('Browse', false)
         ->assertSee('id="imei-contact-browse-search"', false)
         ->assertSee('id="close_linked_service_note"', false)
-        ->assertSee('Close Note', false);
+        ->assertSee('Close Note', false)
+        ->assertSee('id="scan_out_device"', false)
+        ->assertSee('Scan out Device', false);
 });
 
 test('imei service notes browse returns notes for contact newest first', function () {
