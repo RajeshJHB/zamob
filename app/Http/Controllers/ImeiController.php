@@ -629,12 +629,14 @@ class ImeiController extends Controller
         $removeFieldKeys = ImeiBulkEdit::removeSearchTextFieldKeys($formValues);
         $replaceSearchFieldKeys = ImeiBulkEdit::replaceSearchTextFieldKeys($formValues);
         $partialTextFieldKeys = ImeiBulkEdit::partialTextEditFieldKeys($formValues);
+        $dateUpdatedEqualsDateIn = ImeiBulkEdit::shouldSetDateUpdatedFromDateIn($formValues);
         $updateAttributes = ImeiBulkEdit::buildUpdateAttributes(
             $request->replaceValues(),
             $now,
             $partialTextFieldKeys,
             ImeiBulkEdit::shouldKeepDateUpdated($formValues),
             ImeiBulkEdit::normalizedReplaceDateUpdated($formValues),
+            $dateUpdatedEqualsDateIn,
         );
 
         $updated = $this->processImeisForBulkOperation($query, function (Imei $imei) use (
@@ -643,8 +645,13 @@ class ImeiController extends Controller
             $removeFieldKeys,
             $replaceSearchFieldKeys,
             $userEmail,
+            $dateUpdatedEqualsDateIn,
         ): void {
             $attributes = $updateAttributes;
+
+            if ($dateUpdatedEqualsDateIn && $imei->date_in !== null) {
+                $attributes['date_updated'] = $imei->date_in;
+            }
 
             foreach ($removeFieldKeys as $fieldKey) {
                 $searchTerm = ImeiBulkEdit::searchValue($formValues, $fieldKey);

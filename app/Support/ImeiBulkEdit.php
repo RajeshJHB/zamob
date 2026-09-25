@@ -20,6 +20,8 @@ final class ImeiBulkEdit
 
     public const REPLACE_DATE_UPDATED_REQUEST_KEY = 'replace_date_updated';
 
+    public const DATE_UPDATED_EQUALS_DATE_IN_REQUEST_KEY = 'date_updated_equals_date_in';
+
     /**
      * Dropdown search fields that support exclude (not equal) matching.
      *
@@ -146,6 +148,17 @@ final class ImeiBulkEdit
     /**
      * @param  array<string, mixed>  $values
      */
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public static function shouldSetDateUpdatedFromDateIn(array $values): bool
+    {
+        return self::booleanValue($values[self::DATE_UPDATED_EQUALS_DATE_IN_REQUEST_KEY] ?? false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
     public static function normalizedReplaceDateUpdated(array $values): ?\DateTimeInterface
     {
         $raw = $values[self::REPLACE_DATE_UPDATED_REQUEST_KEY] ?? null;
@@ -177,13 +190,16 @@ final class ImeiBulkEdit
         array $excludeFieldKeys = [],
         bool $keepDateUpdated = false,
         ?\DateTimeInterface $replaceDateUpdated = null,
+        bool $dateUpdatedEqualsDateIn = false,
     ): array {
         $attributes = [];
 
-        if ($replaceDateUpdated !== null) {
-            $attributes['date_updated'] = $replaceDateUpdated;
-        } elseif (! $keepDateUpdated) {
-            $attributes['date_updated'] = $now;
+        if (! $dateUpdatedEqualsDateIn) {
+            if ($replaceDateUpdated !== null) {
+                $attributes['date_updated'] = $replaceDateUpdated;
+            } elseif (! $keepDateUpdated) {
+                $attributes['date_updated'] = $now;
+            }
         }
 
         foreach (self::FIELD_KEYS as $fieldKey) {
@@ -275,6 +291,10 @@ final class ImeiBulkEdit
      */
     public static function hasAnyReplaceAction(array $values): bool
     {
+        if (self::shouldSetDateUpdatedFromDateIn($values)) {
+            return true;
+        }
+
         if (self::normalizedReplaceDateUpdated($values) !== null) {
             return true;
         }

@@ -61,6 +61,24 @@ test('build update attributes defaults date updated to now', function () {
     expect($attributes['date_updated'])->toEqual($now);
 });
 
+test('setting date updated from date in counts as a replace action and skips a shared date', function () {
+    expect(ImeiBulkEdit::shouldSetDateUpdatedFromDateIn([
+        'date_updated_equals_date_in' => '1',
+    ]))->toBeTrue();
+
+    expect(ImeiBulkEdit::hasAnyReplaceAction([
+        'date_updated_equals_date_in' => '1',
+    ]))->toBeTrue();
+
+    $attributes = ImeiBulkEdit::buildUpdateAttributes(
+        [],
+        new \DateTimeImmutable('2026-06-15 12:00:00'),
+        dateUpdatedEqualsDateIn: true,
+    );
+
+    expect($attributes)->not->toHaveKey('date_updated');
+});
+
 test('replace date updated counts as a replace action', function () {
     expect(ImeiBulkEdit::hasAnyReplaceAction([
         'replace_date_updated' => '2026-01-15T09:00',

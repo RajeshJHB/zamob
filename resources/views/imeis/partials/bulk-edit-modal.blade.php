@@ -158,11 +158,12 @@
 
                         <div>
                             <label class="flex items-start gap-2 text-sm text-gray-700">
+                                <input type="hidden" name="keep_date_updated" value="0">
                                 <input
                                     type="checkbox"
                                     name="keep_date_updated"
                                     value="1"
-                                    @checked(old('keep_date_updated'))
+                                    @checked(old('keep_date_updated', '1') == '1')
                                     class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                 >
                                 <span>Do not change date updated (leave each record&apos;s current value unless a Date updated value is set below)</span>
@@ -186,6 +187,16 @@
                                 Leave empty to keep each record&apos;s current value when the checkbox above is ticked,
                                 or to set today&apos;s date and time when it is not ticked.
                             </p>
+                            <label class="mt-2 flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="date_updated_equals_date_in"
+                                    value="1"
+                                    @checked(old('date_updated_equals_date_in'))
+                                    class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                <span>Set Date updated equal to Date in for each matching record</span>
+                            </label>
                             @error('replace_date_updated')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror

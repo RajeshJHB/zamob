@@ -76,11 +76,14 @@ test('bulk edit button is visible for role 5', function () {
     $user = User::factory()->create();
     grantRoleFiveForImeiBulkEdit($user);
 
-    $this->actingAs($user)
+    $html = $this->actingAs($user)
         ->get(route('imeis.index'))
         ->assertSuccessful()
         ->assertSee('id="imei-bulk-edit-open"', false)
-        ->assertSee('Bulk Edit', false);
+        ->assertSee('Bulk Edit', false)
+        ->getContent();
+
+    expect($html)->toMatch('/name="keep_date_updated"\s+value="1"\s+checked/');
 });
 
 test('users without role 5 cannot bulk edit imei records', function () {
@@ -387,6 +390,40 @@ test('bulk edit can backdate date updated without keep checkbox', function () {
 
     expect($match->status)->toBe('Sold')
         ->and($match->date_updated?->format('Y-m-d H:i'))->toBe('2020-01-01 08:00');
+});
+
+test('bulk edit can set date updated equal to date in for matching records', function () {
+    $user = User::factory()->create();
+    grantRoleFiveForImeiBulkEdit($user);
+
+    ImeiStatus::query()->firstOrCreate(['status' => 'Available']);
+
+    $dateIn = now()->subDays(12)->startOfMinute();
+    $match = createBulkEditImei('111111111111111', [
+        'status' => 'Available',
+        'date_in' => $dateIn,
+        'date_updated' => now(),
+    ]);
+    $otherUpdated = now()->subDay()->startOfMinute();
+    $other = createBulkEditImei('222222222222222', [
+        'status' => 'Sold',
+        'date_in' => now()->subDays(3)->startOfMinute(),
+        'date_updated' => $otherUpdated,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('imeis.bulk-edit'), [
+            'search_status' => 'Available',
+            'date_updated_equals_date_in' => '1',
+        ])
+        ->assertRedirect(route('imeis.index'))
+        ->assertSessionHas('message');
+
+    $match->refresh();
+    $other->refresh();
+
+    expect($match->date_updated?->format('Y-m-d H:i'))->toBe($dateIn->format('Y-m-d H:i'))
+        ->and($other->date_updated?->format('Y-m-d H:i'))->toBe($otherUpdated->format('Y-m-d H:i'));
 });
 
 test('bulk edit requires at least one search and one replace value', function () {

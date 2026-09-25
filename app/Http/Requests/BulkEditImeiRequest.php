@@ -81,6 +81,7 @@ class BulkEditImeiRequest extends FormRequest
         }
 
         $rules[ImeiBulkEdit::KEEP_DATE_UPDATED_REQUEST_KEY] = ['nullable', 'boolean'];
+        $rules[ImeiBulkEdit::DATE_UPDATED_EQUALS_DATE_IN_REQUEST_KEY] = ['nullable', 'boolean'];
         $rules[ImeiBulkEdit::REPLACE_DATE_UPDATED_REQUEST_KEY] = [
             'nullable',
             'date_format:Y-m-d H:i',
