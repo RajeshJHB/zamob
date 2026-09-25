@@ -59,6 +59,7 @@ class ImeiController extends Controller
         'start_date',
         'end_date',
         'search',
+        'search_column',
         'search2',
         'sort1_column',
         'sort1_dir',
@@ -714,6 +715,52 @@ class ImeiController extends Controller
         return $updated;
     }
 
+    private function quickSearchColumn(Request $request): ?string
+    {
+        $column = (string) $request->input('search_column', '');
+
+        if ($column === '' || ! array_key_exists($column, self::COLUMNS)) {
+            return null;
+        }
+
+        return $column;
+    }
+
+    private function applyContainsSearch(\Illuminate\Database\Eloquent\Builder $query, string $search, ?string $column): void
+    {
+        $term = '%'.$search.'%';
+
+        if ($column === null) {
+            $query->where(function ($q) use ($term) {
+                foreach (array_keys(self::databaseColumns()) as $databaseColumn) {
+                    $q->orWhere($databaseColumn, 'LIKE', $term);
+                }
+            });
+
+            return;
+        }
+
+        if ($column === 'cost_incl') {
+            $query->where(function ($q) use ($term) {
+                $this->orWhereCostInclLike($q, $term);
+            });
+
+            return;
+        }
+
+        $query->where($column, 'LIKE', $term);
+    }
+
+    private function orWhereCostInclLike(\Illuminate\Database\Eloquent\Builder $query, string $term): void
+    {
+        $multiplier = 1 + (ImeiCostIncl::vatPercent() / 100);
+
+        $query->orWhereRaw(
+            "TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(ROUND(CAST(NULLIF(cost_excl, '') AS DECIMAL(14,4)) * ?, 2) AS CHAR))) LIKE ?",
+            [$multiplier, $term]
+        );
+    }
+
     private function buildImeiQuery(Request $request, bool $unlimited = false): \Illuminate\Database\Eloquent\Builder
     {
         $dateScope = $request->input('date_scope', 'all');
@@ -726,22 +773,12 @@ class ImeiController extends Controller
 
         $search = trim((string) $request->input('search', ''));
         if ($search !== '') {
-            $term = '%'.$search.'%';
-            $query->where(function ($q) use ($term) {
-                foreach (array_keys(self::databaseColumns()) as $column) {
-                    $q->orWhere($column, 'LIKE', $term);
-                }
-            });
+            $this->applyContainsSearch($query, $search, $this->quickSearchColumn($request));
         }
 
         $search2 = trim((string) $request->input('search2', ''));
         if ($search2 !== '') {
-            $term2 = '%'.$search2.'%';
-            $query->where(function ($q) use ($term2) {
-                foreach (array_keys(self::databaseColumns()) as $column) {
-                    $q->orWhere($column, 'LIKE', $term2);
-                }
-            });
+            $this->applyContainsSearch($query, $search2, null);
         }
 
         if ($dateScope === 'range' && $dateColumn && in_array($dateColumn, array_keys(self::DATE_COLUMNS), true) && $startDate && $endDate) {
@@ -848,6 +885,7 @@ class ImeiController extends Controller
             'start_date',
             'end_date',
             'search',
+            'search_column',
             'search2',
             'sort1_column',
             'sort1_dir',
@@ -1254,7 +1292,7 @@ class ImeiController extends Controller
      */
     private function stripQuickSearchCriteria(array $params): array
     {
-        unset($params['search'], $params['search2']);
+        unset($params['search'], $params['search_column'], $params['search2']);
 
         return $params;
     }

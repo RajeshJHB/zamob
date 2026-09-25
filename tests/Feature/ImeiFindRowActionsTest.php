@@ -167,6 +167,68 @@ test('imei index quick search filters results by search term', function () {
         ->assertDontSee('OTHER0', false);
 });
 
+test('quick search can be limited to one column including columns not on screen', function () {
+    $user = User::factory()->create();
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => '111111111111111',
+        'cash_stock_type' => '',
+        'make' => 'ColumnOnlyMake',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    Imei::query()->create([
+        'date_in' => now(),
+        'date_updated' => now(),
+        'imei' => 'ZZZOTHERIMEI999',
+        'cash_stock_type' => '',
+        'make' => 'OtherMake',
+        'model' => '',
+        'sn' => '',
+        'location' => '',
+        'type' => '',
+        'status' => '',
+        'notes' => '',
+        'phonenumber' => '',
+        'ref' => '',
+        'staff' => '',
+        'item_code' => '',
+        'ourON' => '',
+        'salesON' => '',
+        'cost_excl' => '',
+        'selling_price' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('imeis.index', [
+            'search' => 'ColumnOnlyMake',
+            'search_column' => 'make',
+            'scope' => 'selected',
+            'columns' => ['imei'],
+            'date_scope' => 'all',
+        ]))
+        ->assertSuccessful()
+        ->assertSee('All columns', false)
+        ->assertSee('Make', false)
+        ->assertSee('111111111111111', false)
+        ->assertDontSee('ZZZOTHERIMEI999', false);
+});
+
 test('quick search lists imei-column matches before other column matches when unsorted', function () {
     $user = User::factory()->create();
     $now = now();

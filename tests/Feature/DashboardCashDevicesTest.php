@@ -252,6 +252,28 @@ test('dashboard never shows sold records for matching sale type', function () {
         ->assertDontSee('SoldCash', false);
 });
 
+test('dashboard never shows scanned out records for matching sale type', function () {
+    $user = User::factory()->create();
+
+    createDashboardImei([
+        'cash_stock_type' => 'Cash',
+        'make' => 'InShopCash',
+        'status' => 'In Shop',
+    ]);
+
+    createDashboardImei([
+        'cash_stock_type' => 'Cash',
+        'make' => 'ScannedOutCash',
+        'status' => 'Scanned Out',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['sale_type' => 'Cash']))
+        ->assertSuccessful()
+        ->assertSee('InShopCash', false)
+        ->assertDontSee('ScannedOutCash', false);
+});
+
 test('dashboard cash devices table can be sorted by column', function () {
     $user = User::factory()->create();
 

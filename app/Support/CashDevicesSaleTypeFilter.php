@@ -39,7 +39,8 @@ final class CashDevicesSaleTypeFilter
      */
     public static function applySoldExclusion(Builder $query): void
     {
-        $query->where('status', '!=', self::SOLD_STATUS);
+        $query->where('status', '!=', self::SOLD_STATUS)
+            ->where('status', '!=', ImeiLinkedServiceNote::SCAN_OUT_STATUS);
     }
 
     /**

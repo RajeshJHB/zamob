@@ -14,110 +14,128 @@
         request()->only(['page']),
     ), fn (mixed $value): bool => $value !== null && $value !== ''));
     $imeiBrowseTextDisplayLimit = 150;
+    $imeiToolbarControl = 'inline-flex items-center justify-center h-9 px-3 rounded-md text-sm font-bold shrink-0';
 @endphp
 <div class="bg-white rounded-lg shadow-md p-6">
-    <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 mb-6">
-        <div class="sm:justify-self-start">
-            <div class="flex flex-wrap items-center gap-3">
-                <h1 class="text-3xl font-bold">IMEI's</h1>
-                <div class="flex items-center gap-2">
-                    <label for="imei-profile-select" class="text-xs font-semibold text-gray-600">Profile</label>
-                    <select
-                        id="imei-profile-select"
-                        class="border border-gray-300 rounded-md py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                        <option value="" @selected(empty($activeProfileId))>(none)</option>
-                        @foreach(($savedFilters ?? collect()) as $profile)
-                            <option value="{{ $profile->id }}" @selected((int) $activeProfileId === (int) $profile->id)>{{ $profile->name }}</option>
-                        @endforeach
-                    </select>
+    <div class="mb-6 grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
+        <div class="grid w-max max-w-full grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-3 lg:col-start-1 lg:row-span-2">
+            <div class="col-span-2">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl font-bold">IMEI's</h1>
                     @if(! empty($filteredCostInclTotal))
-                        <div id="imei-filtered-cost-incl-total" class="flex items-center gap-1.5 border border-gray-200 rounded-md bg-gray-50 px-2.5 py-1.5">
+                        <div id="imei-filtered-cost-incl-total" class="inline-flex items-center gap-1.5 h-9 border border-gray-200 rounded-md bg-gray-50 px-2.5">
                             <span class="text-xs font-semibold text-gray-600">{{ $columnLabels['cost_incl'] ?? 'Cost incl' }} total</span>
                             <span class="text-sm font-bold text-gray-900 tabular-nums">{{ $filteredCostInclTotal }}</span>
                         </div>
                     @endif
                 </div>
-            </div>
-            @if(! empty($currentProfileName))
-                <div class="mt-1 text-sm font-semibold text-gray-700">
-                    Searched Profile: "{{ $currentProfileName }}"
-                </div>
-            @endif
-        </div>
-        <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-self-center">
-            <button type="button" id="imei-add-open-btn" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block text-center shrink-0">
-                Add IMEI
-            </button>
-            <form method="GET" action="{{ route('imeis.index') }}" class="flex items-center gap-2 min-w-0">
-                <input type="hidden" name="quick_search" value="1">
-                @if(! empty($activeProfileId))
-                    <input type="hidden" name="profile_id" value="{{ $activeProfileId }}">
+                @if(! empty($currentProfileName))
+                    <div class="mt-1 text-sm font-semibold text-gray-700">
+                        Searched Profile: "{{ $currentProfileName }}"
+                    </div>
                 @endif
-                @foreach($filterParams ?? [] as $key => $value)
-                    @if(is_array($value))
-                        @foreach($value as $item)
-                            <input type="hidden" name="{{ $key }}[]" value="{{ $item }}">
-                        @endforeach
-                    @elseif(! in_array($key, ['search', 'page', 'profile_id'], true))
-                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            </div>
+            <a
+                href="{{ route('imeis.search.reset') }}"
+                class="{{ $imeiToolbarControl }} col-start-3 row-start-1 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
+            >
+                Reset search
+            </a>
+            <form method="GET" action="{{ route('imeis.index') }}" class="contents">
+                <div class="hidden">
+                    <input type="hidden" name="quick_search" value="1">
+                    @if(! empty($activeProfileId))
+                        <input type="hidden" name="profile_id" value="{{ $activeProfileId }}">
                     @endif
-                @endforeach
+                    @foreach($filterParams ?? [] as $key => $value)
+                        @if(is_array($value))
+                            @foreach($value as $item)
+                                <input type="hidden" name="{{ $key }}[]" value="{{ $item }}">
+                            @endforeach
+                        @elseif(! in_array($key, ['search', 'search_column', 'page', 'profile_id'], true))
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                        @endif
+                    @endforeach
+                </div>
+                <div class="col-start-1 row-start-2">
+                    <label for="imei-search-column" class="sr-only">Search column</label>
+                    <select
+                        name="search_column"
+                        id="imei-search-column"
+                        class="h-9 w-full border border-gray-300 rounded-md px-2 text-sm text-gray-900 shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <option value="" @selected(request('search_column', '') === '')>All columns</option>
+                    @foreach($columnLabels as $columnKey => $columnLabel)
+                        <option value="{{ $columnKey }}" @selected(request('search_column') === $columnKey)>{{ $columnLabel }}</option>
+                    @endforeach
+                    </select>
+                </div>
                 <input
                     type="search"
                     name="search"
                     value="{{ request('search') }}"
                     placeholder="Quick search…"
-                    class="border border-gray-300 rounded-md py-2 px-3 text-sm text-gray-900 shadow-sm w-40 sm:w-52 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="col-start-2 row-start-2 h-9 border border-gray-300 rounded-md px-3 text-sm text-gray-900 shadow-sm w-40 sm:w-52 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                <button type="submit" class="bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-md text-sm shadow-sm shrink-0">
+                <button type="submit" class="{{ $imeiToolbarControl }} col-start-3 row-start-2 w-full bg-gray-700 hover:bg-gray-900 text-white">
                     Quick search
                 </button>
-                <a
-                    href="{{ route('imeis.search.reset') }}"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md text-sm shadow-sm shrink-0 inline-block text-center"
-                >
-                    Reset search
-                </a>
             </form>
         </div>
-        <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:justify-self-end">
-            <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 px-5 rounded-md text-base shadow-sm ring-2 ring-blue-200 inline-block">
-                Filter
-            </a>
-            @if($canBulkEditImei ?? false)
-                <button
-                    type="button"
-                    id="imei-bulk-edit-open"
-                    class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-1 px-3 rounded text-sm shadow-sm"
-                >
-                    Bulk Edit
-                </button>
-            @endif
-            @if($canBulkChangeStatus ?? false)
-                <div class="relative" id="imei-advanced-menu-container">
-                    <button id="imei-advanced-menu-button" type="button" class="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-1 px-3 rounded text-sm flex items-center gap-1">
-                        Advanced
-                        <svg id="imei-advanced-menu-arrow" class="h-3 w-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div id="imei-advanced-menu-dropdown"
-                         class="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 hidden">
-                        <button type="button" id="imei-bulk-status-open" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Bulk change Status
-                        </button>
-                    </div>
-                </div>
-            @endif
-            <a href="{{ route('imeis.print', $filterParams ?? []) }}" target="_blank" class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-1 px-3 rounded text-sm">
-                Print all results
-            </a>
-            <a href="{{ route('imeis.export', $filterParams ?? []) }}" class="bg-green-700 hover:bg-green-900 text-white font-bold py-1 px-3 rounded text-sm">
-                Export CSV
-            </a>
+        <div class="flex justify-center lg:col-start-2 lg:row-start-1">
+            <button type="button" id="imei-add-open-btn" class="{{ $imeiToolbarControl }} bg-blue-600 hover:bg-blue-800 text-white">
+                Add IMEI
+            </button>
         </div>
-    </div>
+        <div class="flex flex-wrap items-center justify-end gap-2 lg:col-start-3 lg:row-start-1">
+            <label for="imei-profile-select" class="text-xs font-semibold text-gray-600">Profile</label>
+            <select
+                id="imei-profile-select"
+                class="h-9 border border-gray-300 rounded-md px-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+                <option value="" @selected(empty($activeProfileId))>(none)</option>
+                @foreach(($savedFilters ?? collect()) as $profile)
+                    <option value="{{ $profile->id }}" @selected((int) $activeProfileId === (int) $profile->id)>{{ $profile->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-2 lg:col-start-3 lg:row-start-2">
+                <a href="{{ route('imeis.filter', $filterParams ?? []) }}" class="{{ $imeiToolbarControl }} bg-blue-600 hover:bg-blue-800 text-white">
+                    Filter
+                </a>
+                @if($canBulkEditImei ?? false)
+                    <button
+                        type="button"
+                        id="imei-bulk-edit-open"
+                        class="{{ $imeiToolbarControl }} bg-indigo-600 hover:bg-indigo-800 text-white"
+                    >
+                        Bulk Edit
+                    </button>
+                @endif
+                @if($canBulkChangeStatus ?? false)
+                    <div class="relative" id="imei-advanced-menu-container">
+                        <button id="imei-advanced-menu-button" type="button" class="{{ $imeiToolbarControl }} bg-indigo-600 hover:bg-indigo-800 text-white gap-1">
+                            Advanced
+                            <svg id="imei-advanced-menu-arrow" class="h-3 w-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="imei-advanced-menu-dropdown"
+                             class="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 hidden">
+                            <button type="button" id="imei-bulk-status-open" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Bulk change Status
+                            </button>
+                        </div>
+                    </div>
+                @endif
+                <a href="{{ route('imeis.print', $filterParams ?? []) }}" target="_blank" class="{{ $imeiToolbarControl }} bg-gray-600 hover:bg-gray-800 text-white">
+                    Print all results
+                </a>
+                <a href="{{ route('imeis.export', $filterParams ?? []) }}" class="{{ $imeiToolbarControl }} bg-green-700 hover:bg-green-900 text-white">
+                    Export CSV
+                </a>
+            </div>
+        </div>
 
     @if (session('message'))
         <div class="mb-4 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded">
