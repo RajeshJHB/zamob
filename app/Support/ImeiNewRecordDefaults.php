@@ -6,7 +6,7 @@ final class ImeiNewRecordDefaults
 {
     public const LOCATION = 'zaMobile Blairgowrie';
 
-    public const TYPE = 'Vodacom Contract';
+    public const TYPE = 'Phone';
 
     public const STATUS = 'In Shop';
 
